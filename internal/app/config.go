@@ -11,6 +11,7 @@ import (
 
 // Config is validated before any listener is opened. It contains no secrets.
 type Config struct {
+	DatabasePath    string
 	ListenAddress   string
 	ShutdownTimeout time.Duration
 	LogLevel        slog.Level
@@ -26,11 +27,13 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 		return fallback
 	}
 	listen := env("NORTHWAY_LISTEN_ADDR", "127.0.0.1:8080")
+	database := env("NORTHWAY_DATABASE_PATH", "")
 	shutdown := env("NORTHWAY_SHUTDOWN_TIMEOUT", "10s")
 	level := env("NORTHWAY_LOG_LEVEL", "info")
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&listen, "listen", listen, "IP:port to listen on")
+	fs.StringVar(&database, "database", database, "existing migrated SQLite file; empty disables storage")
 	fs.StringVar(&shutdown, "shutdown-timeout", shutdown, "maximum drain time")
 	fs.StringVar(&level, "log-level", level, "debug, info, warn or error")
 	if err := fs.Parse(args); err != nil {
@@ -55,7 +58,7 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	if !ok {
 		return Config{}, errors.New("log level must be debug, info, warn or error")
 	}
-	config := Config{ListenAddress: listen, ShutdownTimeout: timeout, LogLevel: logLevel}
+	config := Config{DatabasePath: database, ListenAddress: listen, ShutdownTimeout: timeout, LogLevel: logLevel}
 	return config, config.Validate()
 }
 
@@ -75,9 +78,30 @@ func (c Config) Validate() error {
 }
 
 const serveHelp = `Usage: northway serve [flags]
+  --database PATH          existing migrated SQLite file; NORTHWAY_DATABASE_PATH
   --listen IP:port          default 127.0.0.1:8080; NORTHWAY_LISTEN_ADDR
   --shutdown-timeout 10s    allowed 1s..1m; NORTHWAY_SHUTDOWN_TIMEOUT
   --log-level info          debug|info|warn|error; NORTHWAY_LOG_LEVEL
 Flags override explicitly present environment values. Port 0 is allowed for local tests.
-The foundation exposes /healthz and /readyz only; /readyz stays 503 until storage is wired.
+The server exposes health only. Readiness requires configured, usable storage.
 `
+
+func ParseMigrationPath(args []string, lookup func(string) (string, bool), output io.Writer) (string, error) {
+	path, _ := lookup("NORTHWAY_DATABASE_PATH")
+	fs := flag.NewFlagSet("migrate", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.StringVar(&path, "database", path, "local SQLite file")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			if _, writeErr := io.WriteString(output, "Usage: northway migrate --database PATH\nUses NORTHWAY_DATABASE_PATH when the flag is absent. Stop serve before migrating.\n"); writeErr != nil {
+				return "", writeErr
+			}
+			return "", flag.ErrHelp
+		}
+		return "", errors.New("invalid migrate flags; use 'northway migrate --help'")
+	}
+	if fs.NArg() != 0 || path == "" {
+		return "", errors.New("migrate requires a database path and no positional arguments")
+	}
+	return path, nil
+}

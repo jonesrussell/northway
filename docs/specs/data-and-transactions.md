@@ -1,6 +1,6 @@
 # Data, transactions and background work
 
-Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: proposed behavior; SQL migrations are Phase 1 work.
+Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: SQLite corpus schema, migrations and connection lifecycle are implemented in #10; ingestion/query/feedback transactions and backup/retention below remain specifications for later slices. See [storage implementation](../storage.md).
 
 ## SQLite invariants
 
@@ -8,7 +8,7 @@ Use one file-backed SQLite database on local storage, WAL journal mode, foreign 
 
 SQLite provides no server roles or row-level security. Restrict file/directory access to the service/operator, but recognize that anyone with database-file access can read every tenant. Every private query requires explicit authenticated tenant scope, including FTS joins, writes, deletions, batch jobs and caches. Omitted tenant scope must fail closed. Composite tenant/object uniqueness and foreign keys prevent accidental cross-tenant attachments. Authorization lookup is a dedicated narrow path; feature code cannot access a raw database handle.
 
-Use opaque UUID strings consistently in JSON, Go and SQL. Store IDs as validated TEXT and timestamps as UTC integer microseconds, converting explicitly to RFC3339 at the API boundary. Prefer STRICT tables and CHECK constraints for enums, booleans and nonnegative counters. Never use floating point for quota/cost accounting. Define unique source/item identity and version hashes independently of presentation titles.
+Use opaque UUID strings consistently in JSON, Go and SQL. Store IDs as validated TEXT and timestamps as UTC integer microseconds, converting explicitly to RFC3339 at the API boundary. Validate article timestamps and search lower bounds against the Unix epoch through the end of UTC year 9999 before integer conversion; discard sub-microsecond precision. Prefer STRICT tables and CHECK constraints for enums, booleans and nonnegative counters. Never use floating point for quota/cost accounting. Define unique source/item identity and version hashes independently of presentation titles.
 
 Store API keys as a nonsecret lookup prefix and a cryptographic digest of high-entropy secret material; constant-time comparison, revocation and last-used metadata. Never record raw keys. Exact generation/storage design is reviewed in the identity issue.
 

@@ -1,6 +1,6 @@
 {
   "verified_at": "2026-08-30",
-  "status": "selected-not-installed",
+  "status": "partially-installed-see-go-mod-and-docs-storage",
   "go": "1.27.0",
   "modules": [
     {
@@ -41,7 +41,7 @@
     {
       "path": "github.com/pressly/goose/v3",
       "version": "v3.27.3",
-      "use": "tool",
+      "use": "runtime-migration-library",
       "phase": "1",
       "metadata": "https://proxy.golang.org/github.com/pressly/goose/v3/@v/v3.27.3.info"
     },

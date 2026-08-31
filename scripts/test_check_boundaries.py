@@ -37,4 +37,12 @@ class Boundaries(unittest.TestCase):
     def test_json_stream(self):
         self.assertEqual([{"n":1},{"n":2}],list(decode_stream(' {"n":1}\n {"n":2}\n')))
 
+    def test_generated_bindings_cannot_escape_to_app(self):
+        self.assertTrue(violations([package(MODULE+"/internal/app",[MODULE+"/internal/sqlite/sqlc"])]))
+        self.assertEqual([],violations([package(MODULE+"/internal/sqlite",[MODULE+"/internal/sqlite/sqlc",MODULE+"/db"])]))
+
+    def test_migration_assets_are_not_a_sql_bypass(self):
+        self.assertTrue(violations([package("database/sql",Standard=True),package(MODULE+"/db",["database/sql"])]))
+        self.assertTrue(violations([package(MODULE+"/internal/app",[MODULE+"/db"])]))
+
 if __name__=="__main__":unittest.main()

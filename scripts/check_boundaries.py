@@ -6,6 +6,7 @@ import sys
 MODULE = "github.com/jonesrussell/northway"
 FEATURES = {"identity", "source", "article", "feed", "ingest", "query", "ranking", "feedback", "usage", "schedule"}
 ALLOWED = {
+    "db": set(),
     "app": FEATURES | {"httpapi", "sqlite", "fetch", "providers"},
     "httpapi": FEATURES,
     "identity": set(),
@@ -18,11 +19,12 @@ ALLOWED = {
     "feedback": {"identity", "article", "feed", "usage"},
     "usage": {"identity"},
     "schedule": {"identity", "ingest", "query", "usage"},
-    "sqlite": FEATURES,
+    "sqlite": FEATURES | {"db"},
     "fetch": {"source", "article", "ingest"},
     "providers": {"ranking", "ingest", "article"},
 }
 EXTERNAL = {
+    "github.com/pressly/goose/v3": {"sqlite"},
     "modernc.org/sqlite": {"sqlite"},
     "github.com/mmcdole/gofeed": {"fetch"},
     "github.com/anthropics/anthropic-sdk-go": {"providers"},
@@ -43,6 +45,8 @@ def canonical(path):
 
 def layer(path):
     path = canonical(path)
+    if path == MODULE + "/db":
+        return "db"
     prefix = MODULE + "/internal/"
     if path.startswith(prefix):
         return path[len(prefix):].split("/", 1)[0]
@@ -63,6 +67,9 @@ def violations(packages):
             continue
         for raw in package.get("Imports", []):
             target = canonical(raw)
+            if target.startswith(MODULE + "/internal/sqlite/sqlc") and source_layer != "sqlite":
+                errors.append(f"generated SQL outside adapter: {source} -> {target}")
+                continue
             if target == "database/sql" or target.startswith("database/sql/"):
                 if source_layer != "sqlite":
                     errors.append(f"SQL outside storage adapter: {source} -> {target}")

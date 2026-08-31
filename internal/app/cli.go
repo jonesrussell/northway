@@ -8,6 +8,9 @@ import (
 	"io"
 	"log/slog"
 	"runtime"
+	"time"
+
+	"github.com/jonesrussell/northway/internal/sqlite"
 )
 
 // Version and Revision can be supplied by the reproducible release build.
@@ -23,7 +26,7 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		if len(args) != 1 {
 			return errors.New("help takes no arguments")
 		}
-		_, err := io.WriteString(stdout, "Usage: northway <serve|version>\nUse northway serve --help for configuration.\nIngestion and migrations are not implemented yet.\n")
+		_, err := io.WriteString(stdout, "Usage: northway <serve|migrate|version>\nUse northway serve --help or northway migrate --help for configuration.\nIngestion is not implemented yet.\n")
 		return err
 	case "version":
 		if len(args) != 1 {
@@ -36,6 +39,21 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 			OS       string `json:"os"`
 			Arch     string `json:"arch"`
 		}{Version, Revision, runtime.Version(), runtime.GOOS, runtime.GOARCH})
+	case "migrate":
+		path, err := ParseMigrationPath(args[1:], lookup, stdout)
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		migrationCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		defer cancel()
+		if err := sqlite.Migrate(migrationCtx, path); err != nil {
+			return err
+		}
+		slog.New(slog.NewJSONHandler(stderr, nil)).Info("migrations complete")
+		return nil
 	case "serve":
 		config, err := ParseConfig(args[1:], lookup, stdout)
 		if errors.Is(err, flag.ErrHelp) {

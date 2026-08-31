@@ -1,0 +1,11 @@
+version: '2'
+sql:
+  - engine: sqlite
+    schema: db/migrations/00001_corpus.sql
+    queries: db/queries
+    gen:
+      go:
+        package: sqlc
+        out: internal/sqlite/sqlc
+        sql_package: database/sql
+        emit_empty_slices: true

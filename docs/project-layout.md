@@ -25,6 +25,7 @@ api/
   schemas/                # versioned transport JSON schemas
   examples/               # synthetic, schema-checked examples
 db/
+  migrations.go           # embed-only assets package; SQLite adapter is its sole consumer
   migrations/             # versioned Goose SQL migrations
   queries/                # sqlc source SQL
 docs/
@@ -44,7 +45,7 @@ One module: `github.com/jonesrussell/northway`. One executable, initially `north
 1. cmd imports app. app wires concrete dependencies and may import all internal packages.
 2. Transport imports feature services and identity, never SQL or provider SDKs.
 3. query orchestrates feed/article/ranking/usage/identity; ingest orchestrates source/article. Features do not import app, httpapi, sqlite, fetch or providers.
-4. sqlite implements feature-owned consumer interfaces and may import feature types. Generated sqlc types remain inside sqlite adapters.
+4. sqlite implements feature-owned consumer interfaces when needed and may import feature types. Generated sqlc types remain inside sqlite adapters, including exclusion from app. db is an embed-only migration-assets package consumed only by sqlite; it cannot import SQL or hold handles.
 5. providers/anthropic implements ranking's small interface and optionally a separate ingest discovery interface; fetch implements feed acquisition interfaces. schedule coordinates ingest/query through narrow interfaces. None knows HTTP handlers or tenant UI models. Ranking remains tool-free; only discovery may use capped provider-side search.
 6. No import of North Cloud, Claudriel or Waaseyaa application packages. Upstream taxonomy may be considered for a later domain import with a pinned version.
 

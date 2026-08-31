@@ -21,7 +21,7 @@ Go 1.27 and module versions above are verified selections as of this date, not e
 
 ## Current implementation
 
-The runtime foundation uses only the Go standard library. `go list -m all` contains this module alone; no SQLite/feed/provider modules are installed yet. `make vuln` uses the separately pinned golang.org/x/vuln tool v1.7.0, verified against the official module proxy. The older GitHub release v1.1.4 crashed while analyzing Go 1.27 standard-library syntax; the newer module tag must pass the same full source scan, not a reduced substitute. The tool is not linked into the application.
+Issue #10 installs modernc.org/sqlite v1.57.0 and github.com/pressly/goose/v3 v3.27.3. Goose is refined from a separate CLI tool to its driver-agnostic provider library in northway migrate, keeping one executable; only the SQLite driver is linked, not Goose's multi-driver CLI or dotenv loader. sqlc v1.31.1 remains a checksum-pinned development tool. See [storage](storage.md), go.mod/go.sum, and THIRD_PARTY_NOTICES.txt for the installed graph and generated notices. No feed/provider SDK is installed. `make vuln` uses the separately pinned golang.org/x/vuln tool v1.7.0; it is not linked into the application. A module-level dependency graph includes upstream tool/test dependencies; use go list -deps for the linked application graph.
 
 ## Deliberately deferred
 

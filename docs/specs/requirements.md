@@ -1,6 +1,6 @@
 # Product and engineering requirements
 
-Status: specified, unimplemented. Requirement IDs are stable references for issues, tests and review; changing an invariant requires a spec/ADR update in the same PR.
+Status: requirements are delivered incrementally; runtime and storage tests establish only their scoped portions, not the complete feed-service/release requirements below. Requirement IDs are stable references for issues, tests and review; changing an invariant requires a spec/ADR update in the same PR.
 
 | ID | Requirement | Verification before release |
 |---|---|---|
