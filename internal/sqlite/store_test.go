@@ -47,16 +47,16 @@ func fresh(t *testing.T) (*Store, string) {
 func seed(t *testing.T, s *Store, tenant identity.TenantID) {
 	t.Helper()
 	must(t, s.CreateTenant(t.Context(), tenant))
-	must(t, s.CreateSource(t.Context(), tenant, source.Source{ID: sourceID, URL: "https://example.invalid/feed", Title: "Fixture"}))
-	must(t, s.CreateFeed(t.Context(), tenant, feed.Feed{ID: feedID, Title: "Fixture"}))
-	must(t, s.AttachSource(t.Context(), tenant, feedID, sourceID))
+	must(t, s.CreateSource(t.Context(), operator(tenant), source.Source{ID: sourceID, URL: "https://example.invalid/feed", Title: "Fixture"}))
+	must(t, s.CreateFeed(t.Context(), operator(tenant), feed.Feed{ID: feedID, Title: "Fixture"}))
+	must(t, s.AttachSource(t.Context(), operator(tenant), feedID, sourceID))
 }
 func item() article.Article {
 	return article.Article{ID: itemID, SourceID: sourceID, OriginID: "origin-1", URL: "https://example.invalid/item", Title: "PHP release", Body: "literal content", ObservedAt: time.Date(2026, 8, 30, 1, 2, 3, 456789000, time.UTC)}
 }
 func search(t *testing.T, s *Store, tenant identity.TenantID, term string) []article.Article {
 	t.Helper()
-	rows, err := s.Search(t.Context(), tenant, feedID, term, time.Unix(0, 0), 10)
+	rows, err := s.Search(t.Context(), operator(tenant), feedID, term, time.Unix(0, 0), 10)
 	must(t, err)
 	return rows
 }
@@ -66,16 +66,16 @@ func TestTenantConstraintsAndFTSLifecycle(t *testing.T) {
 	seed(t, s, tenantA)
 	seed(t, s, tenantB)
 	a := item()
-	must(t, s.PutArticle(t.Context(), tenantA, a))
-	got, err := s.GetArticle(t.Context(), tenantA, a.ID)
+	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
+	got, err := s.GetArticle(t.Context(), operator(tenantA), a.ID)
 	must(t, err)
 	if got.PublishedAt != nil || !got.ObservedAt.Equal(a.ObservedAt) {
 		t.Fatal("timestamp semantics changed", got)
 	}
-	if _, err := s.GetArticle(t.Context(), tenantB, a.ID); !errors.Is(err, ErrNotFound) {
+	if _, err := s.GetArticle(t.Context(), operator(tenantB), a.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-tenant read: %v", err)
 	}
-	if err := s.DeleteArticle(t.Context(), tenantB, a.ID); !errors.Is(err, ErrNotFound) {
+	if err := s.DeleteArticle(t.Context(), operator(tenantB), a.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-tenant delete: %v", err)
 	}
 	if len(search(t, s, tenantB, "PHP")) != 0 {
@@ -87,40 +87,40 @@ func TestTenantConstraintsAndFTSLifecycle(t *testing.T) {
 	// Same IDs may exist in separate tenant scopes without contaminating results.
 	b := item()
 	b.Title = "Rust release"
-	must(t, s.PutArticle(t.Context(), tenantB, b))
+	must(t, s.PutArticle(t.Context(), operator(tenantB), b))
 	if len(search(t, s, tenantA, "Rust")) != 0 || len(search(t, s, tenantB, "PHP")) != 0 {
 		t.Fatal("same-ID tenant isolation failed")
 	}
-	if err := s.AttachSource(t.Context(), tenantA, feedID, "00000006-0000-4000-8000-000000000000"); err == nil {
+	if err := s.AttachSource(t.Context(), operator(tenantA), feedID, "00000006-0000-4000-8000-000000000000"); err == nil {
 		t.Fatal("missing source accepted")
 	}
-	must(t, s.CreateSource(t.Context(), tenantB, source.Source{ID: "00000006-0000-4000-8000-000000000000", URL: "https://example.invalid/private", Title: "Private"}))
+	must(t, s.CreateSource(t.Context(), operator(tenantB), source.Source{ID: "00000006-0000-4000-8000-000000000000", URL: "https://example.invalid/private", Title: "Private"}))
 	bad := item()
 	bad.ID = "00000008-0000-4000-8000-000000000000"
 	bad.SourceID = "00000006-0000-4000-8000-000000000000"
-	if err := s.PutArticle(t.Context(), tenantA, bad); err == nil {
+	if err := s.PutArticle(t.Context(), operator(tenantA), bad); err == nil {
 		t.Fatal("cross-tenant article/source relation accepted")
 	}
-	if err := s.AttachSource(t.Context(), tenantA, feedID, "00000006-0000-4000-8000-000000000000"); err == nil {
+	if err := s.AttachSource(t.Context(), operator(tenantA), feedID, "00000006-0000-4000-8000-000000000000"); err == nil {
 		t.Fatal("cross-tenant relation accepted")
 	}
 	for _, missing := range []identity.TenantID{"", "invalid"} {
-		if _, err := s.GetArticle(t.Context(), missing, itemID); err == nil {
+		if _, err := s.GetArticle(t.Context(), operator(missing), itemID); err == nil {
 			t.Fatal("missing scope read accepted")
 		}
-		if err := s.PutArticle(t.Context(), missing, a); err == nil {
+		if err := s.PutArticle(t.Context(), operator(missing), a); err == nil {
 			t.Fatal("missing scope write accepted")
 		}
-		if err := s.DeleteArticle(t.Context(), missing, itemID); err == nil {
+		if err := s.DeleteArticle(t.Context(), operator(missing), itemID); err == nil {
 			t.Fatal("missing scope delete accepted")
 		}
-		if _, err := s.Search(t.Context(), missing, feedID, "PHP", time.Unix(0, 0), 1); err == nil {
+		if _, err := s.Search(t.Context(), operator(missing), feedID, "PHP", time.Unix(0, 0), 1); err == nil {
 			t.Fatal("missing scope search accepted")
 		}
 	}
 	a.Title = "Go release"
-	must(t, s.PutArticle(t.Context(), tenantA, a))
-	must(t, s.PutArticle(t.Context(), tenantA, a))
+	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
+	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
 	if len(search(t, s, tenantA, "PHP")) != 0 || len(search(t, s, tenantA, "Go")) != 1 {
 		t.Fatal("FTS update inconsistent")
 	}
@@ -130,10 +130,10 @@ func TestTenantConstraintsAndFTSLifecycle(t *testing.T) {
 		t.Fatalf("versions=%d, want 2", versions)
 	}
 	a.OriginID = "changed"
-	if err := s.PutArticle(t.Context(), tenantA, a); err == nil {
+	if err := s.PutArticle(t.Context(), operator(tenantA), a); err == nil {
 		t.Fatal("identity mutation accepted")
 	}
-	must(t, s.DeleteArticle(t.Context(), tenantA, itemID))
+	must(t, s.DeleteArticle(t.Context(), operator(tenantA), itemID))
 	if len(search(t, s, tenantA, "Go")) != 0 || len(search(t, s, tenantB, "Rust")) != 1 {
 		t.Fatal("FTS delete crossed tenant or left stale index")
 	}
@@ -149,28 +149,28 @@ func TestSearchBoundsAndMembership(t *testing.T) {
 	s, _ := fresh(t)
 	seed(t, s, tenantA)
 	a := item()
-	must(t, s.PutArticle(t.Context(), tenantA, a))
+	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
 	for _, term := range []string{"PHP OR Rust", `title:PHP`, `PHP* NOT Rust`, `" OR "`} {
 		if len(search(t, s, tenantA, term)) != 0 {
 			t.Fatalf("interpreted FTS operators: %q", term)
 		}
 	}
 	for _, term := range []string{"", strings.Repeat("x", 257), "one two three four five six seven eight nine", "***"} {
-		if _, err := s.Search(t.Context(), tenantA, feedID, term, time.Unix(0, 0), 10); err == nil {
+		if _, err := s.Search(t.Context(), operator(tenantA), feedID, term, time.Unix(0, 0), 10); err == nil {
 			t.Fatalf("accepted unbounded terms %q", term)
 		}
 	}
-	if _, err := s.Search(t.Context(), tenantA, feedID, "PHP", time.Unix(0, 0), 51); err == nil {
+	if _, err := s.Search(t.Context(), operator(tenantA), feedID, "PHP", time.Unix(0, 0), 51); err == nil {
 		t.Fatal("unbounded result count")
 	}
 	other := "00000007-0000-4000-8000-000000000000"
-	must(t, s.CreateFeed(t.Context(), tenantA, feed.Feed{ID: other, Title: "Empty"}))
-	rows, err := s.Search(t.Context(), tenantA, other, "PHP", time.Unix(0, 0), 1)
+	must(t, s.CreateFeed(t.Context(), operator(tenantA), feed.Feed{ID: other, Title: "Empty"}))
+	rows, err := s.Search(t.Context(), operator(tenantA), other, "PHP", time.Unix(0, 0), 1)
 	must(t, err)
 	if len(rows) != 0 {
 		t.Fatal("feed membership omitted")
 	}
-	rows, err = s.Search(t.Context(), tenantA, feedID, "PHP", a.ObservedAt.Add(time.Second), 1)
+	rows, err = s.Search(t.Context(), operator(tenantA), feedID, "PHP", a.ObservedAt.Add(time.Second), 1)
 	must(t, err)
 	if len(rows) != 0 {
 		t.Fatal("age predicate omitted")
@@ -222,7 +222,7 @@ func TestWriteSerializationCancellationAndExternalLock(t *testing.T) {
 	<-entered
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	if err := s.PutArticle(ctx, tenantA, item()); !errors.Is(err, context.Canceled) {
+	if err := s.PutArticle(ctx, operator(tenantA), item()); !errors.Is(err, context.Canceled) {
 		t.Fatalf("waiting writer did not cancel: %v", err)
 	}
 	close(release)
@@ -230,7 +230,7 @@ func TestWriteSerializationCancellationAndExternalLock(t *testing.T) {
 	var wg sync.WaitGroup
 	errorsCh := make(chan error, 12)
 	for i := 0; i < 12; i++ {
-		wg.Go(func() { errorsCh <- s.PutArticle(t.Context(), tenantA, item()) })
+		wg.Go(func() { errorsCh <- s.PutArticle(t.Context(), operator(tenantA), item()) })
 	}
 	wg.Wait()
 	close(errorsCh)
@@ -246,12 +246,12 @@ func TestWriteSerializationCancellationAndExternalLock(t *testing.T) {
 	start := time.Now()
 	ctx, cancel = context.WithTimeout(t.Context(), 20*time.Millisecond)
 	defer cancel()
-	err = s.PutArticle(ctx, tenantA, item())
+	err = s.PutArticle(ctx, operator(tenantA), item())
 	if !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 500*time.Millisecond {
 		t.Fatalf("lock cancellation: %v after %s", err, time.Since(start))
 	}
 	must(t, tx.Rollback())
-	must(t, s.PutArticle(t.Context(), tenantA, item()))
+	must(t, s.PutArticle(t.Context(), operator(tenantA), item()))
 	// Saturated read pool also respects the caller's deadline.
 	c1, err := s.readers.Conn(t.Context())
 	must(t, err)
@@ -270,18 +270,18 @@ func TestSQLiteFullRollsBackCorpusVersionAndFTS(t *testing.T) {
 	s, _ := fresh(t)
 	seed(t, s, tenantA)
 	a := item()
-	must(t, s.PutArticle(t.Context(), tenantA, a))
+	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
 	var pages int
 	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA page_count").Scan(&pages))
 	var maximum int
 	must(t, s.writer.QueryRowContext(t.Context(), fmt.Sprintf("PRAGMA max_page_count=%d", pages+1)).Scan(&maximum))
 	a.Body = strings.Repeat("oversized ", 6500)
-	err := s.PutArticle(t.Context(), tenantA, a)
+	err := s.PutArticle(t.Context(), operator(tenantA), a)
 	var sqliteErr *modern.Error
 	if !errors.As(err, &sqliteErr) || sqliteErr.Code()&255 != 13 {
 		t.Fatalf("want real SQLITE_FULL, got %v", err)
 	}
-	got, err := s.GetArticle(t.Context(), tenantA, itemID)
+	got, err := s.GetArticle(t.Context(), operator(tenantA), itemID)
 	must(t, err)
 	if got.Body != "literal content" || len(search(t, s, tenantA, "oversized")) != 0 {
 		t.Fatal("disk-full transaction partially committed")
@@ -293,7 +293,7 @@ func TestSQLiteFullRollsBackCorpusVersionAndFTS(t *testing.T) {
 	}
 	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA max_page_count=2147483646").Scan(&maximum))
 	a.Body = "recovered"
-	must(t, s.PutArticle(t.Context(), tenantA, a))
+	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
 	_, err = s.writer.ExecContext(t.Context(), "INSERT INTO article_fts(article_fts,rank) VALUES('integrity-check',1)")
 	must(t, err)
 }
@@ -333,7 +333,7 @@ func TestUpgradeRebuildRestartAndExclusiveOwnership(t *testing.T) {
 	if err := Migrate(t.Context(), path); err == nil {
 		t.Fatal("migration while serving accepted")
 	}
-	got, err := s.GetArticle(t.Context(), tenantA, itemID)
+	got, err := s.GetArticle(t.Context(), operator(tenantA), itemID)
 	must(t, err)
 	if got.Body != "preserved" {
 		t.Fatal("upgrade lost data")
@@ -349,7 +349,7 @@ func TestUpgradeRebuildRestartAndExclusiveOwnership(t *testing.T) {
 	must(t, err)
 	defer s.Close()
 	must(t, s.Ready(t.Context()))
-	got, err = s.GetArticle(t.Context(), tenantA, itemID)
+	got, err = s.GetArticle(t.Context(), operator(tenantA), itemID)
 	must(t, err)
 	if got.Body != "preserved" {
 		t.Fatal("restart lost data")
@@ -420,4 +420,10 @@ func TestNewerSchemaAndMalformedIDsFailClosed(t *testing.T) {
 		old.Close()
 		t.Fatal("older server accepted newer schema")
 	}
+}
+
+// Invalid fixture tenants deliberately yield the zero, unauthorized principal.
+func operator(tenant identity.TenantID) identity.Principal {
+	p, _ := identity.Operator(tenant)
+	return p
 }

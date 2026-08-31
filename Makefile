@@ -44,6 +44,7 @@ vuln:
 smoke: build
 	python3 scripts/smoke_runtime.py
 	python3 scripts/smoke_storage.py
+	python3 scripts/smoke_identity.py
 
 container-smoke:
 	python3 scripts/smoke_container.py "$(IMAGE)" "$(REVISION)"

@@ -9,7 +9,7 @@ func TestTimestampBounds(t *testing.T) {
 	s, _ := fresh(t)
 	seed(t, s, tenantA)
 	original := item()
-	must(t, s.PutArticle(t.Context(), tenantA, original))
+	must(t, s.PutArticle(t.Context(), operator(tenantA), original))
 	for name, value := range map[string]time.Time{
 		"zero":             {},
 		"before epoch":     time.Unix(0, -1),
@@ -27,16 +27,16 @@ func TestTimestampBounds(t *testing.T) {
 				} else {
 					a.PublishedAt = &value
 				}
-				if err := s.PutArticle(t.Context(), tenantA, a); err == nil {
+				if err := s.PutArticle(t.Context(), operator(tenantA), a); err == nil {
 					t.Errorf("accepted invalid %s timestamp %v", field, value)
 				}
 			}
-			if _, err := s.Search(t.Context(), tenantA, feedID, "PHP", value, 1); err == nil {
+			if _, err := s.Search(t.Context(), operator(tenantA), feedID, "PHP", value, 1); err == nil {
 				t.Errorf("accepted invalid search timestamp %v", value)
 			}
 		})
 	}
-	got, err := s.GetArticle(t.Context(), tenantA, original.ID)
+	got, err := s.GetArticle(t.Context(), operator(tenantA), original.ID)
 	must(t, err)
 	if got.Title != original.Title || !got.ObservedAt.Equal(original.ObservedAt) || got.PublishedAt != nil {
 		t.Fatal("rejected timestamp changed stored article", got)
@@ -59,14 +59,14 @@ func TestTimestampBoundaryRoundTrips(t *testing.T) {
 	} {
 		a := item()
 		a.ObservedAt, a.PublishedAt = value, &value
-		must(t, s.PutArticle(t.Context(), tenantA, a))
-		got, err := s.GetArticle(t.Context(), tenantA, a.ID)
+		must(t, s.PutArticle(t.Context(), operator(tenantA), a))
+		got, err := s.GetArticle(t.Context(), operator(tenantA), a.ID)
 		must(t, err)
 		want := value.UTC().Truncate(time.Microsecond)
 		if !got.ObservedAt.Equal(want) || got.PublishedAt == nil || !got.PublishedAt.Equal(want) {
 			t.Fatalf("timestamp round trip: input=%v got=%v", value, got)
 		}
-		rows, err := s.Search(t.Context(), tenantA, feedID, "PHP", value, 1)
+		rows, err := s.Search(t.Context(), operator(tenantA), feedID, "PHP", value, 1)
 		must(t, err)
 		if len(rows) != 1 || rows[0].ID != a.ID {
 			t.Fatal("search rejected valid timestamp boundary")

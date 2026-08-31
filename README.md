@@ -4,7 +4,7 @@
 
 Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
 
-> Status: Go runtime and SQLite corpus storage implemented; feed service still in development. The server exposes operational health only. Configured, migrated storage enables readiness; this does not establish feed functionality. No ingestion, tenant HTTP API, provider calls or deployment is implemented. JSON feed examples remain synthetic fixtures.
+> Status: Go runtime, SQLite corpus storage and tenant identity foundation implemented; feed service still in development. The server exposes operational health only. Configured, migrated storage enables readiness; this does not establish feed functionality. Scoped key lifecycle and storage authorization are implemented; no ingestion, product HTTP API, provider calls or deployment is implemented. JSON feed examples remain synthetic fixtures.
 
 ## First useful experience
 
@@ -28,6 +28,7 @@ Claudriel submits approved technical context and a saved feed identifier. Northw
 
 - [Run and verify the Go foundation](docs/runtime.md)
 - [SQLite storage, migrations and tests](docs/storage.md)
+- [Tenant identity and operator commands](docs/identity.md)
 - [Delivery project and issue index](docs/delivery/README.md)
 - [Deployment ownership and first implementation slice](docs/deployment.md)
 - [Phased roadmap](docs/roadmap.md)
@@ -55,7 +56,7 @@ python3 -m pip install -r requirements-dev.txt
 make check
 ```
 
-The contract checker validates synthetic API examples and local links. Runtime checks cover lifecycle behavior, import boundaries and builds. CI runs the same commands. None of these establishes tenant isolation, feed usefulness or Pi capacity before those features exist.
+The contract checker validates synthetic API examples and local links. Runtime checks cover lifecycle, credential/storage isolation, import boundaries and builds. CI runs the same commands. Tests establish only implemented paths; they do not establish future product endpoint safety, feed usefulness or Pi capacity.
 
 ## Relationship to North Cloud
 

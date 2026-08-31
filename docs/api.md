@@ -1,6 +1,6 @@
 # Draft HTTP API
 
-Status: specified, not implemented. JSON schemas in api/schemas are authoritative shapes; examples are synthetic. These semantics supplement schema validation and require server integration tests in Phase 1. OpenAPI generation and a second-client compatibility gate precede the Phase 2 preview.
+Status: product routes are specified, not implemented. The reusable authorization wrapper is implemented and tested against real SQLite; see [identity](identity.md). JSON schemas in api/schemas are authoritative shapes; examples are synthetic. These semantics supplement schema validation and require server integration tests in Phase 1. OpenAPI generation and a second-client compatibility gate precede the Phase 2 preview.
 
 ## Transport and identity
 

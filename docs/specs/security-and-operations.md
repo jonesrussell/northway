@@ -1,6 +1,6 @@
 # Security and operations baseline
 
-Status: requirements, not implemented controls. Covers NW-002, NW-006, NW-008, NW-009, NW-010, NW-013 and NW-014.
+Status: requirements with key lifecycle, principal/storage authorization and HTTP authorization wrapper implemented; see [identity](../identity.md) for actual coverage. Fetch, AI, rate/usage controls and deployment remain future work. Covers NW-002, NW-006, NW-008, NW-009, NW-010, NW-013 and NW-014.
 
 ## Trust boundaries
 

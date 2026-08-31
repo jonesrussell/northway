@@ -1,7 +1,9 @@
 version: '2'
 sql:
   - engine: sqlite
-    schema: db/migrations/00001_corpus.sql
+    schema:
+      - db/migrations/00001_corpus.sql
+      - db/migrations/00003_api_keys.sql
     queries: db/queries
     gen:
       go:
