@@ -24,4 +24,26 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: python -m pip install -r requirements-dev.txt
-      - run: make check
+      - run: make contracts
+
+  runtime:
+    name: runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false # No third-party application modules or go.sum yet.
+      - run: make fmt-check vet test race boundaries build arm64 smoke vuln
+      - name: Inspect the ARM64 artifact
+        run: |
+          file bin/northway-linux-arm64
+          go version -m bin/northway-linux-arm64
+      - name: Build a non-root container without publishing
+        run: docker build --build-arg REVISION="$GITHUB_SHA" -t northway:ci .
+      - name: Smoke the container without deploying
+        run: make container-smoke IMAGE=northway:ci

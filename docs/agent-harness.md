@@ -29,7 +29,7 @@ Behavior and failure criteria demonstrated; relevant unit/integration/contract/e
 
 ## Commands and enforcement
 
-Foundation implemented now: `make check` runs schema/examples/negative contract cases and link validation; CI runs the same command. Phase 1 issue adds `make fmt`, `make vet`, `make test`, `make race`, `make integration`, `make generate-check`, `make vuln`, `make boundaries` and `make build` as real commands when Go code exists. Do not add success-returning stubs or claim nonexistent checks ran.
+Implemented now: `make check` covers contracts, format verification, vet, behavior tests, import boundaries, native/ARM64 builds and process smoke tests. `make fmt`, `make race` and `make vuln` are separate real commands. CI uses these same targets. Add `make integration` and `make generate-check` when storage/generated SQL exists; do not add success-returning stubs or claim nonexistent checks ran.
 
 Boundary enforcement should use Go's actual import graph (go list), not just a text grep. SQLite tenant scoping requires real file-backed integration tests, including FTS and write contention; mocks cannot establish isolation. Generators must be reproducible; contract drift and code generation drift fail CI. Vulnerability scan exceptions require documented reachability assessment, owner and expiry; an agent cannot suppress them unilaterally.
 
