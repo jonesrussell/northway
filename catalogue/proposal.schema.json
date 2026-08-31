@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Disabled pilot source proposal",
+  "title": "Approved personal pilot selection, disabled pending implementation and deployment",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,7 +13,8 @@
     "commercial_use_approved",
     "poll_policy",
     "proposed_retained_fields",
-    "sources"
+    "sources",
+    "owner_approval"
   ],
   "properties": {
     "schema_version": {
@@ -26,10 +27,10 @@
       "const": false
     },
     "selection_status": {
-      "const": "proposed"
+      "const": "approved_personal_metadata_pilot"
     },
     "acquisition_location": {
-      "const": "undecided"
+      "const": "pi"
     },
     "provider_export_allowed": {
       "const": false
@@ -159,7 +160,11 @@
               "evidence",
               "xml_parsed",
               "conditional_get_verified",
-              "pi_reachability_verified"
+              "pi_reachability_verified",
+              "http_status",
+              "decoded_bytes",
+              "entry_count",
+              "conditional_http_status"
             ],
             "properties": {
               "checked_on": {
@@ -167,20 +172,71 @@
                 "format": "date"
               },
               "evidence": {
-                "const": "web_tool_reported_atom_media_type"
+                "const": "bounded_pi_https_probe"
               },
               "xml_parsed": {
-                "const": false
+                "const": true
               },
               "conditional_get_verified": {
-                "const": false
+                "type": "boolean"
               },
               "pi_reachability_verified": {
-                "const": false
+                "const": true
+              },
+              "http_status": {
+                "const": 200
+              },
+              "decoded_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2097152
+              },
+              "entry_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "conditional_http_status": {
+                "enum": [
+                  200,
+                  304
+                ]
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "conditional_http_status": {
+                      "const": 304
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "conditional_get_verified": {
+                      "const": true
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "conditional_get_verified": {
+                      "const": false
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
+      }
+    },
+    "owner_approval": {
+      "const": {
+        "recorded_on": "2026-08-31",
+        "scope": "five_source_personal_metadata_pilot_and_hourly_pi_https_polling",
+        "deployment_authorized": false,
+        "scheduled_polling_enabled": false
       }
     }
   }

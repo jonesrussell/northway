@@ -34,7 +34,7 @@ Claudriel submits approved technical context and a saved feed identifier. Northw
 - [Deployment ownership and first implementation slice](docs/deployment.md)
 - [Phased roadmap](docs/roadmap.md)
 - [Content sources and Raspberry Pi deployment](docs/content-sources.md)
-- [Proposed PHP pilot sources and device evidence](docs/pilot-readiness.md)
+- [Approved PHP pilot selection and device evidence](docs/pilot-readiness.md)
 - [Scheduled AI discovery and custom lists](docs/specs/scheduled-discovery.md)
 - [Firecrawl or North Cloud-derived external collection](docs/specs/external-collection.md)
 - [Architecture and SaaS boundary](docs/architecture.md)
