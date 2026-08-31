@@ -49,7 +49,7 @@ func serviceProblem(w http.ResponseWriter, err error) {
 	case errors.Is(err, identity.ErrForbidden):
 		problem(w, 403, "forbidden", "Required scope is missing", false)
 	case errors.Is(err, query.ErrUnavailable):
-		problem(w, 503, "unavailable", "Query unavailable; do not automatically replace its key", false)
+		problem(w, 503, "unavailable", "Result unavailable; do not retry automatically. See the recovery policy", false)
 	case errors.Is(err, identity.ErrNotFound):
 		problem(w, 404, "not_found", "Object unavailable", false)
 	case errors.Is(err, query.ErrInvalid), errors.Is(err, feedback.ErrInvalid):

@@ -391,3 +391,76 @@ func (failingQueries) Query(context.Context, identity.Principal, string, query.R
 func (failingQueries) Get(context.Context, identity.Principal, string) (query.Snapshot, error) {
 	return query.Snapshot{}, errors.New("PRIVATE SQL credentials")
 }
+
+// Pause outside the real read transaction, after candidate selection but before
+// finalization, to reproduce a feedback revision arriving during a query.
+type pausedRetrievalStore struct {
+	*sqlite.Store
+	once             sync.Once
+	entered, release chan struct{}
+}
+
+func (s *pausedRetrievalStore) RetrieveCandidates(ctx context.Context, p identity.Principal, id string, r query.Request) (query.Corpus, error) {
+	corpus, err := s.Store.RetrieveCandidates(ctx, p, id, r)
+	if err != nil {
+		return corpus, err
+	}
+	s.once.Do(func() {
+		close(s.entered)
+		select {
+		case <-s.release:
+		case <-ctx.Done():
+		}
+	})
+	return corpus, ctx.Err()
+}
+func TestHTTPFeedbackDuringQueryHasExplicitRefreshRecovery(t *testing.T) {
+	f := apiFixture(t)
+	status, b, _ := f.request(t, "POST", "/v1/feed-queries", queryBody(), f.key, "before-interleaving", nil)
+	old := httpSnapshot(t, status, b)
+	paused := &pausedRetrievalStore{Store: f.s, entered: make(chan struct{}), release: make(chan struct{})}
+	server := httptest.NewServer(httpapi.NewAPI(identity.NewService(f.s), query.NewService(paused), feedback.NewService(f.s)))
+	defer server.Close()
+	f.server = server
+	// Change context so the concurrent query cannot hit the warm cache.
+	body := strings.Replace(queryBody(), "Recent world news", "Recent general world news", 1)
+	type result struct {
+		status int
+		body   []byte
+		header http.Header
+	}
+	finished := make(chan result, 1)
+	go func() {
+		status, b, h := f.request(t, "POST", "/v1/feed-queries", body, f.key, "interleaved-query-key", nil)
+		finished <- result{status, b, h}
+	}()
+	select {
+	case <-paused.entered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("query did not reach candidates")
+	}
+	status, b, _ = f.request(t, "POST", "/v1/feedback", eventBody(hid(500), old.SnapshotID, "save", ""), f.write, "", nil)
+	if status != 204 {
+		t.Fatal(status, string(b))
+	}
+	close(paused.release)
+	var failed result
+	select {
+	case failed = <-finished:
+	case <-time.After(3 * time.Second):
+		t.Fatal("query did not finish")
+	}
+	expectProblem(t, failed.status, failed.body, failed.header, 503, "unavailable", false)
+	status, b, h := f.request(t, "POST", "/v1/feed-queries", body, f.key, "interleaved-query-key", nil)
+	expectProblem(t, status, b, h, 503, "unavailable", false)
+	status, b, _ = f.request(t, "GET", "/v1/snapshots/"+old.SnapshotID, "", f.key, "", nil)
+	if !reflect.DeepEqual(httpSnapshot(t, status, b).Items, old.Items) {
+		t.Fatal("old snapshot changed")
+	}
+	// Represents an explicit user refresh, never an automatic retry/render loop.
+	status, b, _ = f.request(t, "POST", "/v1/feed-queries", body, f.key, "deliberate-refresh-key", nil)
+	refreshed := httpSnapshot(t, status, b)
+	if refreshed.SnapshotID == old.SnapshotID || refreshed.FeedRevision != old.FeedRevision+1 {
+		t.Fatal("refresh did not use current revision")
+	}
+}

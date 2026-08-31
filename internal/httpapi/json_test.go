@@ -32,3 +32,15 @@ func FuzzBoundedJSON(f *testing.F) {
 		}
 	})
 }
+
+func TestJSONContainerDepthLimit(t *testing.T) {
+	for _, depth := range []int{8, 9} {
+		body := strings.Repeat(`{"a":`, depth-1) + `{}` + strings.Repeat(`}`, depth-1)
+		r := httptest.NewRequest("POST", "/", strings.NewReader(body))
+		r.Header.Set("Content-Type", "application/json")
+		_, err := readObject(httptest.NewRecorder(), r)
+		if (err == nil) != (depth == 8) {
+			t.Fatalf("depth %d: %v", depth, err)
+		}
+	}
+}

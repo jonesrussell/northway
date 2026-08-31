@@ -5,6 +5,11 @@ from pathlib import Path
 import subprocess
 import tempfile
 from jsonschema import Draft202012Validator, FormatChecker
+# jsonschema without its format extras silently skips date-time validation.
+# Fail before running fixtures if the developer environment is incomplete.
+format_probe=Draft202012Validator({"type":"string","format":"date-time"},format_checker=FormatChecker())
+if format_probe.is_valid("yesterday"):
+    raise SystemExit("date-time validation unavailable; install requirements-dev.txt including jsonschema[format]")
 root=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix="northway-http-") as directory:
     path=Path(directory)/"responses.json"

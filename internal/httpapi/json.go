@@ -55,9 +55,6 @@ func readObject(w http.ResponseWriter, r *http.Request) (map[string]any, error) 
 	return object, nil
 }
 func jsonValue(d *json.Decoder, depth int) (any, error) {
-	if depth > 8 {
-		return nil, errJSON
-	}
 	token, err := d.Token()
 	if err != nil {
 		return nil, errJSON
@@ -65,6 +62,10 @@ func jsonValue(d *json.Decoder, depth int) (any, error) {
 	delim, ok := token.(json.Delim)
 	if !ok {
 		return token, nil
+	}
+	// Root depth is zero; allow eight container levels, including empty ones.
+	if depth >= 8 {
+		return nil, errJSON
 	}
 	switch delim {
 	case '{':
