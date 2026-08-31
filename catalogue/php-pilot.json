@@ -13,7 +13,8 @@
     "timeout_seconds": 15,
     "conditional_requests": true,
     "follow_article_links": false,
-    "automatic_retries": 0
+    "automatic_retries": 0,
+    "stagger": "spread_sources_across_interval"
   },
   "proposed_retained_fields": [
     "source_item_id",
@@ -114,7 +115,7 @@
         "static-analysis"
       ],
       "attribution": "PHPStan maintainers — release announcement on GitHub",
-      "publisher_evidence_url": "https://github.com/phpstan/phpstan/releases",
+      "publisher_evidence_url": "https://phpstan.org/user-guide/getting-started",
       "rights_review": {
         "status": "pending",
         "reference_url": "https://github.com/phpstan/phpstan"

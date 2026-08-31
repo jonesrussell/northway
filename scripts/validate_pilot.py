@@ -30,21 +30,46 @@ def check_proposal(value, validator):
     # This is NOT a runtime SSRF guard, DNS check, or publisher-rights decision.
 
 
+def check_fixture_urls(text):
+    for raw in re.findall(r'https?://[^\s<>"\']+', text, flags=re.IGNORECASE):
+        if not (urlsplit(raw).hostname or "").endswith(".invalid"):
+            raise ValueError("fixture contains a non-reserved network URL")
+
+
+def screen_fixture(data):
+    if len(data) > 16384:
+        raise ValueError("fixture exceeds the authored-input size limit")
+    text = data.decode("utf-8")
+    if "\x00" in text or "<!DOCTYPE" in text.upper() or "<!ENTITY" in text.upper():
+        raise ValueError("fixtures must be UTF-8 XML without NUL/DTD/entities")
+    # Atom's fixed namespace is an identifier, not a fetch destination. Only
+    # remove namespace bindings; the same URL in content must still be rejected.
+    network_text = re.sub(
+        r"""\bxmlns(?::[A-Za-z_][\w.-]*)?\s*=\s*(['"])http://www\.w3\.org/2005/Atom\1""",
+        "", text)
+    check_fixture_urls(network_text)
+    return text
+
+
 def check_fixtures():
     folder = ROOT / "testdata/feeds"
     roots = {}
-    for name in ["atom-initial.xml", "atom-updated.xml", "rss-initial.xml"]:
-        data = (folder / name).read_bytes()
-        if len(data) > 16384 or b"<!DOCTYPE" in data.upper() or b"<!ENTITY" in data.upper():
-            raise ValueError("fixtures must be small, authored XML without DTD/entities")
-        roots[name] = ET.fromstring(data)
+    for name in ["atom-initial.xml", "atom-updated.xml", "rss-initial.xml", "malformed.xml"]:
+        text = screen_fixture((folder / name).read_bytes())
+        try:
+            root = ET.fromstring(text)
+        except ET.ParseError:
+            if name == "malformed.xml":
+                continue
+            raise
+        if name == "malformed.xml":
+            raise AssertionError("malformed fixture unexpectedly parses")
+        roots[name] = root
         for node in roots[name].iter():
-            values = list(node.attrib.values()) + [node.text or ""]
+            values = list(node.attrib.values()) + [node.text or "", node.tail or ""]
             for text in values:
-                # Includes escaped HTML in Atom summaries; no request is made.
-                for raw in re.findall(r'https?://[^\s<>"\']+', text):
-                    if not (urlsplit(raw).hostname or "").endswith(".invalid"):
-                        raise ValueError("fixture contains a non-reserved network URL")
+                # Also inspect decoded character references/escaped markup.
+                check_fixture_urls(text)
     ns = {"a": "http://www.w3.org/2005/Atom"}
     initial = roots["atom-initial.xml"].findall("a:entry", ns)
     updated = roots["atom-updated.xml"].findall("a:entry", ns)
@@ -58,12 +83,24 @@ def check_fixtures():
     rss = roots["rss-initial.xml"].findall("channel/item")
     assert len(rss) == 1 and rss[0].findtext("guid")
     assert rss[0].find("enclosure") is not None
-    try:
-        ET.fromstring((folder / "malformed.xml").read_bytes())
-    except ET.ParseError:
-        pass
-    else:
-        raise AssertionError("malformed fixture unexpectedly parses")
+
+
+def check_fixture_rejections():
+    cases = [
+        b"x" * 16385,
+        b'<!DOCTYPE rss [<!ENTITY x "expanded">]><rss>&x;</rss>',
+        b"<rss><item/>HTTPS://example.com/</rss>",
+        b"<rss><item>https://example.com/truncated",
+        '<!DOCTYPE rss [<!ENTITY x "expanded">]><rss/>'.encode("utf-16"),
+        '<!DOCTYPE rss [<!ENTITY x "expanded">]><rss/>'.encode("utf-16-le"),
+    ]
+    for data in cases:
+        try:
+            screen_fixture(data)
+        except ValueError:
+            continue
+        raise AssertionError("unsafe fixture bytes passed the pre-parse screen")
+    return len(cases)
 
 
 def main():
@@ -97,7 +134,8 @@ def main():
             continue
         raise AssertionError("unsafe proposal mutation passed")
     check_fixtures()
-    print(f"PASS: {len(proposal['sources'])} disabled source proposals, {len(mutations)} rejections, 4 synthetic XML fixtures; no network")
+    fixture_rejections = check_fixture_rejections()
+    print(f"PASS: {len(proposal['sources'])} disabled source proposals, {len(mutations)} proposal rejections, 4 synthetic XML fixtures, {fixture_rejections} fixture rejections; no network")
 
 
 if __name__ == "__main__":

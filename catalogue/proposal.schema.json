@@ -45,7 +45,8 @@
         "timeout_seconds": 15,
         "conditional_requests": true,
         "follow_article_links": false,
-        "automatic_retries": 0
+        "automatic_retries": 0,
+        "stagger": "spread_sources_across_interval"
       }
     },
     "proposed_retained_fields": {
