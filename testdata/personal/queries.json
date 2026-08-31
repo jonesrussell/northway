@@ -1,0 +1,80 @@
+{
+  "synthetic": true,
+  "cases": [
+    {
+      "interest_area": "development",
+      "request": {
+        "feed_id": "00000000-0000-4000-8000-000000000001",
+        "context": {
+          "intent": "Show recent development news.",
+          "technologies": [],
+          "focus": [
+            "development"
+          ]
+        },
+        "max_age_hours": 168,
+        "limit": 5
+      }
+    },
+    {
+      "interest_area": "entertainment",
+      "request": {
+        "feed_id": "00000000-0000-4000-8000-000000000002",
+        "context": {
+          "intent": "Show recent entertainment news.",
+          "technologies": [],
+          "focus": [
+            "entertainment"
+          ]
+        },
+        "max_age_hours": 168,
+        "limit": 5
+      }
+    },
+    {
+      "interest_area": "canada",
+      "request": {
+        "feed_id": "00000000-0000-4000-8000-000000000003",
+        "context": {
+          "intent": "Show recent canada news.",
+          "technologies": [],
+          "focus": [
+            "canada"
+          ]
+        },
+        "max_age_hours": 168,
+        "limit": 5
+      }
+    },
+    {
+      "interest_area": "first_nations",
+      "request": {
+        "feed_id": "00000000-0000-4000-8000-000000000004",
+        "context": {
+          "intent": "Show recent first nations news.",
+          "technologies": [],
+          "focus": [
+            "first_nations"
+          ]
+        },
+        "max_age_hours": 168,
+        "limit": 5
+      }
+    },
+    {
+      "interest_area": "world",
+      "request": {
+        "feed_id": "00000000-0000-4000-8000-000000000005",
+        "context": {
+          "intent": "Show recent world news.",
+          "technologies": [],
+          "focus": [
+            "world"
+          ]
+        },
+        "max_age_hours": 168,
+        "limit": 5
+      }
+    }
+  ]
+}

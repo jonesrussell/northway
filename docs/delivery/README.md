@@ -26,8 +26,9 @@ Reviewable architecture, SQLite/Pi constraints, source policy, API examples, exe
 - [#7 Publish architecture, contracts and delivery harness](https://github.com/jonesrussell/northway/issues/7) — NW-001 NW-011 NW-016; prerequisites: none.
 ### [P1: v0.1 - Personal Pi pilot](https://github.com/jonesrussell/northway/issues/2)
 
-A contextual PHP feed in Claudriel; restart/restore and two-tenant isolation evidence on the actual Pi; two weeks of user review. Optional scheduled discovery has bounded cost. No home crawling.
+Selectable personal feeds across development, entertainment, Canada, First Nations and world news in Claudriel; restart/restore and two-tenant isolation evidence on the actual Pi; two weeks of user review. Optional scheduled discovery has bounded cost. No home crawling.
 
+- [#44 Curate personal feeds beyond PHP](https://github.com/jonesrussell/northway/issues/44) - source candidates, coverage gaps, shared budgets and updated acceptance; prerequisite: #9 discovery.
 - [#8 Bootstrap the Go application and enforce package boundaries](https://github.com/jonesrussell/northway/issues/8) — NW-011 NW-016; prerequisites: #7.
 - [#9 Approve pilot sources and confirm Pi deployment constraints](https://github.com/jonesrussell/northway/issues/9) — NW-003 NW-013 NW-016; prerequisites: #7.
 - [#10 Implement SQLite schema, FTS5 and safe connection lifecycle](https://github.com/jonesrussell/northway/issues/10) — NW-002 NW-010 NW-011; prerequisites: #8.

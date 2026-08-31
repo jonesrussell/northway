@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Synthetic multi-interest fixtures</title><link>https://personal.invalid/</link><description>Authored test data, not publisher content.</description>
+<item><guid isPermaLink="false">urn:northway:personal:1</guid><title>Synthetic compiler tooling update</title><link>https://personal.invalid/1</link><category>development</category><pubDate>Mon, 31 Aug 2026 12:00:00 GMT</pubDate></item>
+<item><guid isPermaLink="false">urn:northway:personal:2</guid><title>Synthetic film festival announces its programme</title><link>https://personal.invalid/2</link><category>entertainment</category><pubDate>Mon, 31 Aug 2026 12:00:00 GMT</pubDate></item>
+<item><guid isPermaLink="false">urn:northway:personal:3</guid><title>Synthetic Canadian municipal transit announcement</title><link>https://personal.invalid/3</link><category>canada</category><pubDate>Mon, 31 Aug 2026 12:00:00 GMT</pubDate></item>
+<item><guid isPermaLink="false">urn:northway:personal:4</guid><title>Synthetic First Nation publishes a community language programme update</title><link>https://personal.invalid/4</link><category>first_nations</category></item>
+<item><guid isPermaLink="false">urn:northway:personal:5</guid><title>Synthetic international research cooperation announcement</title><link>https://personal.invalid/5</link><category>world</category><pubDate>Mon, 31 Aug 2026 12:00:00 GMT</pubDate></item>
+</channel></rss>

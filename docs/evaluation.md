@@ -4,9 +4,9 @@ Status: planned checks. The foundation's JSON contract checks are not runtime ev
 
 ## Relevance
 
-Create a small permitted fixture corpus with dated source excerpts and examples labelled by the user. Include PHP/framework/dependency releases, relevant engineering articles, irrelevant tutorials, repeated stories, stale releases and weakly supported compatibility claims. Evaluate two different project contexts over the same corpus.
+Use authored metadata-only fixtures and examples labelled by the user; publisher excerpts require a separate rights decision. Include all five personal interest areas plus PHP releases, irrelevant tutorials, repeated stories, missing dates and weakly supported applicability. Evaluate personal queries with empty technologies, two project contexts, and an explicitly selected mixed feed. See [synthetic personal inputs](../testdata/personal/README.md).
 
-Compare deterministic retrieval with AI reranking. Target at least 80% relevant items in top-five results across a manually reviewed sample, while separately reviewing excluded relevant examples. Record source diversity and duplicate rate; do not optimize only for clicks. Require evidence for why a version-specific item applies. Unknown applicability must remain unknown.
+Compare deterministic retrieval with AI reranking. Target at least 80% relevant items in top-five results within each interest area and mixed-digest manually reviewed sample, while separately reviewing excluded relevant examples. Record source diversity and duplicate rate; do not optimize only for clicks. Require evidence for why a version-specific item applies. Unknown applicability must remain unknown.
 
 ## Failure and replay
 
@@ -23,10 +23,10 @@ Create two tenants from Phase 1 tests. Probe feed IDs, snapshots, item membershi
 
 ## Performance and economics
 
-Run the actual 5–10-source pilot on the user's Raspberry Pi after recording model, RAM, OS architecture and storage. Establish its budget from that device rather than assuming the earlier 1 GiB hypothesis. Measure idle and peak RSS, CPU time, disk growth, query latency (cached/uncached), provider tokens/cost, source last-success age and operator time. Leave at least 30% memory headroom under ingestion plus query and backup load. Target cached responses under 500 ms and uncached under 10 s for the pilot; these are evaluation targets, not advertised SLAs.
+Run the actually approved source set under the shared attempt/byte budget (see [personal feeds](personal-feeds.md)) on the user's Raspberry Pi after recording model, RAM, OS architecture and storage. Establish its budget from that device rather than assuming the earlier 1 GiB hypothesis. Measure idle and peak RSS, CPU time, disk growth, query latency (cached/uncached), provider tokens/cost, source last-success age and operator time. Leave at least 30% memory headroom under ingestion plus query and backup load. Target cached responses under 500 ms and uncached under 10 s for the pilot; these are evaluation targets, not advertised SLAs.
 
 One bounded ranking call per cache miss initially. Record failed/retried provider work and cache hits separately. Measure cost per useful result, not merely per request. Test retention and restore before deleting any legacy data. Do not quote a savings percentage against North Cloud's memory-limit sum as if it were measured usage.
 
 ## Product proof
 
-Phase 1: two weeks of user review in a Claudriel PHP workspace. Phase 2: a second agent consumes the same API and gets useful contextual results without relying on Claudriel's prompt, private memory, or UI. Phase 3: billing and export/deletion/restore drills plus source-rights and security reviews before paid beta.
+Phase 1: two weeks of user review across the five personal interests and mixed digest in Claudriel, including use without a coding project. Unavailable First Nations coverage cannot be substituted silently with generic Canadian news; publisher concentration and empty categories remain visible. PHP-only success is insufficient. Phase 2: a second agent consumes the same API and gets useful contextual results without relying on Claudriel's prompt, private memory, or UI. Phase 3: billing and export/deletion/restore drills plus source-rights and security reviews before paid beta.

@@ -17,7 +17,7 @@ API keys may have a subset of scopes. All endpoints authorize object ownership; 
 
 ## Query semantics
 
-The request contains an existing feed_id, explicit technical context, max_age_hours (1–720) and limit (1–20). Claudriel initially requests at most five items. No repo contents, user identity or tenant override are needed. Technology versions are optional; lack of version evidence prohibits precise compatibility claims.
+The request contains an existing feed_id, an explicit context envelope, max_age_hours (1–720) and limit (1–20). Claudriel initially requests at most five items. No repo contents, user identity or tenant override are needed. For personal feeds, context still includes a short intent and technologies is an empty array; focus may name the selected interests. Project context is not required. Saved-feed selection controls eligibility and must not be replaced by topic inference. Technology versions are optional; lack of version evidence prohibits precise compatibility claims.
 
 Restrict retrieval to that feed's selected/entitled sources and current revision. max_age_hours filters known publication times; when publication time is unknown, use observation time for eligibility and keep published_at null. This is not proof that an undated article is recent. Coverage reports source-poll health, not exhaustive web coverage; sources_current cannot exceed sources_selected. Complete means all selected sources meet their configured freshness window, partial means some do, stale means none do. Empty items with complete coverage means no eligible results in this corpus, not that no news exists.
 

@@ -7,26 +7,26 @@ Phases are acceptance gates, not delivery-date promises. Ship one useful workflo
 Outcome: agree on a product boundary and a small implementation target.
 
 - Independent repository, architecture decision, migration ledger, draft feed-query contract, synthetic examples, and contract checks.
-- First client: Claudriel. First scenario: contextual PHP news in one workspace.
+- First client: Claudriel. Personal interests: development (including PHP), entertainment, Canada, First Nations and world news; PHP is the technical bootstrap.
 - Initial deployment: Raspberry Pi, one Go process, embedded SQLite/WAL/FTS5. Confirm model, RAM, OS architecture and storage before setting performance budgets. The earlier 1 GiB hypothesis is not a measured requirement; remote model-provider cost is separate.
 
 Exit: roadmap and contracts are reviewable without starting or migrating the old stack. No running service is claimed.
 
 ## Phase 1 — Useful personal pilot (v0.1)
 
-Outcome: a working contextual feed inside Claudriel, backed by Northway.
+Outcome: useful selectable personal feeds and an optional mixed digest inside Claudriel, backed by Northway; project context is optional. See [personal scope and source candidates](personal-feeds.md).
 
 1. Create the Go application, configuration, health/readiness endpoints, migrations, and local startup with embedded SQLite, enforced connection pragmas, serialized writes and a verified FTS5 build.
-2. Manually provision one tenant, a revocable hashed API key, and a feed containing 5–10 explicitly selected RSS/Atom sources. Do not ship signup or arbitrary URL ingestion yet.
-3. Port feed fetching with conditional requests, parsing, stable item identity, deduplication, bounded retries, and persisted poll state. Use available feed text only; prohibit home crawling and article-page fetching. Start with hourly staggered polling and one concurrent fetch, subject to publisher limits. See [content sourcing](content-sources.md).
+2. Manually provision one tenant, a revocable hashed API key, and tenant-owned feeds from individually approved RSS/Atom sources across the stated interests. Preserve the five-source PHP bootstrap while resolving broader candidate approval/rights/availability. Do not ship signup or arbitrary URL ingestion yet.
+3. Port feed fetching with conditional requests, parsing, stable item identity, deduplication, no automatic acquisition retries, and persisted poll state. Retain only permitted metadata in the initial personal pilot; prohibit home crawling and article-page fetching. Use staggered polling and one concurrent fetch under a shared attempt/byte budget, subject to publisher limits; the broader proposal is not five hourly schedules per panel. See [content sourcing](content-sources.md).
 4. Store articles, source observations, feed definitions, query snapshots, feedback, and usage records. Every tenant-owned row and lookup is scoped from authenticated identity.
 5. Implement POST /v1/feed-queries: deterministic retrieval, bounded AI reranking and explanations, validated output, and deterministic fallback. Return evidence, publication/observation times, and coverage/staleness signals.
 6. Add snapshot retrieval and idempotent feedback. Feedback is explicit, scoped, reversible, and must not become cross-customer training data by default.
-7. Integrate through Claudriel's PHP backend and agent-tool contract. Add one panel with at most five items, source links, explanations, and save/dismiss controls. News is separate from the existing North Cloud leads API.
+7. Integrate through Claudriel's PHP backend and agent-tool contract. Add one panel with a saved-feed selector, at most five items, source links, explanations, and save/dismiss controls. News is separate from the existing North Cloud leads API.
 8. Add request budgets, rate limits, bounded logs, failure reporting, retention, and restore-tested backups. Limit AI to one ranking call per cache miss initially; repeated panel renders must not trigger repeated calls.
 9. Optionally enable one scheduled custom list using an external web-search provider, durable schedule state and hard spending caps. Separate acquisition from digest ranking, serve the last snapshot without refreshing on panel render, and preserve feed-only operation. See [scheduled discovery](specs/scheduled-discovery.md). No crawling runs at home.
 
-**Exit gates:** user finds the feed useful over two weeks; at least 80% of a manually labelled top-five sample is relevant; review excluded examples for misses; no invented sources or unsupported applicability claims; source failures are visible; ingestion and query retries are safe; two test tenants cannot see one another's feeds, snapshots, feedback, credentials or caches. Demonstrate restart recovery and resource headroom under the actual pilot workload. See [evaluation](evaluation.md).
+**Exit gates:** user finds the feed useful over two weeks; at least 80% of manually labelled top-five samples is relevant in each interest area and the mixed digest, with coverage gaps assessed separately; review excluded examples for misses; no invented sources or unsupported applicability claims; source failures are visible; ingestion and query retries are safe; two test tenants cannot see one another's feeds, snapshots, feedback, credentials or caches. Demonstrate restart recovery and resource headroom under the actual pilot workload. See [evaluation](evaluation.md).
 
 **Explicitly excluded:** self-service onboarding, billing, generalized web search, multi-region availability, custom source plugins, a public dashboard, all old North Cloud classification domains, and bulk historical migration.
 
