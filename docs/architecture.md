@@ -1,6 +1,6 @@
 # Architecture
 
-Status: proposed architecture for Phase 1, not implemented.
+Status: Phase 1 architecture contract. Runtime and initial SQLite corpus storage are implemented; the remaining feed-service design is still planned. See [storage scope](storage.md) and [roadmap](roadmap.md) for implemented versus future behavior.
 
 ## Product boundary
 

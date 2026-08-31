@@ -49,7 +49,7 @@ Tests demonstrate missing/wrong tenant rejection, composite constraints, FTS and
 
 ## Container contract
 
-The image includes /data owned by UID/GID 65532 with mode 0700; it declares no implicit VOLUME. Infra must supply durable writable storage there while retaining a read-only root filesystem. Run the image's migrate command as the same UID against that volume before serve. No production compose/routing/secrets are introduced here.
+The image includes /data/northway owned by UID/GID 65532 with mode 0700; it declares no implicit VOLUME. Mount durable storage at /data and use --database=/data/northway/northway.sqlite. The private child directory avoids relying on Docker preserving a volume root's permissions. For a host bind mount, infra must prepare that child with the same owner/mode. Retain a read-only root filesystem and run migrate as the same UID against the volume before serve. No production compose/routing/secrets are introduced here.
 
 make container-smoke first verifies health-only behavior, then creates a uniquely named disposable Docker volume, migrates it non-root, runs storage-backed readiness and restarts the same container. It removes only its own test resources. The 128 MiB smoke limit is an empty-corpus test condition, not a measured production capacity budget. Native ARM/Pi runtime testing and coherent backup/restore remain required before deployment.
 

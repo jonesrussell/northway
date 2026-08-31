@@ -21,8 +21,8 @@ mount = ["--mount", f"type=volume,source={volume},target=/data"]
 try:
     assert docker("volume", "create", volume) == volume
     created = True
-    docker("run", "--rm", *limits, *mount, image, "migrate", "--database=/data/northway.sqlite")
-    container = docker("run", "--detach", *limits, *mount, "--publish", "127.0.0.1::8080", image, "serve", "--database=/data/northway.sqlite")
+    docker("run", "--rm", *limits, *mount, image, "migrate", "--database=/data/northway/northway.sqlite")
+    container = docker("run", "--detach", *limits, *mount, "--publish", "127.0.0.1::8080", image, "serve", "--database=/data/northway/northway.sqlite")
     assert re.fullmatch(r"[0-9a-f]{64}", container)
     for run in range(2):
         if run:
