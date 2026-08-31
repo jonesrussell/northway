@@ -54,7 +54,7 @@ CREATE TABLE query_snapshots (
     generated_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL CHECK(expires_at>generated_at),
     retain_until INTEGER NOT NULL CHECK(retain_until>=expires_at),
-    items TEXT NOT NULL CHECK(length(CAST(items AS BLOB))<=160000),
+    items TEXT NOT NULL CHECK(length(CAST(items AS BLOB))<=524288),
     PRIMARY KEY(tenant_id,id),
     FOREIGN KEY(tenant_id,feed_id) REFERENCES feeds(tenant_id,id)
 ) STRICT;
@@ -68,7 +68,10 @@ CREATE TRIGGER query_article_insert AFTER INSERT ON articles BEGIN
 END;
 -- +goose StatementEnd
 -- +goose StatementBegin
-CREATE TRIGGER query_article_update AFTER UPDATE ON articles BEGIN
+CREATE TRIGGER query_article_update AFTER UPDATE ON articles
+WHEN new.content_hash IS NOT old.content_hash OR new.url IS NOT old.url
+ OR new.published_at IS NOT old.published_at OR new.observed_at IS NOT old.observed_at
+BEGIN
  UPDATE tenants SET corpus_revision=corpus_revision+1 WHERE id=new.tenant_id;
 END;
 -- +goose StatementEnd

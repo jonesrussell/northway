@@ -43,6 +43,11 @@ func sameScope(w sqlc.QueryWork, scope sqlc.QueryScopeRow) bool {
 	return w.FeedRevision == scope.Revision && w.CorpusRevision == scope.CorpusRevision && w.EntitlementRevision == scope.EntitlementRevision
 }
 
+// Twenty items, even with sixfold JSON escaping of every bounded title, URL
+// byte and explanation rune, plus IDs/field names, fit below 440,000 bytes.
+// Keep the migration CHECK aligned; the worst-case round-trip test covers both.
+const snapshotJSONLimit = 512 * 1024
+
 // BeginQuery atomically claims a key, reuses an authorized cache entry or holds
 // a worst-case budget. Insufficient/unconfigured budget permits deterministic
 // work only. A replay never returns WorkID, so it cannot authorize another call.
@@ -227,7 +232,10 @@ func (s *Store) CompleteQuery(ctx context.Context, principal identity.Principal,
 		if err != nil {
 			return err
 		}
-		if !sameScope(w, scope) {
+		// Unrelated arrivals must not discard an already-paid result. Selected
+		// versions and current access are checked below. Keep the ORIGINAL corpus
+		// revision on the snapshot: it must not cache-hit against unseen arrivals.
+		if w.FeedRevision != scope.Revision || w.EntitlementRevision != scope.EntitlementRevision {
 			return query.ErrConflict
 		}
 		items := make([]query.Item, 0, len(selections))
@@ -245,7 +253,7 @@ func (s *Store) CompleteQuery(ctx context.Context, principal identity.Principal,
 			items = append(items, query.Item{ArticleID: a.ID, SourceID: a.SourceID, ContentHash: a.ContentHash, Title: a.Title, URL: a.Url, Explanation: selection.Explanation})
 		}
 		encoded, err := json.Marshal(items)
-		if err != nil || len(encoded) > 160000 {
+		if err != nil || len(encoded) > snapshotJSONLimit {
 			return query.ErrInvalid
 		}
 		if err := settle(ctx, q, &w, cost); err != nil {
