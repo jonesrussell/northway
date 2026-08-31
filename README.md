@@ -4,7 +4,7 @@
 
 Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
 
-> Status: foundation and design only. No server, deployed API, ingestion worker, or SaaS functionality exists yet. JSON examples are synthetic contract fixtures, not real news. Phase 0 establishes the foundation; Phase 1 is the first implementation target.
+> Status: Go runtime foundation implemented; feed service still in development. The server exposes operational health only, with readiness deliberately unavailable until storage exists. No database, ingestion, tenant API, provider calls or deployment is implemented. JSON feed examples remain synthetic fixtures.
 
 ## First useful experience
 
@@ -26,6 +26,7 @@ Claudriel submits approved technical context and a saved feed identifier. Northw
 
 ## Start here
 
+- [Run and verify the Go foundation](docs/runtime.md)
 - [Delivery project and issue index](docs/delivery/README.md)
 - [Deployment ownership and first implementation slice](docs/deployment.md)
 - [Phased roadmap](docs/roadmap.md)
@@ -46,14 +47,14 @@ Claudriel submits approved technical context and a saved feed identifier. Northw
 
 ## Repository checks
 
-Requires Python 3.11+ for documentation/contract checks only; this is not the planned application runtime.
+Requires Go 1.27.0 and Python 3.11+ for development checks. Python is not an application runtime dependency. See [runtime commands](docs/runtime.md) for builds, race checks and vulnerability scanning.
 
 ```sh
 python3 -m pip install -r requirements-dev.txt
-python3 scripts/validate_contracts.py
+make check
 ```
 
-The checker validates request/response examples, rejects invalid contract cases, and checks local Markdown file links. CI runs the same check. It does not demonstrate a running service or tenant isolation in an implementation.
+The contract checker validates synthetic API examples and local links. Runtime checks cover lifecycle behavior, import boundaries and builds. CI runs the same commands. None of these establishes tenant isolation, feed usefulness or Pi capacity before those features exist.
 
 ## Relationship to North Cloud
 

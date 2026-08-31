@@ -1,12 +1,12 @@
 # Phased roadmap
 
-Phases are acceptance gates, not delivery-date promises. Ship one useful workflow before expanding the product. All phases after Phase 0 are unimplemented.
+Phases are acceptance gates, not delivery-date promises. Ship one useful workflow before expanding the product. Phase 1 has the Go runtime foundation; storage, ingestion, tenant APIs and deployment remain unimplemented.
 
 ## Phase 0 — Foundation (this repository)
 
 Outcome: agree on a product boundary and a small implementation target.
 
-- Independent private repository, architecture decision, migration ledger, draft feed-query contract, synthetic examples, and contract checks.
+- Independent repository, architecture decision, migration ledger, draft feed-query contract, synthetic examples, and contract checks.
 - First client: Claudriel. First scenario: contextual PHP news in one workspace.
 - Initial deployment: Raspberry Pi, one Go process, embedded SQLite/WAL/FTS5. Confirm model, RAM, OS architecture and storage before setting performance budgets. The earlier 1 GiB hypothesis is not a measured requirement; remote model-provider cost is separate.
 

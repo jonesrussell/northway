@@ -19,6 +19,10 @@ Verified 2026-08-30 using official Go release metadata and proxy.golang.org modu
 
 Go 1.27 and module versions above are verified selections as of this date, not evergreen claims. Before the first runtime PR, verify the resolved transitive graph under the pinned toolchain and run govulncheck; current stable is not a security guarantee. No database container is required. Record the embedded SQLite version and compile options in runtime diagnostics and verify WAL, FTS5, foreign keys and backup behavior on the selected driver. pgx/v5 is deferred until an actual PostgreSQL migration decision.
 
+## Current implementation
+
+The runtime foundation uses only the Go standard library. `go list -m all` contains this module alone; no SQLite/feed/provider modules are installed yet. `make vuln` uses the separately pinned golang.org/x/vuln tool v1.7.0, verified against the official module proxy. The older GitHub release v1.1.4 crashed while analyzing Go 1.27 standard-library syntax; the newer module tag must pass the same full source scan, not a reduced substitute. The tool is not linked into the application.
+
 ## Deliberately deferred
 
 No ORM, DI framework, generic repository generator, Elasticsearch client, Redis queue, vector store, browser automation, OpenTelemetry collector, workflow engine or agent framework in Phase 1. Standard Go metrics/logging plus a lightweight health/freshness surface are sufficient to begin; tracing can be instrumented when diagnostic needs justify the SDK and export path. No second model provider until there is an actual requirement.
