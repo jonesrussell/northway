@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sync"
 	"syscall"
+	"time"
 
 	assets "github.com/jonesrussell/northway/db"
 	"github.com/jonesrussell/northway/internal/sqlite/sqlc"
@@ -21,7 +22,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const schemaVersion = 3
+const schemaVersion = 4
 const busyMilliseconds = 50
 
 // Store is a single-process SQLite owner. Close only after all users have stopped.
@@ -32,6 +33,7 @@ type Store struct {
 	writeGate       chan struct{}
 	closeOnce       sync.Once
 	closeErr        error
+	clock           func() time.Time // test clock; immutable while the store is in use
 }
 
 func lockFile(path string, create bool) (*os.File, string, error) {

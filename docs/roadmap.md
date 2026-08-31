@@ -1,6 +1,6 @@
 # Phased roadmap
 
-Phases are acceptance gates, not delivery-date promises. Ship one useful workflow before expanding the product. Phase 1 has the Go runtime, SQLite corpus storage and scoped credential/authorization foundation; ingestion, product APIs and deployment remain unimplemented.
+Phases are acceptance gates, not delivery-date promises. Ship one useful workflow before expanding the product. Phase 1 has the Go runtime, SQLite corpus storage, scoped credentials/authorization and durable query/cache/spending foundation; ingestion, product APIs and deployment remain unimplemented.
 
 ## Phase 0 — Foundation (this repository)
 
