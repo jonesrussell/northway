@@ -68,9 +68,13 @@ def validate_active(selection, active, validator):
     active_by_url = {source["feed_url"]: source for source in active["sources"]}
     if len(active_by_url) != len(active["sources"]) or not set(active_by_url).issubset(catalogue_by_url):
         raise ValueError("active profile escaped owner-selected endpoints")
+    feeds_by_id = {feed["id"]: feed for feed in active["feeds"]}
     for url, source in active_by_url.items():
         candidate = catalogue_by_url[url]
-        if source["title"] != candidate["name"] or not candidate["operator_approved"]:
+        if (source["title"] != candidate["name"]
+                or source["publisher_group"] != candidate["publisher_group"]
+                or source["categories"] != [candidate["interest_area"]]
+                or not candidate["operator_approved"]):
             raise ValueError("active source identity is not owner-selected")
         if candidate["rights_review"]["status"] == "permission_required":
             raise ValueError("active profile includes a permission-held source")
@@ -90,12 +94,15 @@ def validate_active(selection, active, validator):
     }
     if excluded_entries != expected_reasons:
         raise ValueError("active-profile exclusion rationale drift")
-    feed_ids = {feed["id"] for feed in active["feeds"]}
+    feed_ids = set(feeds_by_id)
     if len(feed_ids) != len(active["feeds"]):
         raise ValueError("duplicate runnable feed identity")
     for source in active["sources"]:
         if set(source["feed_ids"]) - feed_ids:
             raise ValueError("active source references unknown saved feed")
+        if any(not set(source["categories"]).issubset(feeds_by_id[feed_id]["categories"])
+               for feed_id in source["feed_ids"]):
+            raise ValueError("active source category escaped saved feed policy")
     activation = (ROOT / active["activation_record"]).read_text(encoding="utf-8")
     rows = [tuple(cell.strip() for cell in line.split("|")[1:-1])
             for line in activation.splitlines() if line.startswith("| ") and "https://" in line]
@@ -116,23 +123,27 @@ def main():
     active = json.loads((ROOT / "catalogue/personal-local-v1.json").read_text(encoding="utf-8"))
     active_validator = Draft202012Validator(active_schema, format_checker=FormatChecker())
     validate_active(value, active, active_validator)
-    def swap_active(target_id):
+    def swap_active(target_id, replaced_id):
         changed = deepcopy(active)
         candidate = next(source for source in value["sources"] if source["id"] == target_id)
-        replaced = changed["sources"][2]
-        changed["sources"][2] = {
+        index = next(i for i, source in enumerate(changed["sources"])
+                     if catalogue_by_url[source["feed_url"]]["id"] == replaced_id)
+        replaced = changed["sources"][index]
+        changed["sources"][index] = {
             "id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
             "title": candidate["name"], "feed_url": candidate["feed_url"],
             "feed_ids": replaced["feed_ids"], "interval_seconds": 14400,
             "max_bytes": 2097152, "personal_use_basis": "owner_directed_official_feed",
-            "publisher_group": candidate["publisher_group"], "categories": ["entertainment"],
+            "publisher_group": candidate["publisher_group"],
+            "categories": [candidate["interest_area"]],
         }
         for entry in changed["excluded"]:
             if entry["catalogue_id"] == target_id:
-                entry["catalogue_id"] = "global-entertainment"
+                entry["catalogue_id"] = replaced_id
                 entry["reason"] = "publisher_terms_unverified"
         return changed
-    active_invalid = [swap_active("variety"), swap_active("aptn-news"), deepcopy(active)]
+    active_invalid = [swap_active("variety", "global-entertainment"),
+                      swap_active("cbc-canada", "global-canada"), deepcopy(active)]
     active_invalid[-1]["excluded"][0]["reason"] = "temporarily_unavailable"
     for invalid in active_invalid:
         try:
