@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A lightweight personal news reader powered by Northway.">
+    <title>Northway — Personal briefing</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="masthead">
+        <a class="wordmark" href="#top" aria-label="Northway home">
+          <span class="wordmark-mark" aria-hidden="true">N</span>
+          <span>Northway</span>
+        </a>
+        <div class="live-state"><span class="live-dot" aria-hidden="true"></span> Live metadata</div>
+      </header>
+
+      <main id="top">
+        <section class="hero">
+          <p class="eyebrow">Your personal signal</p>
+          <h1>What matters,<br><em>in context.</em></h1>
+          <p class="dek">A quiet briefing drawn from sources you choose. Northway ranks publisher metadata and sends you to the original reporting.</p>
+        </section>
+
+        <section class="reader" aria-labelledby="briefing-heading">
+          <div class="feed-bar">
+            <div class="feed-tabs" role="tablist" aria-label="News feed">
+              <button class="feed-tab is-active" type="button" role="tab" aria-selected="true" data-feed="mixed">Mixed</button>
+              <button class="feed-tab" type="button" role="tab" aria-selected="false" data-feed="development">Development</button>
+              <button class="feed-tab" type="button" role="tab" aria-selected="false" data-feed="entertainment">Entertainment</button>
+              <button class="feed-tab" type="button" role="tab" aria-selected="false" data-feed="canada">Canada</button>
+              <button class="feed-tab" type="button" role="tab" aria-selected="false" data-feed="world">World</button>
+            </div>
+            <button class="refresh" type="button" id="refresh-button">
+              <span aria-hidden="true">↻</span> Refresh
+            </button>
+          </div>
+
+          <div class="briefing-head">
+            <div>
+              <p class="section-label">Latest briefing</p>
+              <h2 id="briefing-heading">Mixed</h2>
+            </div>
+            <div class="briefing-meta" id="briefing-meta" aria-live="polite">Retrieving your news…</div>
+          </div>
+
+          <div class="status-card" id="status-card" role="status">
+            <span class="loader" aria-hidden="true"></span>
+            <span id="status-text">Asking Northway for a fresh snapshot…</span>
+          </div>
+
+          <ol class="story-list" id="story-list" aria-live="polite" aria-busy="true"></ol>
+
+          <aside class="coverage" id="coverage" hidden>
+            <div>
+              <p class="section-label">Coverage note</p>
+              <p id="coverage-text"></p>
+            </div>
+            <span class="coverage-status" id="coverage-status"></span>
+          </aside>
+        </section>
+
+        <section class="first-nations-note">
+          <p class="section-label">Next source set</p>
+          <h2>First Nations coverage deserves its own curation.</h2>
+          <p>It is intentionally absent from this prototype until publisher feeds are selected and approved. Northway will show that gap instead of filling it with unrelated Canadian news.</p>
+        </section>
+      </main>
+
+      <footer>
+        <span>Northway prototype</span>
+        <span>Source metadata only · Reporting stays with publishers</span>
+      </footer>
+    </div>
+  </body>
+</html>
