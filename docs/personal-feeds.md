@@ -4,7 +4,7 @@ Status: curation/design completed in #44. Bounded ingestion (#12) and [determini
 
 ## Source candidates and evidence
 
-[The candidate manifest](../catalogue/personal-pilot.json) records two candidates per interest area, exact endpoints, publisher attribution, rights-review status and dated probe outcomes. The owner [approved these exact ten sources on 2026-08-31](source-approval-2026-08-31.md) for personal metadata-only selection. All remain disabled pending publisher-use, availability and activation gates. The [five-source PHP bootstrap](pilot-readiness.md) and its exact approval checks are unchanged. Approval of an interest area is not permission to fetch arbitrary URLs or export content to an AI provider.
+[The source manifest](../catalogue/personal-pilot.json) records two selected sources per interest area, exact endpoints, publisher attribution, rights-review status and dated probe outcomes. The owner [approved these exact ten sources on 2026-08-31](source-approval-2026-08-31.md) for personal metadata-only selection. All remain disabled pending publisher-use, availability and activation gates. The [five-source PHP bootstrap](pilot-readiness.md) and its exact approval checks are unchanged. Approval of an interest area is not permission to fetch arbitrary URLs or export content to an AI provider.
 
 Workstation WSL checks on 2026-08-31 (not Pi evidence):
 
@@ -35,7 +35,7 @@ The [Anishinabek Nation communications page](https://anishinabek.ca/departments/
 
 [BBC's feed reference](https://support.bbc.co.uk/platform/feeds/NewsFeeds.htm) is old. The accessible [2022 BBC terms PDF](https://downloads.bbc.co.uk/usingthebbc/bbc_terms_of_use_31March2022english.pdf), sections 8 and 15, distinguishes RSS display from metadata/computer-analysis uses. Current applicable terms and permission for this service need confirmation. A working RSS response is not clearance for AI processing. This is a conservative product hold, not legal advice or a statement that the archived terms are current.
 
-Rights review must resolve personal storage/display and automated acquisition before source activation. Excerpts, full text, provider export and commercial redistribution require separate decisions. Do not contact publishers or send permission requests as part of this change. Keep dated evidence and explicit owner decisions in a reviewed catalogue revision; then provision approved sources through the operator boundary. The offline schema plus duplicate checks pin these ten candidate identities/URLs and their recorded rights status, and record exact owner selection while preventing activation or rights-clearance claims; the schema is not a generic runtime registry or a ten-source product limit.
+Rights review must resolve personal storage/display and automated acquisition before source activation. Excerpts, full text, provider export and commercial redistribution require separate decisions. Do not contact publishers or send permission requests as part of this change. Keep dated evidence and explicit owner decisions in a reviewed catalogue revision; then provision approved sources through the operator boundary. The offline schema plus duplicate checks pin these ten selected source identities, feed URLs, rights-reference URLs and recorded rights status, and record exact owner selection while preventing activation or rights-clearance claims; the schema is not a generic runtime registry or a ten-source product limit.
 
 ## Feed selection and context
 

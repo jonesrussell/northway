@@ -67,6 +67,13 @@ def main():
     value = json.loads((ROOT / "catalogue/personal-pilot.json").read_text(encoding="utf-8"))
     bootstrap = json.loads((ROOT / "catalogue/php-pilot.json").read_text(encoding="utf-8"))
     validate(value, validator, bootstrap)
+    # Keep the human approval record aligned with the schema-pinned selection.
+    record = (ROOT / value["owner_approval"]["record"]).read_text(encoding="utf-8")
+    rows = [tuple(cell.strip() for cell in line.split("|")[1:-1])
+            for line in record.splitlines() if line.startswith("| ") and "https://" in line]
+    expected_rows = [(source["interest_area"], source["name"], source["feed_url"])
+                     for source in value["sources"]]
+    assert sorted(rows) == sorted(expected_rows), "approval record/source selection drift"
     mutations = [
         lambda x: x.update(enabled=True),
         lambda x: x.update(schema_version=1),
@@ -84,6 +91,8 @@ def main():
         lambda x: x["sources"].__setitem__(1, deepcopy(x["sources"][0])),
         lambda x: x["sources"][0].update(interest_area="world"),
         lambda x: x["sources"][0]["rights_review"].update(status="approved"),
+        lambda x: x["sources"][0]["rights_review"].update(status="review_pending"),
+        lambda x: x["sources"][2]["rights_review"].update(reference_url="https://other.invalid/terms"),
         lambda x: x["sources"][7]["rights_review"].update(status="review_pending"),
         lambda x: x["sources"][8]["rights_review"].update(status="review_pending"),
         lambda x: x["sources"][0]["availability"].update(pi_reachability_verified=True),

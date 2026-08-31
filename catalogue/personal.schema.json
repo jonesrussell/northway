@@ -148,7 +148,8 @@
             "const": false
           },
           "operator_approved": {
-            "const": true
+            "const": true,
+            "description": "Owner selection only; not publisher-use clearance, provisioning or polling authorization. All sources remain disabled."
           },
           "attribution": {
             "type": "string",
@@ -285,6 +286,9 @@
                 "properties": {
                   "status": {
                     "const": "limited_syndication_statement"
+                  },
+                  "reference_url": {
+                    "const": "https://www.infoq.com/terms-and-conditions/"
                   }
                 }
               }
@@ -314,6 +318,9 @@
                 "properties": {
                   "status": {
                     "const": "review_pending"
+                  },
+                  "reference_url": {
+                    "const": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service"
                   }
                 }
               }
@@ -343,6 +350,9 @@
                 "properties": {
                   "status": {
                     "const": "permission_required"
+                  },
+                  "reference_url": {
+                    "const": "https://www.pmc.com/terms-of-use"
                   }
                 }
               }
@@ -372,6 +382,9 @@
                 "properties": {
                   "status": {
                     "const": "terms_unavailable"
+                  },
+                  "reference_url": {
+                    "const": "https://www.corusent.com/terms-of-use/"
                   }
                 }
               }
@@ -401,6 +414,9 @@
                 "properties": {
                   "status": {
                     "const": "terms_unavailable"
+                  },
+                  "reference_url": {
+                    "const": "https://www.cbc.ca/aboutus/terms-and-conditions.html"
                   }
                 }
               }
@@ -430,6 +446,9 @@
                 "properties": {
                   "status": {
                     "const": "terms_unavailable"
+                  },
+                  "reference_url": {
+                    "const": "https://www.corusent.com/terms-of-use/"
                   }
                 }
               }
@@ -459,6 +478,9 @@
                 "properties": {
                   "status": {
                     "const": "review_pending"
+                  },
+                  "reference_url": {
+                    "const": "https://anishinabeknews.ca/"
                   }
                 }
               }
@@ -488,6 +510,9 @@
                 "properties": {
                   "status": {
                     "const": "permission_required"
+                  },
+                  "reference_url": {
+                    "const": "https://www.aptnnews.ca/terms/"
                   }
                 }
               }
@@ -517,6 +542,9 @@
                 "properties": {
                   "status": {
                     "const": "permission_required"
+                  },
+                  "reference_url": {
+                    "const": "https://downloads.bbc.co.uk/usingthebbc/bbc_terms_of_use_31March2022english.pdf"
                   }
                 }
               }
@@ -546,6 +574,9 @@
                 "properties": {
                   "status": {
                     "const": "terms_unavailable"
+                  },
+                  "reference_url": {
+                    "const": "https://www.corusent.com/terms-of-use/"
                   }
                 }
               }
