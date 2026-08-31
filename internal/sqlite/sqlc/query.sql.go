@@ -176,7 +176,7 @@ func (q *Queries) ExpiredQueryWork(ctx context.Context, arg ExpiredQueryWorkPara
 }
 
 const findQueryCache = `-- name: FindQueryCache :one
-SELECT tenant_id, id, feed_id, request_hash, feed_revision, corpus_revision, entitlement_revision, ranker_version, mode, generated_at, expires_at, retain_until, items FROM query_snapshots WHERE tenant_id=? AND feed_id=? AND request_hash=? AND feed_revision=? AND corpus_revision=? AND entitlement_revision=? AND ranker_version=? AND expires_at>? ORDER BY generated_at DESC,id LIMIT 1
+SELECT tenant_id, id, feed_id, request_hash, feed_revision, corpus_revision, entitlement_revision, ranker_version, mode, generated_at, expires_at, retain_until, items, details FROM query_snapshots WHERE tenant_id=? AND feed_id=? AND request_hash=? AND feed_revision=? AND corpus_revision=? AND entitlement_revision=? AND ranker_version=? AND expires_at>? ORDER BY generated_at DESC,id LIMIT 1
 `
 
 type FindQueryCacheParams struct {
@@ -216,6 +216,7 @@ func (q *Queries) FindQueryCache(ctx context.Context, arg FindQueryCacheParams) 
 		&i.ExpiresAt,
 		&i.RetainUntil,
 		&i.Items,
+		&i.Details,
 	)
 	return i, err
 }
@@ -237,7 +238,7 @@ func (q *Queries) GetBudget(ctx context.Context, tenantID string) (Budget, error
 }
 
 const getQuerySnapshot = `-- name: GetQuerySnapshot :one
-SELECT tenant_id, id, feed_id, request_hash, feed_revision, corpus_revision, entitlement_revision, ranker_version, mode, generated_at, expires_at, retain_until, items FROM query_snapshots WHERE tenant_id=? AND id=? AND retain_until>?
+SELECT tenant_id, id, feed_id, request_hash, feed_revision, corpus_revision, entitlement_revision, ranker_version, mode, generated_at, expires_at, retain_until, items, details FROM query_snapshots WHERE tenant_id=? AND id=? AND retain_until>?
 `
 
 type GetQuerySnapshotParams struct {
@@ -263,12 +264,13 @@ func (q *Queries) GetQuerySnapshot(ctx context.Context, arg GetQuerySnapshotPara
 		&i.ExpiresAt,
 		&i.RetainUntil,
 		&i.Items,
+		&i.Details,
 	)
 	return i, err
 }
 
 const queryArticle = `-- name: QueryArticle :one
-SELECT a.id,a.source_id,a.content_hash,a.title,a.url,a.observed_at FROM articles a
+SELECT a.id,a.source_id,a.content_hash,a.title,a.url,a.observed_at,a.published_at,s.title AS source_name FROM articles a
 JOIN feed_sources f ON f.tenant_id=a.tenant_id AND f.source_id=a.source_id
 JOIN sources s ON s.tenant_id=a.tenant_id AND s.id=a.source_id
 WHERE a.tenant_id=? AND f.feed_id=? AND a.id=? AND s.enabled=1
@@ -287,6 +289,8 @@ type QueryArticleRow struct {
 	Title       string
 	Url         string
 	ObservedAt  int64
+	PublishedAt sql.NullInt64
+	SourceName  string
 }
 
 func (q *Queries) QueryArticle(ctx context.Context, arg QueryArticleParams) (QueryArticleRow, error) {
@@ -299,6 +303,8 @@ func (q *Queries) QueryArticle(ctx context.Context, arg QueryArticleParams) (Que
 		&i.Title,
 		&i.Url,
 		&i.ObservedAt,
+		&i.PublishedAt,
+		&i.SourceName,
 	)
 	return i, err
 }

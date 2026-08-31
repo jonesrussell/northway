@@ -1,0 +1,315 @@
+{
+  "synthetic": true,
+  "label_basis": "Authored expected relevance labels for deterministic regression review; not user acceptance or publisher evidence.",
+  "Cases": [
+    {
+      "Name": "personal-development",
+      "Category": "development",
+      "Context": {
+        "intent": "Show recent development news",
+        "technologies": []
+      },
+      "UseContext": false,
+      "Exclude": [
+        "tutorial"
+      ],
+      "Items": [
+        {
+          "Title": "Database release adds diagnostic tooling",
+          "Relevant": true
+        },
+        {
+          "Title": "Compiler maintenance release announced",
+          "Relevant": true
+        },
+        {
+          "Title": "Tutorial introduction to coding",
+          "Relevant": false
+        },
+        {
+          "Title": "Developer tooling conference announced",
+          "Relevant": true
+        },
+        {
+          "Title": "Package manager releases update",
+          "Relevant": true
+        },
+        {
+          "Title": "Language working group publishes minutes",
+          "Relevant": true
+        }
+      ],
+      "Expected": [
+        0,
+        1,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "Name": "personal-entertainment",
+      "Category": "entertainment",
+      "Context": {
+        "intent": "Show recent entertainment news",
+        "technologies": []
+      },
+      "UseContext": false,
+      "Exclude": [
+        "tutorial"
+      ],
+      "Items": [
+        {
+          "Title": "Film festival announces programme",
+          "Relevant": true
+        },
+        {
+          "Title": "Television series renewed",
+          "Relevant": true
+        },
+        {
+          "Title": "Tutorial on video editing",
+          "Relevant": false
+        },
+        {
+          "Title": "Musician announces concert dates",
+          "Relevant": true
+        },
+        {
+          "Title": "Theatre opens new production",
+          "Relevant": true
+        },
+        {
+          "Title": "Animation awards shortlist announced",
+          "Relevant": true
+        }
+      ],
+      "Expected": [
+        0,
+        1,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "Name": "personal-canada",
+      "Category": "canada",
+      "Context": {
+        "intent": "Show recent canada news",
+        "technologies": []
+      },
+      "UseContext": false,
+      "Exclude": [
+        "tutorial"
+      ],
+      "Items": [
+        {
+          "Title": "Federal committee publishes report",
+          "Relevant": true
+        },
+        {
+          "Title": "Transit project reaches consultation stage",
+          "Relevant": true
+        },
+        {
+          "Title": "Tutorial for mapping software",
+          "Relevant": false
+        },
+        {
+          "Title": "Provincial legislature begins session",
+          "Relevant": true
+        },
+        {
+          "Title": "Canadian museum opens exhibition",
+          "Relevant": true
+        },
+        {
+          "Title": "Municipal council releases budget",
+          "Relevant": true
+        }
+      ],
+      "Expected": [
+        0,
+        1,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "Name": "personal-first_nations",
+      "Category": "first_nations",
+      "Context": {
+        "intent": "Show recent first_nations news",
+        "technologies": []
+      },
+      "UseContext": false,
+      "Exclude": [
+        "tutorial"
+      ],
+      "Items": [
+        {
+          "Title": "Nation announces community assembly",
+          "Relevant": true
+        },
+        {
+          "Title": "Language programme opens registration",
+          "Relevant": true
+        },
+        {
+          "Title": "Tutorial on generic web design",
+          "Relevant": false
+        },
+        {
+          "Title": "Community school celebrates graduation",
+          "Relevant": true
+        },
+        {
+          "Title": "Nation publishes consultation notice",
+          "Relevant": true
+        },
+        {
+          "Title": "First Nations arts gathering announced",
+          "Relevant": true
+        }
+      ],
+      "Expected": [
+        0,
+        1,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "Name": "personal-world",
+      "Category": "world",
+      "Context": {
+        "intent": "Show recent world news",
+        "technologies": []
+      },
+      "UseContext": false,
+      "Exclude": [
+        "tutorial"
+      ],
+      "Items": [
+        {
+          "Title": "International talks resume",
+          "Relevant": true
+        },
+        {
+          "Title": "Regional election results announced",
+          "Relevant": true
+        },
+        {
+          "Title": "Tutorial on spreadsheet charts",
+          "Relevant": false
+        },
+        {
+          "Title": "Relief agency publishes update",
+          "Relevant": true
+        },
+        {
+          "Title": "Cross-border rail service reopens",
+          "Relevant": true
+        },
+        {
+          "Title": "International court schedules hearing",
+          "Relevant": true
+        }
+      ],
+      "Expected": [
+        0,
+        1,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "Name": "project-PHP",
+      "Category": "development",
+      "Context": {
+        "intent": "Show recent project news",
+        "technologies": [
+          {
+            "name": "PHP"
+          }
+        ]
+      },
+      "UseContext": true,
+      "Exclude": [
+        "tutorial"
+      ],
+      "Items": [
+        {
+          "Title": "PHP security release available",
+          "Relevant": true
+        },
+        {
+          "Title": "Film festival announced",
+          "Relevant": false
+        },
+        {
+          "Title": "PHP Tutorial for beginners",
+          "Relevant": false
+        },
+        {
+          "Title": "Toolchain migration notes for PHP",
+          "Relevant": true
+        },
+        {
+          "Title": "Database conference begins",
+          "Relevant": false
+        }
+      ],
+      "Expected": [
+        0,
+        3
+      ]
+    },
+    {
+      "Name": "project-Go",
+      "Category": "development",
+      "Context": {
+        "intent": "Show recent project news",
+        "technologies": [
+          {
+            "name": "Go"
+          }
+        ]
+      },
+      "UseContext": true,
+      "Exclude": [
+        "tutorial"
+      ],
+      "Items": [
+        {
+          "Title": "Go security release available",
+          "Relevant": true
+        },
+        {
+          "Title": "Film festival announced",
+          "Relevant": false
+        },
+        {
+          "Title": "Go Tutorial for beginners",
+          "Relevant": false
+        },
+        {
+          "Title": "Toolchain migration notes for Go",
+          "Relevant": true
+        },
+        {
+          "Title": "Database conference begins",
+          "Relevant": false
+        }
+      ],
+      "Expected": [
+        0,
+        3
+      ]
+    }
+  ]
+}

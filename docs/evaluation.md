@@ -1,6 +1,6 @@
 # Evaluation and release gates
 
-Status: planned checks. The foundation's JSON contract checks are not runtime evidence.
+Status: release gates remain planned. [Deterministic retrieval](retrieval.md) now has real SQLite regression tests and an authored labelled baseline across five interests and two project contexts; this does not replace user review or actual-device evidence.
 
 ## Relevance
 

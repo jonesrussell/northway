@@ -1,5 +1,5 @@
-// Package query defines bounded query inputs and durable work results. It does
-// not yet implement retrieval, model calls or the product HTTP contract.
+// Package query implements bounded deterministic metadata retrieval and durable
+// query work. Model calls and product HTTP routes remain separate.
 package query
 
 import (
@@ -105,8 +105,12 @@ type Item struct {
 	Title       string
 	URL         string
 	Explanation string
+	SourceName  string
+	PublishedAt *time.Time
+	ObservedAt  time.Time
+	Category    string
 }
-type Selection struct{ ArticleID, ContentHash, Explanation string }
+type Selection struct{ ArticleID, ContentHash, Explanation, Category string }
 
 func (s Selection) Validate() error {
 	if identity.ValidateID(s.ArticleID) != nil || len(s.ContentHash) != 64 || strings.Trim(s.ContentHash, "0123456789abcdef") != "" || !bounded(s.Explanation, 1000) {
@@ -121,6 +125,7 @@ type Snapshot struct {
 	GeneratedAt, ExpiresAt          time.Time
 	Items                           []Item
 	Suppressed                      bool
+	Details                         *Details
 }
 type Claim struct {
 	// WorkID is an internal coordination handle, never an HTTP write capability.

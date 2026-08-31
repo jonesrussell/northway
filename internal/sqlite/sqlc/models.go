@@ -49,11 +49,12 @@ type Budget struct {
 }
 
 type Feed struct {
-	TenantID string
-	ID       string
-	Title    string
-	Revision int64
-	Enabled  int64
+	TenantID    string
+	ID          string
+	Title       string
+	Revision    int64
+	Enabled     int64
+	Preferences string
 }
 
 type FeedSource struct {
@@ -111,6 +112,7 @@ type QuerySnapshot struct {
 	ExpiresAt           int64
 	RetainUntil         int64
 	Items               string
+	Details             string
 }
 
 type QueryWork struct {

@@ -299,7 +299,7 @@ func TestSQLiteFullRollsBackCorpusVersionAndFTS(t *testing.T) {
 }
 
 func TestUpgradeRebuildRestartAndExclusiveOwnership(t *testing.T) {
-	for _, version := range []int64{1, 2, 3, 4} {
+	for _, version := range []int64{1, 2, 3, 4, 5} {
 		t.Run(fmt.Sprintf("schema-%d", version), func(t *testing.T) { testUpgradeRebuildRestart(t, version) })
 	}
 }
