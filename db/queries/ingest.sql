@@ -78,5 +78,6 @@ WHERE articles.content_hash!=excluded.content_hash OR articles.url!=excluded.url
 SELECT id FROM articles WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.arg(source_id) AND origin_id=sqlc.arg(origin_id);
 
 -- name: ResetPollSchedule :execrows
-UPDATE poll_sources SET next_at=sqlc.arg(next_at),claim_id=NULL
+UPDATE poll_sources SET next_at=max(CAST(sqlc.arg(next_at) AS INTEGER),coalesce(last_attempt+interval_us,0)),
+last_error=CASE WHEN claim_id IS NOT NULL THEN 'reset' ELSE last_error END,claim_id=NULL
 WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.arg(source_id);

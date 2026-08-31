@@ -297,7 +297,8 @@ var _ ingest.Store = (*Store)(nil)
 // ResetPollSchedule is an explicit local-operator recovery seam after review of
 // publisher headers/policy. Unlike ConfigurePoll, it may shorten an existing
 // hold. It neither enables collection nor refunds attempts/bytes. Pending work
-// is fenced and remains charged. There is deliberately no public reset route.
+// is fenced, marked reset and remains charged. Minimum spacing from the last
+// attempt is preserved. There is deliberately no public reset route.
 func (s *Store) ResetPollSchedule(ctx context.Context, p identity.Principal, sourceID string) error {
 	tenant, err := access(p, true, sourceID)
 	if err != nil {

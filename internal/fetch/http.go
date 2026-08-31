@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -77,6 +78,20 @@ func header(v string) string {
 	return v
 }
 
+// ParseInt can return ErrRange before seeing trailing non-digits. Only a
+// complete positive decimal lifetime gets the operator-review overflow hold.
+func deltaOverflow(value string, err error) bool {
+	if !errors.Is(err, strconv.ErrRange) || value == "" {
+		return false
+	}
+	for _, ch := range value {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func notBefore(h http.Header, now time.Time) time.Time {
 	var until time.Time
 	set := func(t time.Time) {
@@ -91,13 +106,15 @@ func notBefore(h http.Header, now time.Time) time.Time {
 			} else {
 				set(now.Add(time.Duration(n) * time.Second))
 			}
+		} else if deltaOverflow(v, err) {
+			set(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC))
 		} else if t, err := http.ParseTime(v); err == nil {
 			set(t)
 		} else {
 			set(now.Add(7 * 24 * time.Hour))
 		}
 	}
-	// Fail closed on excessive or malformed holds: require operator review;
+	// Excessive positive holds require operator review; malformed holds defer seven days.
 	// FinishPoll preserves longer representable absolute Retry-After dates.
 	age, ageErr := strconv.ParseInt(h.Get("Age"), 10, 64)
 	if ageErr != nil {
@@ -107,8 +124,11 @@ func notBefore(h http.Header, now time.Time) time.Time {
 	for _, part := range strings.Split(strings.Join(h.Values("Cache-Control"), ","), ",") {
 		key, value, ok := strings.Cut(strings.TrimSpace(part), "=")
 		if ok && strings.EqualFold(key, "max-age") {
-			n, err := strconv.ParseInt(strings.Trim(value, "\""), 10, 64)
-			if err != nil || n < 0 {
+			value = strings.Trim(value, "\"")
+			n, err := strconv.ParseInt(value, 10, 64)
+			if deltaOverflow(value, err) {
+				set(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC))
+			} else if err != nil || n < 0 {
 				set(now.Add(7 * 24 * time.Hour))
 			}
 			if err == nil && n > age {

@@ -416,7 +416,8 @@ func (q *Queries) PutPollItem(ctx context.Context, arg PutPollItemParams) (int64
 }
 
 const resetPollSchedule = `-- name: ResetPollSchedule :execrows
-UPDATE poll_sources SET next_at=?1,claim_id=NULL
+UPDATE poll_sources SET next_at=max(CAST(?1 AS INTEGER),coalesce(last_attempt+interval_us,0)),
+last_error=CASE WHEN claim_id IS NOT NULL THEN 'reset' ELSE last_error END,claim_id=NULL
 WHERE tenant_id=?2 AND source_id=?3
 `
 

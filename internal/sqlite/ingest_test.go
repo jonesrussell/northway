@@ -382,7 +382,7 @@ func TestLongSuccessfulHoldHasExplicitOperatorRecovery(t *testing.T) {
 	_, secret := newKey(t, s, tenantA, identity.FeedsRead)
 	key, err := identity.NewService(s).Authenticate(t.Context(), secret.Reveal())
 	must(t, err)
-	if err = s.ResetPollSchedule(t.Context(), key, sourceID); err == nil {
+	if err = s.ResetPollSchedule(t.Context(), key, sourceID); !errors.Is(err, identity.ErrForbidden) {
 		t.Fatal("API key reset hold")
 	}
 	must(t, s.ResetPollSchedule(t.Context(), p, sourceID))
@@ -431,6 +431,11 @@ SELECT ?,printf('%08x-0000-4000-8000-000000000000',x),?,printf('old-%d',x),'http
 	}
 	var count int
 	var state, category string
+	var charged, reserved int64
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT charged_bytes,reserved_bytes FROM poll_attempts").Scan(&charged, &reserved))
+	if charged != reserved || reserved != 2048 {
+		t.Fatal("corpus failure refunded work", charged, reserved)
+	}
 	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM articles").Scan(&count))
 	must(t, s.readers.QueryRowContext(t.Context(), "SELECT state FROM poll_attempts").Scan(&state))
 	must(t, s.readers.QueryRowContext(t.Context(), "SELECT last_error FROM poll_sources").Scan(&category))
@@ -458,5 +463,67 @@ func TestPolicyApprovalAndSourceCountGuard(t *testing.T) {
 		} else {
 			must(t, err)
 		}
+	}
+}
+
+func TestResetPreservesSpacingPolicyAndCharges(t *testing.T) {
+	for _, pending := range []bool{false, true} {
+		t.Run(fmt.Sprint("pending=", pending), func(t *testing.T) {
+			s, _, now := pollSetup(t)
+			p := operator(tenantA)
+			started := *now
+			claim, err := s.ClaimPoll(t.Context(), p)
+			must(t, err)
+			wantCharged := int64(2048)
+			if !pending {
+				must(t, s.FinishPoll(t.Context(), p, claim.ID, pollResult()))
+				wantCharged = 500
+			}
+			*now = now.Add(time.Minute)
+			must(t, s.ResetPollSchedule(t.Context(), p, sourceID))
+			var approved, enabled int
+			var next, charged int64
+			var category string
+			must(t, s.readers.QueryRowContext(t.Context(), "SELECT approved,enabled,next_at,last_error FROM poll_sources").Scan(&approved, &enabled, &next, &category))
+			must(t, s.readers.QueryRowContext(t.Context(), "SELECT charged_bytes FROM poll_attempts WHERE id=?", claim.ID).Scan(&charged))
+			if approved != 1 || enabled != 1 || charged != wantCharged || next != started.Add(time.Hour).UnixMicro() {
+				t.Fatal(approved, enabled, charged, next)
+			}
+			if pending {
+				if category != "reset" {
+					t.Fatal("stale pending source", category)
+				}
+				if err = s.FinishPoll(t.Context(), p, claim.ID, pollResult()); !errors.Is(err, ingest.ErrLease) {
+					t.Fatal("reset worker published", err)
+				}
+				if _, err = s.ClaimPoll(t.Context(), p); !errors.Is(err, ingest.ErrBusy) {
+					t.Fatal("reservation released early", err)
+				}
+			}
+			*now = started.Add(ingest.LeaseDuration + time.Second)
+			if _, err = s.ClaimPoll(t.Context(), p); !errors.Is(err, ingest.ErrIdle) {
+				t.Fatal("reset waived minimum interval", err)
+			}
+			must(t, s.readers.QueryRowContext(t.Context(), "SELECT charged_bytes FROM poll_attempts WHERE id=?", claim.ID).Scan(&charged))
+			if charged != wantCharged {
+				t.Fatal("recovery refunded work", charged)
+			}
+			*now = started.Add(time.Hour)
+			_, err = s.ClaimPoll(t.Context(), p)
+			must(t, err)
+		})
+	}
+	s, _, _ := pollSetup(t)
+	p := operator(tenantA)
+	must(t, s.ConfigurePoll(t.Context(), p, ingest.Policy{SourceID: sourceID, URL: "https://example.invalid/feed", Interval: time.Hour, MaxBytes: 2048}))
+	must(t, s.ResetPollSchedule(t.Context(), p, sourceID))
+	var approved, enabled, attempts int
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT approved,enabled FROM poll_sources").Scan(&approved, &enabled))
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM poll_attempts").Scan(&attempts))
+	if approved != 0 || enabled != 0 || attempts != 0 {
+		t.Fatal("reset changed disabled policy", approved, enabled, attempts)
+	}
+	if _, err := s.ClaimPoll(t.Context(), p); !errors.Is(err, ingest.ErrIdle) {
+		t.Fatal("reset enabled source", err)
 	}
 }

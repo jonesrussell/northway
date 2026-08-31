@@ -234,3 +234,21 @@ func TestUnsolicited304RejectedByTransport(t *testing.T) {
 		t.Fatal(result)
 	}
 }
+
+func TestNumericHoldOverflowRequiresReview(t *testing.T) {
+	now := time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC)
+	for _, value := range []string{"9223372037", "9223372036854775807", "99999999999999999999999999"} {
+		for _, h := range []http.Header{{"Retry-After": []string{value}}, {"Cache-Control": []string{"max-age=" + value}}} {
+			if got := notBefore(h, now); !got.Equal(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)) {
+				t.Fatal(value, h, got)
+			}
+		}
+	}
+	for _, value := range []string{"-99999999999999999999999999", "999999999999999999999x"} {
+		for _, h := range []http.Header{{"Retry-After": []string{value}}, {"Cache-Control": []string{"max-age=" + value}}} {
+			if got := notBefore(h, now); !got.Equal(now.Add(7 * 24 * time.Hour)) {
+				t.Fatal(value, h, got)
+			}
+		}
+	}
+}
