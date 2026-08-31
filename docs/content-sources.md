@@ -28,6 +28,8 @@ The default 90-day hot-corpus policy is a maximum subject to rights and a config
 
 ## Later collection
 
+Firecrawl or a separately hosted service scavenged from North Cloud can occupy the same adapter boundary. See the [external collection contract](specs/external-collection.md). Neither requires moving the core service off the Pi; neither is deployed by this plan.
+
 Scheduled external AI search is also an optional pilot acquisition mode, alongside publisher feeds. See [scheduled discovery and custom lists](specs/scheduled-discovery.md) for cited evidence, no-home-crawl enforcement and budgets. It is distinct from ordinary ranking over already stored content; no external search is currently configured.
 
 If real use demonstrates missing coverage, evaluate licensed content APIs or a separately hosted collector. All web crawling, full-page extraction and browser rendering stay outside the home/Pi deployment. Do not reactivate the North Cloud stack just to supply the pilot. Any imported collector functionality needs the migration ledger, fetch isolation, rights review and a measured cost justification.

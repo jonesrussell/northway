@@ -1,0 +1,14 @@
+{
+  "revision": "51b877de7dab311c981dcdb4d38dfdca9965aeb1",
+  "service_definitions": 45,
+  "without_profiles": 39,
+  "default_memory_limits_gib": 24.625,
+  "observability_memory_limits_gib": 2.0,
+  "uncapped_default_services": [
+    "ai-observer",
+    "alert-crawler",
+    "mcp-north-cloud",
+    "minio-init"
+  ],
+  "note": "Configured limits, not reservations or observed demand. No .env loaded. Host Redis and other external services excluded."
+}

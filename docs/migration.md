@@ -2,6 +2,8 @@
 
 Reference repository: jonesrussell/north-cloud. Audited reference commit: `51b877de7dab311c981dcdb4d38dfdca9965aeb1`.
 
+The [original resource/usefulness audit](north-cloud-audit.md) records the source evidence.
+
 No North Cloud implementation code has been imported in the initial Northway commit. North Cloud has not been archived or stopped.
 
 ## Import protocol
@@ -22,7 +24,7 @@ Do not import .env files, production data, personal documents, generated model a
 | HTTP/checkpoint patterns in signal-producer/ | 2 | Reference only | Fix dense-lookback / 100-hit pagination and timestamp ties before reuse; never advance beyond undelivered accepted records. |
 | Structured procurement parsers under rfp-ingestor/internal/parser/ | 4 | Parked | Add only for a client use case; closing-date changes/cancellations and rights; preserve existing Claudriel lead API until explicitly migrated. |
 | Community/Indigenous taxonomy and alert-crawler/ | 4 | Parked | Preserve upstream taxonomy ownership and lifecycle semantics; do not promise emergency completeness; remove ES/Redis requirement if ported. |
-| HTML extraction/browser rendering | 4 | Parked | Source-specific value, resource cap, safe fetch path and source policy review before enabling. |
+| HTML extraction/browser rendering | 4 | Parked | External collection only; compare Firecrawl with a small North Cloud-derived worker using docs/specs/external-collection.md. Source-specific value, resource caps and rights review before enabling. |
 | Publisher Redis routing and publish_history | None by default | Do not port unchanged | Existing Pub/Sub can lose offline-consumer messages; batch cursor advances despite individual failures. Prefer pull snapshots; add acknowledged outbox if push becomes necessary. |
 | setup-ilm.sh, per-source raw/classified indices, Compose stack, five ML sidecars, monitoring stack | None | Retire or redesign | No bulk import. The audit identified ineffective retention setup and broad fixed dependencies. |
 

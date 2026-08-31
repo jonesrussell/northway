@@ -26,9 +26,11 @@ Claudriel submits approved technical context and a saved feed identifier. Northw
 
 ## Start here
 
+- [Delivery project and issue index](docs/delivery/README.md)
 - [Phased roadmap](docs/roadmap.md)
 - [Content sources and Raspberry Pi deployment](docs/content-sources.md)
 - [Scheduled AI discovery and custom lists](docs/specs/scheduled-discovery.md)
+- [Firecrawl or North Cloud-derived external collection](docs/specs/external-collection.md)
 - [Architecture and SaaS boundary](docs/architecture.md)
 - [Draft API contract](docs/api.md)
 - [Go package layout](docs/project-layout.md)
