@@ -16,7 +16,7 @@ import (
 	"github.com/jonesrussell/northway/internal/sqlite"
 )
 
-const personalLocalV1SHA256 = "7dcf59ee285ad179f0062a7f075a0de93dc7e75cc1a30bbf2ef699c4ce76b503"
+const personalLocalV1SHA256 = "80f8d68e0825b6006e9769589a8d6c974f6d3be98a153f5121c02b30a4a04005"
 
 const pilotHelp = `Usage: northway pilot provision --database PATH --tenant UUID --manifest PATH
 Atomically provision the exact reviewed personal-news profile. Stop serve first.
@@ -33,6 +33,7 @@ type pilotManifest struct {
 	ProviderExportAllowed bool   `json:"provider_export_allowed"`
 	CommercialUseApproved bool   `json:"commercial_use_approved"`
 	ApprovalRecord        string `json:"approval_record"`
+	ActivationRecord      string `json:"activation_record"`
 	Feeds                 []struct {
 		ID           string   `json:"id"`
 		Title        string   `json:"title"`
@@ -102,7 +103,10 @@ func executePilot(ctx context.Context, args []string, lookup func(string) (strin
 	}
 	defer store.Close()
 	if err = store.ProvisionPilot(ctx, p, sources, feeds); err != nil {
-		return errors.New("pilot profile conflicts with storage or failed validation")
+		if errors.Is(err, sqlite.ErrPilotConflict) {
+			return sqlite.ErrPilotConflict
+		}
+		return errors.New("pilot provisioning failed; verify tenant, profile and resource limits")
 	}
 	return json.NewEncoder(out).Encode(struct {
 		Status  string `json:"status"`
@@ -117,8 +121,17 @@ func readPilotManifest(path string) (pilotManifest, error) {
 	if err != nil || !info.Mode().IsRegular() || info.Size() > 64*1024 {
 		return v, errors.New("pilot manifest must be a bounded regular file")
 	}
-	data, err := os.ReadFile(path)
-	if err != nil || fmt.Sprintf("%x", sha256.Sum256(data)) != personalLocalV1SHA256 {
+	f, err := os.Open(path)
+	if err != nil {
+		return v, errors.New("pilot manifest unavailable")
+	}
+	defer f.Close()
+	opened, err := f.Stat()
+	if err != nil || !opened.Mode().IsRegular() || opened.Size() != info.Size() {
+		return v, errors.New("pilot manifest changed while opening")
+	}
+	data, err := io.ReadAll(io.LimitReader(f, 64*1024+1))
+	if err != nil || len(data) > 64*1024 || fmt.Sprintf("%x", sha256.Sum256(data)) != personalLocalV1SHA256 {
 		return v, errors.New("pilot manifest is not the reviewed personal-local-v1 revision")
 	}
 	d := json.NewDecoder(bytes.NewReader(data))
@@ -129,7 +142,7 @@ func readPilotManifest(path string) (pilotManifest, error) {
 	if d.Decode(&struct{}{}) != io.EOF {
 		return v, errors.New("pilot manifest must contain one JSON value")
 	}
-	if v.SchemaVersion != 1 || v.Profile != "personal-local-v1" || !v.Enabled || v.UseScope != "personal_metadata_feed_aggregation" || v.ProviderExportAllowed || v.CommercialUseApproved || v.ApprovalRecord != "docs/source-approval-2026-08-31.md" || len(v.Excluded) != 5 {
+	if v.SchemaVersion != 1 || v.Profile != "personal-local-v1" || !v.Enabled || v.UseScope != "personal_metadata_feed_aggregation" || v.ProviderExportAllowed || v.CommercialUseApproved || v.ApprovalRecord != "docs/source-approval-2026-08-31.md" || v.ActivationRecord != "docs/source-activation-2026-08-31.md" || len(v.Excluded) != 5 {
 		return v, errors.New("pilot manifest does not carry the reviewed personal-use decision")
 	}
 	if len(v.Sources) != 5 || len(v.Feeds) != 5 {

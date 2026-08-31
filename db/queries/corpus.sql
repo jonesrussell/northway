@@ -31,3 +31,5 @@ INSERT INTO feeds(tenant_id,id,title,enabled) VALUES(?,?,?,1) ON CONFLICT(tenant
 SELECT title,enabled,preferences FROM feeds WHERE tenant_id=? AND id=?;
 -- name: EnsurePilotFeedSource :exec
 INSERT INTO feed_sources(tenant_id,feed_id,source_id) VALUES(?,?,?) ON CONFLICT(tenant_id,feed_id,source_id) DO NOTHING;
+-- name: PilotFeedSources :many
+SELECT source_id FROM feed_sources WHERE tenant_id=? AND feed_id=? ORDER BY source_id;

@@ -203,6 +203,38 @@ func (q *Queries) PilotFeedConfig(ctx context.Context, arg PilotFeedConfigParams
 	return i, err
 }
 
+const pilotFeedSources = `-- name: PilotFeedSources :many
+SELECT source_id FROM feed_sources WHERE tenant_id=? AND feed_id=? ORDER BY source_id
+`
+
+type PilotFeedSourcesParams struct {
+	TenantID string
+	FeedID   string
+}
+
+func (q *Queries) PilotFeedSources(ctx context.Context, arg PilotFeedSourcesParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, pilotFeedSources, arg.TenantID, arg.FeedID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var source_id string
+		if err := rows.Scan(&source_id); err != nil {
+			return nil, err
+		}
+		items = append(items, source_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const pilotSourceConfig = `-- name: PilotSourceConfig :one
 SELECT url,title,enabled FROM sources WHERE tenant_id=? AND id=?
 `

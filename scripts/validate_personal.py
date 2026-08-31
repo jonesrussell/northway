@@ -60,6 +60,50 @@ def validate(value, validator, bootstrap):
     # URL shape and recorded observations are not SSRF protection or rights clearance.
 
 
+
+def validate_active(selection, active, validator):
+    validator.validate(active)
+    selected = {source["id"]: source for source in selection["sources"]}
+    catalogue_by_url = {source["feed_url"]: source for source in selection["sources"]}
+    active_by_url = {source["feed_url"]: source for source in active["sources"]}
+    if len(active_by_url) != len(active["sources"]) or not set(active_by_url).issubset(catalogue_by_url):
+        raise ValueError("active profile escaped owner-selected endpoints")
+    for url, source in active_by_url.items():
+        candidate = catalogue_by_url[url]
+        if source["title"] != candidate["name"] or not candidate["operator_approved"]:
+            raise ValueError("active source identity is not owner-selected")
+        if candidate["rights_review"]["status"] == "permission_required":
+            raise ValueError("active profile includes a permission-held source")
+        if candidate["availability"]["outcome"] in {"http_refused", "not_probed", "timeout"}:
+            raise ValueError("active profile includes an unavailable or unprobed source")
+    active_catalogue_ids = {catalogue_by_url[url]["id"] for url in active_by_url}
+    excluded_entries = {entry["catalogue_id"]: entry["reason"] for entry in active["excluded"]}
+    if (active_catalogue_ids & set(excluded_entries)
+            or active_catalogue_ids | set(excluded_entries) != set(selected)):
+        raise ValueError("active and excluded sources must partition the exact selection")
+    expected_reasons = {
+        "cbc-canada": "repeated_transport_timeout_from_workstation",
+        "variety": "publisher_terms_restrict_automated_and_ai_use",
+        "anishinabek-news": "feed_returned_403_and_permission_unconfirmed",
+        "aptn-news": "publisher_terms_require_prior_consent_for_automated_collection",
+        "bbc-world": "current_metadata_analysis_permission_unresolved",
+    }
+    if excluded_entries != expected_reasons:
+        raise ValueError("active-profile exclusion rationale drift")
+    feed_ids = {feed["id"] for feed in active["feeds"]}
+    if len(feed_ids) != len(active["feeds"]):
+        raise ValueError("duplicate runnable feed identity")
+    for source in active["sources"]:
+        if set(source["feed_ids"]) - feed_ids:
+            raise ValueError("active source references unknown saved feed")
+    activation = (ROOT / active["activation_record"]).read_text(encoding="utf-8")
+    rows = [tuple(cell.strip() for cell in line.split("|")[1:-1])
+            for line in activation.splitlines() if line.startswith("| ") and "https://" in line]
+    approved = {(row[1], row[2]) for row in rows}
+    expected = {(source["title"], source["feed_url"]) for source in active["sources"]}
+    if approved != expected:
+        raise ValueError("activation record/runnable source drift")
+
 def main():
     schema = json.loads((ROOT / "catalogue/personal.schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
@@ -70,26 +114,32 @@ def main():
     active_schema = json.loads((ROOT / "catalogue/personal-local-v1.schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(active_schema)
     active = json.loads((ROOT / "catalogue/personal-local-v1.json").read_text(encoding="utf-8"))
-    Draft202012Validator(active_schema, format_checker=FormatChecker()).validate(active)
-    selected = {source["id"]: source for source in value["sources"]}
-    active_by_url = {source["feed_url"]: source for source in active["sources"]}
-    if not set(active_by_url).issubset({source["feed_url"] for source in value["sources"]}):
-        raise ValueError("active profile escaped owner-selected endpoints")
-    catalogue_by_url = {source["feed_url"]: source for source in value["sources"]}
-    for url, source in active_by_url.items():
-        candidate = catalogue_by_url[url]
-        if source["title"] != candidate["name"] or not candidate["operator_approved"]:
-            raise ValueError("active source identity is not owner-selected")
-    active_catalogue_ids = {catalogue_by_url[url]["id"] for url in active_by_url}
-    excluded = {entry["catalogue_id"] for entry in active["excluded"]}
-    if active_catalogue_ids & excluded or active_catalogue_ids | excluded != set(selected):
-        raise ValueError("active and excluded sources must partition the exact selection")
-    feed_ids = {feed["id"] for feed in active["feeds"]}
-    if len(feed_ids) != len(active["feeds"]):
-        raise ValueError("duplicate runnable feed identity")
-    for source in active["sources"]:
-        if set(source["feed_ids"]) - feed_ids:
-            raise ValueError("active source references unknown saved feed")
+    active_validator = Draft202012Validator(active_schema, format_checker=FormatChecker())
+    validate_active(value, active, active_validator)
+    def swap_active(target_id):
+        changed = deepcopy(active)
+        candidate = next(source for source in value["sources"] if source["id"] == target_id)
+        replaced = changed["sources"][2]
+        changed["sources"][2] = {
+            "id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
+            "title": candidate["name"], "feed_url": candidate["feed_url"],
+            "feed_ids": replaced["feed_ids"], "interval_seconds": 14400,
+            "max_bytes": 2097152, "personal_use_basis": "owner_directed_official_feed",
+            "publisher_group": candidate["publisher_group"], "categories": ["entertainment"],
+        }
+        for entry in changed["excluded"]:
+            if entry["catalogue_id"] == target_id:
+                entry["catalogue_id"] = "global-entertainment"
+                entry["reason"] = "publisher_terms_unverified"
+        return changed
+    active_invalid = [swap_active("variety"), swap_active("aptn-news"), deepcopy(active)]
+    active_invalid[-1]["excluded"][0]["reason"] = "temporarily_unavailable"
+    for invalid in active_invalid:
+        try:
+            validate_active(value, invalid, active_validator)
+        except (ValueError, ValidationError):
+            continue
+        raise AssertionError("unsafe active-profile mutation passed")
     # Keep the human approval record aligned with the schema-pinned selection.
     record = (ROOT / value["owner_approval"]["record"]).read_text(encoding="utf-8")
     rows = [tuple(cell.strip() for cell in line.split("|")[1:-1])
@@ -155,7 +205,7 @@ def main():
     assert len(items) == 5 and len({x.findtext("guid") for x in items}) == 5
     assert {x.findtext("category") for x in items} == set(value["interest_areas"])
     assert sum(x.find("pubDate") is None for x in items) == 1
-    print(f"PASS: 10 owner-selected disabled sources, {len(mutations)} rejected changes, 5 no-project query shapes, runnable 5-source profile, synthetic RSS; no network")
+    print(f"PASS: 10 owner-selected catalogue sources, {len(mutations)} rejected changes, 5 no-project query shapes, runnable 5-source profile with 3 rejected activations, synthetic RSS; no network")
 
 
 if __name__ == "__main__":

@@ -377,6 +377,17 @@ func (q *Queries) PollItemIdentity(ctx context.Context, arg PollItemIdentityPara
 	return i, err
 }
 
+const pollSourceCount = `-- name: PollSourceCount :one
+SELECT count(*) FROM poll_sources
+`
+
+func (q *Queries) PollSourceCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, pollSourceCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const pollSourceURL = `-- name: PollSourceURL :one
 SELECT url FROM sources WHERE tenant_id=?1 AND id=?2
 `

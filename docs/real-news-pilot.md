@@ -1,6 +1,6 @@
 # Runnable local personal-news pilot
 
-Status: implemented for local operator use. The reviewed `personal-local-v1` profile provisions five real publisher feeds and five saved feeds into an existing tenant. It enables bounded metadata-only polling but starts no timer. AI-provider export and commercial use remain disabled.
+Status: implemented for local operator use. The [activated](source-activation-2026-08-31.md) `personal-local-v1` profile provisions five real publisher feeds and five saved feeds into an existing tenant. It enables bounded metadata-only polling but starts no timer. AI-provider export and commercial use remain disabled.
 
 ## Active profile
 
@@ -26,7 +26,7 @@ northway tenant create --database /private/northway.sqlite --tenant "$TENANT_UUI
 northway pilot provision \
   --database /private/northway.sqlite \
   --tenant "$TENANT_UUID" \
-  --manifest /usr/share/northway/catalogue/personal-local-v1.json
+  --manifest /path/to/northway/catalogue/personal-local-v1.json
 northway ingest once --database /private/northway.sqlite --tenant "$TENANT_UUID"
 ```
 
@@ -46,6 +46,8 @@ A fresh private SQLite database was migrated, provisioned from the hash-pinned p
 | InfoQ Programming | 8 | 13,272 |
 | Global Entertainment | 10 | 21,166 |
 
-The authenticated HTTP API then returned a deterministic snapshot from that corpus with `coverage.status=complete`, five current sources and source-linked metadata. The Mixed request returned Development, Entertainment and Canada; World was explicitly warned as a gap because the Corus publisher group had reached the configured cap. The dedicated World feed contains ten current items. No article page, image or enclosure was requested, and no feed content was committed to this repository or sent to an AI provider.
+The authenticated HTTP API then returned deterministic source-linked snapshots. The Mixed profile structurally returns at most three categories with this source set: Entertainment and Canada consume the Corus publisher cap before World, so every Mixed request reports World as a gap until publisher diversity changes. The dedicated World corpus held ten items, while its API query returned two because the only publisher group is capped at two. Coverage status was complete because all selected sources were current; it does not mean every category received an item. No article page, image or enclosure was requested, and no feed content was committed to this repository or sent to an AI provider.
+
+`personal-local-v1` is immutable. A later profile must use a new activation record and new feed/source identities, then document an explicit cutover; rerunning v1 will not rewrite an existing profile or undo an operator pause.
 
 This proves the local end-to-end path, not Pi reachability, unattended scheduling, publisher permission for commercial redistribution or representative First Nations coverage. Keep those gates open for deployment and productization.

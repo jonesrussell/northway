@@ -28,6 +28,8 @@ type PilotFeed struct {
 	UseContext   bool
 }
 
+var ErrPilotConflict = errors.New("pilot profile conflicts with existing storage")
+
 // ProvisionPilot atomically creates an exact reviewed profile and its poll policies.
 // Existing rows must match byte-for-byte; this never adopts or rewrites other data.
 func (s *Store) ProvisionPilot(ctx context.Context, p identity.Principal, sources []PilotSource, feeds []PilotFeed) error {
@@ -61,22 +63,77 @@ func (s *Store) ProvisionPilot(ctx context.Context, p identity.Principal, source
 			seen[id] = true
 		}
 	}
+	expectedSources := map[string]map[string]bool{}
+	for _, f := range feeds {
+		expectedSources[f.ID] = map[string]bool{}
+	}
+	for _, v := range sources {
+		for _, feedID := range v.FeedIDs {
+			expectedSources[feedID][v.ID] = true
+		}
+	}
+	for _, expected := range expectedSources {
+		if len(expected) == 0 {
+			return ingest.ErrInvalid
+		}
+	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
 		now := s.queryTime()
 		if !validTimestamp(now) {
 			return ingest.ErrInvalid
 		}
+		existingFeeds := map[string]bool{}
 		for _, f := range feeds {
-			if err := q.EnsurePilotFeed(ctx, sqlc.EnsurePilotFeedParams{TenantID: string(tenant), ID: f.ID, Title: f.Title}); err != nil {
-				return err
-			}
 			row, err := q.PilotFeedConfig(ctx, sqlc.PilotFeedConfigParams{TenantID: string(tenant), ID: f.ID})
+			if errors.Is(err, sql.ErrNoRows) {
+				if err = q.EnsurePilotFeed(ctx, sqlc.EnsurePilotFeedParams{TenantID: string(tenant), ID: f.ID, Title: f.Title}); err != nil {
+					return err
+				}
+				row, err = q.PilotFeedConfig(ctx, sqlc.PilotFeedConfigParams{TenantID: string(tenant), ID: f.ID})
+			} else if err == nil {
+				existingFeeds[f.ID] = true
+			}
 			if err != nil {
 				return err
 			}
 			if row.Title != f.Title || row.Enabled != 1 {
-				return errors.New("existing pilot feed conflicts with reviewed profile")
+				return ErrPilotConflict
 			}
+			if existingFeeds[f.ID] {
+				ids, err := q.PilotFeedSources(ctx, sqlc.PilotFeedSourcesParams{TenantID: string(tenant), FeedID: f.ID})
+				if err != nil {
+					return err
+				}
+				if len(ids) != len(expectedSources[f.ID]) {
+					return ErrPilotConflict
+				}
+				for _, id := range ids {
+					if !expectedSources[f.ID][id] {
+						return ErrPilotConflict
+					}
+				}
+			}
+		}
+		pollCount, err := q.PollSourceCount(ctx)
+		if err != nil {
+			return err
+		}
+		missingPolls := int64(0)
+		for _, v := range sources {
+			poll, err := q.PilotPollConfig(ctx, sqlc.PilotPollConfigParams{TenantID: string(tenant), SourceID: v.ID})
+			if errors.Is(err, sql.ErrNoRows) {
+				missingPolls++
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if poll.ApprovedUrl != v.URL || poll.Approved != 1 || poll.Enabled != 1 || poll.IntervalUs != v.Interval.Microseconds() || poll.MaxBytes != v.MaxBytes {
+				return ErrPilotConflict
+			}
+		}
+		if pollCount+missingPolls > ingest.MaxSources {
+			return ingest.ErrBudget
 		}
 		for _, v := range sources {
 			if err := q.EnsurePilotSource(ctx, sqlc.EnsurePilotSourceParams{TenantID: string(tenant), ID: v.ID, Url: v.URL, Title: v.Title}); err != nil {
@@ -87,7 +144,7 @@ func (s *Store) ProvisionPilot(ctx context.Context, p identity.Principal, source
 				return err
 			}
 			if row.Url != v.URL || row.Title != v.Title || row.Enabled != 1 {
-				return errors.New("existing pilot source conflicts with reviewed profile")
+				return ErrPilotConflict
 			}
 			for _, feedID := range v.FeedIDs {
 				if err := q.EnsurePilotFeedSource(ctx, sqlc.EnsurePilotFeedSourceParams{TenantID: string(tenant), FeedID: feedID, SourceID: v.ID}); err != nil {
@@ -102,7 +159,7 @@ func (s *Store) ProvisionPilot(ctx context.Context, p identity.Principal, source
 			} else if err != nil {
 				return err
 			} else if poll.ApprovedUrl != v.URL || poll.Approved != 1 || poll.Enabled != 1 || poll.IntervalUs != v.Interval.Microseconds() || poll.MaxBytes != v.MaxBytes {
-				return errors.New("existing poll policy conflicts with reviewed profile")
+				return ErrPilotConflict
 			}
 		}
 		for _, f := range feeds {
@@ -129,7 +186,7 @@ func (s *Store) ProvisionPilot(ctx context.Context, p identity.Principal, source
 				continue
 			}
 			if current.Preferences != "" {
-				return errors.New("existing feed preferences conflict with reviewed profile")
+				return ErrPilotConflict
 			}
 			n, err := q.ConfigureFeedPreferences(ctx, sqlc.ConfigureFeedPreferencesParams{Preferences: string(encoded), TenantID: string(tenant), ID: f.ID})
 			if err != nil {

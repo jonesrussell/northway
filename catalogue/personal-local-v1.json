@@ -6,6 +6,7 @@
   "provider_export_allowed": false,
   "commercial_use_approved": false,
   "approval_record": "docs/source-approval-2026-08-31.md",
+  "activation_record": "docs/source-activation-2026-08-31.md",
   "feeds": [
     {
       "id": "921bcb1b-e464-5ff4-9a7e-d8b79faa900a",

@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -27,6 +28,10 @@ func TestProvisionPilotIsAtomicAndIdempotent(t *testing.T) {
 	must(t, s.readers.QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", string(tenantA), feeds[0].ID).Scan(&after))
 	if after != revision {
 		t.Fatalf("idempotent provision changed feed revision: %d -> %d", revision, after)
+	}
+	must(t, s.DetachSource(t.Context(), p, feeds[0].ID, sources[0].ID))
+	if err := s.ProvisionPilot(t.Context(), p, sources, feeds); !errors.Is(err, ErrPilotConflict) {
+		t.Fatalf("detached membership silently restored: %v", err)
 	}
 	claim, err := s.ClaimPoll(t.Context(), p)
 	must(t, err)
