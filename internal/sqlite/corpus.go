@@ -45,6 +45,14 @@ func link(value string) bool {
 	return err == nil && u.Scheme == "https" && u.Hostname() != "" && u.User == nil && u.Fragment == ""
 }
 
+// validTimestamp bounds the UTC instant before UnixMicro can overflow and keeps
+// stored timestamps representable by the API's RFC3339 format. Sub-microsecond
+// precision is intentionally discarded when converting to database integers.
+func validTimestamp(value time.Time) bool {
+	year := value.UTC().Year()
+	return year >= 1970 && year <= 9999
+}
+
 // CreateTenant is an operator-only provisioning seam, not a public endpoint.
 func (s *Store) CreateTenant(ctx context.Context, tenant identity.TenantID) error {
 	if err := scope(tenant); err != nil {
@@ -95,12 +103,12 @@ func (s *Store) PutArticle(ctx context.Context, tenant identity.TenantID, v arti
 	if err := scope(tenant, v.ID, v.SourceID); err != nil {
 		return err
 	}
-	if !link(v.URL) || !text(v.Title, 512, false) || !text(v.Body, 65536, true) || !text(v.OriginID, 2048, false) || v.ObservedAt.IsZero() || v.ObservedAt.UnixMicro() < 0 {
+	if !link(v.URL) || !text(v.Title, 512, false) || !text(v.Body, 65536, true) || !text(v.OriginID, 2048, false) || !validTimestamp(v.ObservedAt) {
 		return errors.New("invalid article metadata")
 	}
 	var published sql.NullInt64
 	if v.PublishedAt != nil {
-		if v.PublishedAt.IsZero() || v.PublishedAt.UnixMicro() < 0 {
+		if !validTimestamp(*v.PublishedAt) {
 			return errors.New("invalid publication timestamp")
 		}
 		published = sql.NullInt64{Int64: v.PublishedAt.UTC().UnixMicro(), Valid: true}
@@ -181,7 +189,7 @@ func (s *Store) Search(ctx context.Context, tenant identity.TenantID, feedID, te
 	if err := scope(tenant, feedID); err != nil {
 		return nil, err
 	}
-	if since.IsZero() || since.UnixMicro() < 0 || limit < 1 || limit > 50 {
+	if !validTimestamp(since) || limit < 1 || limit > 50 {
 		return nil, errors.New("invalid search bounds")
 	}
 	expression, err := matchExpression(terms)
