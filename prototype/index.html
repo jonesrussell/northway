@@ -4,27 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="A lightweight personal news reader powered by Northway.">
-    <title>Northway — Personal briefing</title>
+    <title>Northway feeds</title>
     <link rel="stylesheet" href="/styles.css">
     <script src="/app.js" defer></script>
   </head>
   <body>
     <div class="page-shell">
       <header class="masthead">
-        <a class="wordmark" href="#top" aria-label="Northway home">
-          <span class="wordmark-mark" aria-hidden="true">N</span>
-          <span>Northway</span>
-        </a>
-        <div class="live-state"><span class="live-dot" aria-hidden="true"></span> Live metadata</div>
+        <h1>Northway feeds</h1>
+        <div class="live-state"><span class="live-dot" aria-hidden="true"></span> Connected</div>
       </header>
 
-      <main id="top">
-        <section class="hero">
-          <p class="eyebrow">Your personal signal</p>
-          <h1>What matters,<br><em>in context.</em></h1>
-          <p class="dek">A quiet briefing drawn from sources you choose. Northway ranks publisher metadata and sends you to the original reporting.</p>
-        </section>
-
+      <main>
         <section class="reader" aria-labelledby="briefing-heading">
           <div class="feed-bar">
             <div class="feed-tabs" role="tablist" aria-label="News feed">
@@ -41,7 +32,7 @@
 
           <div class="briefing-head">
             <div>
-              <p class="section-label">Latest briefing</p>
+              <p class="section-label">Feed</p>
               <h2 id="briefing-heading">Mixed</h2>
             </div>
             <div class="briefing-meta" id="briefing-meta" aria-live="polite">Retrieving your news…</div>
@@ -62,18 +53,7 @@
             <span class="coverage-status" id="coverage-status"></span>
           </aside>
         </section>
-
-        <section class="first-nations-note">
-          <p class="section-label">Next source set</p>
-          <h2>First Nations coverage deserves its own curation.</h2>
-          <p>It is intentionally absent from this prototype until publisher feeds are selected and approved. Northway will show that gap instead of filling it with unrelated Canadian news.</p>
-        </section>
       </main>
-
-      <footer>
-        <span>Northway prototype</span>
-        <span>Source metadata only · Reporting stays with publishers</span>
-      </footer>
     </div>
   </body>
 </html>
