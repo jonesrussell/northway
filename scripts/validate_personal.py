@@ -67,18 +67,32 @@ def main():
     value = json.loads((ROOT / "catalogue/personal-pilot.json").read_text(encoding="utf-8"))
     bootstrap = json.loads((ROOT / "catalogue/php-pilot.json").read_text(encoding="utf-8"))
     validate(value, validator, bootstrap)
+    # Keep the human approval record aligned with the schema-pinned selection.
+    record = (ROOT / value["owner_approval"]["record"]).read_text(encoding="utf-8")
+    rows = [tuple(cell.strip() for cell in line.split("|")[1:-1])
+            for line in record.splitlines() if line.startswith("| ") and "https://" in line]
+    expected_rows = [(source["interest_area"], source["name"], source["feed_url"])
+                     for source in value["sources"]]
+    assert sorted(rows) == sorted(expected_rows), "approval record/source selection drift"
     mutations = [
         lambda x: x.update(enabled=True),
+        lambda x: x.update(schema_version=1),
+        lambda x: x.pop("owner_approval"),
+        lambda x: x["owner_approval"].update(scope="collection_and_provider_export"),
+        lambda x: x.update(source_selection_status="candidates_pending_individual_approval"),
+        lambda x: x["sources"][2]["rights_review"].update(status="review_pending"),
         lambda x: x.update(provider_export_allowed=True),
         lambda x: x.update(commercial_use_approved=True),
         lambda x: x.update(source_selection_status="approved"),
         lambda x: x["sources"][0].update(enabled=True),
-        lambda x: x["sources"][0].update(operator_approved=True),
+        lambda x: x["sources"][0].update(operator_approved=False),
         lambda x: x["sources"][0].update(feed_url="https://other.invalid/feed"),
         lambda x: x["sources"].append(deepcopy(x["sources"][0])),
         lambda x: x["sources"].__setitem__(1, deepcopy(x["sources"][0])),
         lambda x: x["sources"][0].update(interest_area="world"),
         lambda x: x["sources"][0]["rights_review"].update(status="approved"),
+        lambda x: x["sources"][0]["rights_review"].update(status="review_pending"),
+        lambda x: x["sources"][2]["rights_review"].update(reference_url="https://other.invalid/terms"),
         lambda x: x["sources"][7]["rights_review"].update(status="review_pending"),
         lambda x: x["sources"][8]["rights_review"].update(status="review_pending"),
         lambda x: x["sources"][0]["availability"].update(pi_reachability_verified=True),
@@ -118,7 +132,7 @@ def main():
     assert len(items) == 5 and len({x.findtext("guid") for x in items}) == 5
     assert {x.findtext("category") for x in items} == set(value["interest_areas"])
     assert sum(x.find("pubDate") is None for x in items) == 1
-    print(f"PASS: 10 disabled candidates, {len(mutations)} rejected changes, 5 no-project query shapes, synthetic RSS; no network")
+    print(f"PASS: 10 owner-selected disabled sources, {len(mutations)} rejected changes, 5 no-project query shapes, synthetic RSS; no network")
 
 
 if __name__ == "__main__":
