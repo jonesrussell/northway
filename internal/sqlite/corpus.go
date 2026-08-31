@@ -218,6 +218,8 @@ func (s *Store) Search(ctx context.Context, principal identity.Principal, feedID
 	rows, err := s.readers.QueryContext(ctx, `SELECT a.id,a.source_id,a.origin_id,a.url,a.title,a.body,a.content_hash,a.published_at,a.observed_at
 FROM article_fts JOIN articles a ON a.rowid=article_fts.rowid
 JOIN feed_sources f ON f.tenant_id=a.tenant_id AND f.source_id=a.source_id
+JOIN sources src ON src.tenant_id=a.tenant_id AND src.id=a.source_id AND src.enabled=1
+JOIN feeds fd ON fd.tenant_id=f.tenant_id AND fd.id=f.feed_id AND fd.enabled=1
 WHERE article_fts MATCH ? AND a.tenant_id=? AND f.tenant_id=? AND f.feed_id=? AND a.observed_at>=?
 ORDER BY a.observed_at DESC,a.id LIMIT ?`, expression, string(tenant), string(tenant), feedID, since.UTC().UnixMicro(), limit)
 	if err != nil {

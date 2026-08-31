@@ -4,6 +4,7 @@ sql:
     schema:
       - db/migrations/00001_corpus.sql
       - db/migrations/00003_api_keys.sql
+      - db/migrations/00004_query_work.sql
     queries: db/queries
     gen:
       go:

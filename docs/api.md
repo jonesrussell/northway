@@ -36,3 +36,5 @@ Feedback uses event_id for idempotency. It must reference an item in an owned av
 ## Errors
 
 Errors use problem.schema.json (custom application/json, not a claim of RFC 9457 conformance). Map invalid_request→400, unauthorized→401, forbidden→403 for missing scope, not_found→404 for unavailable/private objects, conflict/in_progress→409, rate_limited→429, unavailable→503. Send Retry-After for retryable throttling/in-progress/service backoff. retryable guides a bounded client retry; it does not promise the same provider work can be repeated safely. Redact internal SQL, source credentials and raw provider output.
+
+The internal query coordination layer now implements durable claims, scoped cache/snapshots and spending reservations; see [implemented behavior and limits](query-transactions.md). It does not yet expose these routes or produce the full transport snapshot. The future HTTP adapter must map in-progress to 409 with a one-second Retry-After and enforce strict JSON/schema validation.

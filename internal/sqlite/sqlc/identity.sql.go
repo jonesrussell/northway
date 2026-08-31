@@ -33,7 +33,7 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) erro
 }
 
 const getFeed = `-- name: GetFeed :one
-SELECT id,title FROM feeds WHERE tenant_id=? AND id=?
+SELECT id,title FROM feeds WHERE tenant_id=? AND id=? AND enabled=1
 `
 
 type GetFeedParams struct {

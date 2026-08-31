@@ -93,7 +93,7 @@ func (q *Queries) DeleteArticle(ctx context.Context, arg DeleteArticleParams) (i
 }
 
 const getArticle = `-- name: GetArticle :one
-SELECT id,source_id,origin_id,url,title,body,content_hash,published_at,observed_at FROM articles WHERE tenant_id=? AND id=?
+SELECT a.id,a.source_id,a.origin_id,a.url,a.title,a.body,a.content_hash,a.published_at,a.observed_at FROM articles a JOIN sources s ON s.tenant_id=a.tenant_id AND s.id=a.source_id WHERE a.tenant_id=? AND a.id=? AND s.enabled=1
 `
 
 type GetArticleParams struct {

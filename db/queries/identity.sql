@@ -8,4 +8,4 @@ WHERE tenant_id=? AND id=? AND revoked_at IS NULL;
 -- name: RevokeAPIKey :execrows
 UPDATE api_keys SET revoked_at=coalesce(revoked_at,max(created_at,?)) WHERE tenant_id=? AND id=?;
 -- name: GetFeed :one
-SELECT id,title FROM feeds WHERE tenant_id=? AND id=?;
+SELECT id,title FROM feeds WHERE tenant_id=? AND id=? AND enabled=1;

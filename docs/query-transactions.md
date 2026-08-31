@@ -1,0 +1,41 @@
+# Durable query coordination
+
+Implemented in #14 for NW-007, NW-008 and NW-009: bounded typed request hashing, tenant-scoped claims and cache, immutable selected-item snapshots, integer spending holds and explicit recovery. These are Go/storage seams for the future retrieval service. No product HTTP routes, ranking algorithm, provider adapter, scheduling, live billing or deployment is enabled. The snapshot projection is not yet the public `feed-snapshot` response: coverage, timestamps, summaries and grounded explanations remain #13 work.
+
+## Calling sequence
+
+1. Authenticate each request and pass its `feeds:read` principal. Decode the future HTTP request strictly against the draft schema and 32 KiB body limit. `query.Request.Digest` additionally bounds typed input, preserves array/text order, canonicalizes object serialization and binds the fixed `POST /v1/feed-queries` route. Only digests of the request and idempotency key are stored; raw context and caller keys are not logged or persisted by this layer.
+2. Call `BeginQuery` with trusted server policy: ranker version, a 1-second to 5-minute lease, a 1-second to 1-hour cache TTL and a nonnegative worst-case cost in USD millionths. Policy is not model or HTTP input. The provider adapter must derive this bound from its entire capped input/output/overhead and disable SDK retries. Those adapters do not exist yet.
+3. A returned snapshot needs no work. A new WorkID permits local retrieval. `ProviderAllowed=false` requires deterministic fallback: missing/exhausted budget never permits a paid call. A repeated key returns the same snapshot, `ErrInProgress` (future HTTP 409 with one-second Retry-After), a changed-payload `ErrConflict` (409), or `ErrUnavailable` (503) after failure/expiry. A replay never returns a work handle. Distinct keys may perform concurrent cache misses; there is no distributed/same-context single-flight guarantee.
+4. Before the **single** provider attempt, commit `StartProvider`. Any error, including uncertain commit outcome, means do not call. Repeating StartProvider conflicts. A crash between this commit and the actual call conservatively requires reconciliation. Retrieval and all external I/O happen outside transactions.
+5. Validate provider output against permitted candidates in the future ranking service. Call `CompleteQuery` with bounded unique article IDs, matching content hashes, validated explanations, mode and trusted usage evidence. Storage rechecks tenant/feed/source membership, age, revisions and current article versions; it copies title/link from corpus, never from model output. It commits the snapshot and usage together. If finalization fails, retrying local finalization is safe while the lease remains valid; do not repeat inference. Replaying a completed request uses BeginQuery, not CompleteQuery.
+6. If no usable result can be produced, call `FailQuery` under a fresh bounded cleanup context. Otherwise an operator/background owner calls `RecoverQueries`, at most 100 expired claims per transaction. Neither database open nor the current server invokes recovery automatically. Failed/expired keys never automatically reacquire work. Stale workers cannot start or complete recovered work.
+
+The feature API is for trusted application code. Work IDs are coordination handles, not public write capabilities; scope does not authorize accepting caller-supplied completion costs or provider decisions. Identity is derived only from a principal. Operator seams cannot be exposed by converting HTTP/model tenant IDs to operator principals.
+
+## Holds and reconciliation
+
+`SetBudget` provisions a cumulative per-tenant cap; no budget means zero paid work. There is no daily reset, billing credit, top-up integration or recurring allowance. Changing a cap preserves spent/held amounts and cannot reduce it below those amounts. All arithmetic is integer-only, conditional and in a serialized immediate transaction; subtraction-based headroom checks avoid overflow. A provider must not be configured unless its maximum charge fits the reserved bound. Report and investigate any provider charge above that bound; the current settlement API rejects it, preserves the hold and does not invent an automatic refund.
+
+| Durable spend state | Failure or expiry | Settlement |
+|---|---|---|
+| Reserved, no attempt started | Release the hold and fence the work | Zero cost is established locally |
+| Started | Keep the entire hold as uncertain and fence failed/expired work | A timeout or lease expiry does not prove zero charge |
+| Uncertain | Keep holding across restarts, cache hits and reads | Operator `ReconcileQuery` requires affirmative external evidence |
+| Settled | No further debit/refund | Same reconciliation amount is idempotent; different amount conflicts |
+
+A deterministic fallback after an ambiguous provider call may be persisted with unknown usage. Its replay still does no inference and the hold remains. Successful finalization can settle a known charge and release only the unused remainder. Reconciliation is an operator library seam, not a CLI or automated provider integration; external evidence retention and provider reconciliation adapters remain future work. It must never be called with zero merely because a timer expired.
+
+## Cache and authorization
+
+The cache uses tenant, feed, canonical request/context digest (including limit and age), feed/preference revision, tenant corpus revision, tenant entitlement revision and ranker version. Migration 4 triggers advance revisions atomically with corpus and source-membership writes. Source metadata/access changes invalidate tenant caches conservatively. Future feedback/preferences must increment feed revision in their own transaction; no feedback implementation is claimed here.
+
+Every cache hit, replay and snapshot read checks enabled feed access and current enabled source membership in one short database transaction. Revoked/detached source items are suppressed in original order with `Suppressed=true`; callers must surface that coverage change. Disabled feeds are private not-found. Operator-only `SetSourceEnabled`, `SetFeedEnabled` and `DetachSource` establish these current access controls; article/FTS reads also exclude disabled sources/feeds as applicable. There is no public/shared source catalogue or finer rights policy yet.
+
+Snapshots freeze permitted IDs, hashes, title, URL and explanation. They do not reread changed article text. Their minimum replay retention is 24 hours from the claim; cache reuse extends retention to cover the new key. Cache expiry is independent of replay retention and source freshness. No query rows are deleted in this slice: after the replay window, keys remain tombstones and cannot silently start new paid work. Bounded retention/deletion, rights-specific evidence removal, backup expiry and disk ceilings remain release gates in #20. Do not expose indefinite production traffic before those gates.
+
+## Operations and validation
+
+Migration 4 is additive and forward-only. Stop serve, take a coherent backup, run migrate and restart with the new binary. Older binaries reject the new schema; rollback requires a coherent old backup, not a down migration. It adds revision/access columns, budgets, query work and snapshots with tenant foreign keys, state/counter checks and indexed lookups. No new Go dependency is added. Snapshot reads currently use the serialized writer for a consistent access check; measure contention on the Pi before increasing concurrency.
+
+Real file-backed tests exercise concurrent claim/start/budget races, integer boundaries, cache dimensions, private context absence from SQLite/WAL, scope guards, source/feed revocation, stale workers, ambiguity/reconciliation, restart, replay/retention, malformed candidates and atomic rollback. A real SQLite max-page-count failure verifies that a failed snapshot does not release its reservation. Upgrade tests cover populated schema 1, 2 and 3 to current; contract checks, sqlc drift, import boundaries, race detection, native/ARM64 builds and process/container storage smoke remain the shared gates. These tests do not establish live provider behavior, actual-device performance or Pi power-loss/restore safety.

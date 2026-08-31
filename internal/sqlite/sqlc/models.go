@@ -41,10 +41,19 @@ type ArticleVersion struct {
 	ObservedAt  int64
 }
 
+type Budget struct {
+	TenantID    string
+	LimitMicros int64
+	SpentMicros int64
+	HeldMicros  int64
+}
+
 type Feed struct {
 	TenantID string
 	ID       string
 	Title    string
+	Revision int64
+	Enabled  int64
 }
 
 type FeedSource struct {
@@ -53,14 +62,56 @@ type FeedSource struct {
 	SourceID string
 }
 
+type QuerySnapshot struct {
+	TenantID            string
+	ID                  string
+	FeedID              string
+	RequestHash         []byte
+	FeedRevision        int64
+	CorpusRevision      int64
+	EntitlementRevision int64
+	RankerVersion       string
+	Mode                string
+	GeneratedAt         int64
+	ExpiresAt           int64
+	RetainUntil         int64
+	Items               string
+}
+
+type QueryWork struct {
+	TenantID            string
+	ID                  string
+	KeyHash             []byte
+	RequestHash         []byte
+	FeedID              string
+	FeedRevision        int64
+	CorpusRevision      int64
+	EntitlementRevision int64
+	RankerVersion       string
+	ItemLimit           int64
+	SinceAt             int64
+	CreatedAt           int64
+	LeaseUntil          int64
+	RetainUntil         int64
+	CacheTtl            int64
+	WorkState           string
+	SpendState          string
+	ReservedMicros      int64
+	ActualMicros        sql.NullInt64
+	SnapshotID          sql.NullString
+}
+
 type Source struct {
 	TenantID string
 	ID       string
 	Url      string
 	Title    string
+	Enabled  int64
 }
 
 type Tenant struct {
-	ID        string
-	CreatedAt int64
+	ID                  string
+	CreatedAt           int64
+	CorpusRevision      int64
+	EntitlementRevision int64
 }
