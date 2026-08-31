@@ -1,6 +1,6 @@
 # Deterministic personal-feed retrieval
 
-Implemented for #13 / NW-001, NW-004, NW-005 and NW-006. `query.NewService(store).Query` combines existing durable query claims/cache with bounded metadata retrieval, deterministic selection and immutable evidence. `Get` reads the stored result and rechecks access. `Snapshot.Response(requestID, now)` produces the draft feed-snapshot shape. This is an internal Go service and tested response projection, not an installed scheduler, product HTTP route, public provisioning API or Claudriel panel. No provider SDK, model call, crawl or new dependency is added.
+Implemented for #13 / NW-001, NW-004, NW-005 and NW-006. `query.NewService(store).Query` combines existing durable query claims/cache with bounded metadata retrieval, deterministic selection and immutable evidence. `Get` reads the stored result and rechecks access. `Snapshot.Response(requestID, now)` produces the draft feed-snapshot shape. The [HTTP adapter](api.md) now exposes this service for authenticated queries and snapshot retrieval. There is no installed scheduler, public provisioning API or Claudriel panel. No provider SDK, model call, crawl or new dependency is added.
 
 ## Saved selection and context
 

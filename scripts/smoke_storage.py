@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import time
 import urllib.request
+import urllib.error
 
 binary = pathlib.Path("bin/northway").resolve()
 opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -44,6 +45,12 @@ with tempfile.TemporaryDirectory(prefix="northway-storage-") as directory:
                 assert address, "storage server did not bind"
                 with opener.open("http://" + address + "/readyz", timeout=2) as response:
                     assert response.status == 200 and json.load(response)["status"] == "ready"
+                for route in ["/v1/feed-queries", "/v1/feedback", "/v1/snapshots/00000001-0000-4000-8000-000000000000"]:
+                    try:
+                        opener.open("http://" + address + route, timeout=2)
+                        raise AssertionError("unauthenticated product route accepted")
+                    except urllib.error.HTTPError as response:
+                        assert response.code == 401 and json.load(response)["code"] == "unauthorized"
                 overlap = subprocess.run([str(binary), "migrate", "--database=" + path], capture_output=True, text=True, timeout=5)
                 assert overlap.returncode == 1 and "already owned" in json.loads(overlap.stderr)["error"]
                 process.send_signal(signal.SIGTERM)

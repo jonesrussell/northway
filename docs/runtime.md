@@ -1,6 +1,6 @@
 # Runtime foundation
 
-Implemented in issues #8 and #10: one Go 1.27.0 module, process lifecycle, explicit configuration, health endpoints, SQLite corpus storage and migrations, and reproducible checks. Scoped credentials, query coordination and [operator-only ingestion](ingestion.md) have since been implemented. Tenant product HTTP APIs, provider calls and scheduled jobs do not exist yet. A running health endpoint is not a usable feed service. See [storage](storage.md) for schema and migration details.
+Implemented in issues #8 and #10: one Go 1.27.0 module, process lifecycle, explicit configuration, health endpoints, SQLite corpus storage and migrations, and reproducible checks. Scoped credentials, query coordination and [operator-only ingestion](ingestion.md) have since been implemented. Authenticated deterministic query/snapshot and reversible feedback APIs are implemented in #16; provider calls and scheduled jobs do not exist yet. A running health endpoint is not a usable feed service. See [storage](storage.md) for schema and migration details.
 
 ## Run locally
 
@@ -13,7 +13,7 @@ make build
 ./bin/northway serve --listen=127.0.0.1:8080
 ```
 
-GET /healthz returns 200 with status alive. GET /readyz returns 200 with status ready when configured storage is usable, otherwise 503 with status not_ready. This checks storage capability, not feed-service completeness. Both return uncached JSON. No dependency error details are returned. Other API paths are not implemented. Health probes are operational, not tenant APIs; no private data is exposed. There is no public listener by default, and no production deployment is authorized by running these commands. --database / NORTHWAY_DATABASE_PATH opts into an existing migrated SQLite file; an empty value leaves storage disabled.
+GET /healthz returns 200 with status alive. GET /readyz returns 200 with status ready when configured storage is usable, otherwise 503 with status not_ready. This checks storage capability, not feed-service completeness. Both return uncached JSON. No dependency error details are returned. With storage configured, the three product routes in [the API contract](api.md) use persisted scoped-key authentication. Without storage they fail closed; source availability is not implied. Health probes are operational, not tenant APIs; no private data is exposed. There is no public listener by default, and no production deployment is authorized by running these commands. --database / NORTHWAY_DATABASE_PATH opts into an existing migrated SQLite file; an empty value leaves storage disabled.
 
 Configuration precedence is defaults → explicitly present environment → flags. Empty/zero values are validated, not silently replaced. NORTHWAY_LISTEN_ADDR accepts a literal IP:port, default 127.0.0.1:8080; IPv6 must be bracketed. Port zero is allowed for local tests. NORTHWAY_SHUTDOWN_TIMEOUT defaults to 10s and accepts 1s–1m. NORTHWAY_LOG_LEVEL accepts debug/info/warn/error. The matching flags are --listen, --shutdown-timeout and --log-level. No .env file is loaded automatically.
 

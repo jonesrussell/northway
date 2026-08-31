@@ -4,7 +4,7 @@
 
 Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
 
-> Status: Go runtime, SQLite corpus storage, tenant identity and durable query coordination implemented; feed service still in development. The server exposes operational health only. Configured, migrated storage enables readiness; this does not establish feed functionality. Scoped keys, storage authorization, query claims/cache and spending holds are implemented as internal services; bounded operator-only ingestion and deterministic personal-feed retrieval are implemented as internal services, but no product HTTP API, provider calls, scheduled activation or deployment is implemented. JSON feed examples remain synthetic fixtures; real service response projection is additionally schema-tested against authored metadata.
+> Status: Go runtime, SQLite corpus storage, tenant identity and durable query coordination implemented; feed service still in development. The server exposes operational health and authenticated query, snapshot and feedback routes. Configured, migrated storage enables readiness; this does not establish feed functionality. Scoped keys, storage authorization, query claims/cache and spending holds are implemented as internal services; bounded operator-only ingestion and deterministic personal-feed retrieval are implemented as internal services, with authenticated product HTTP routes and reversible feedback now implemented. Provider calls, scheduled activation and deployment remain unimplemented. JSON feed examples remain synthetic fixtures; real service response projection is additionally schema-tested against authored metadata.
 
 ## First useful experience
 
@@ -43,7 +43,7 @@ Claudriel submits a saved feed identifier and a minimal explicit intent; technic
 - [Scheduled AI discovery and custom lists](docs/specs/scheduled-discovery.md)
 - [Firecrawl or North Cloud-derived external collection](docs/specs/external-collection.md)
 - [Architecture and SaaS boundary](docs/architecture.md)
-- [Draft API contract](docs/api.md)
+- [HTTP API contract](docs/api.md)
 - [Go package layout](docs/project-layout.md)
 - [Dependency decisions](docs/dependencies.md)
 - [Agent development harness](docs/agent-harness.md)
@@ -63,7 +63,7 @@ python3 -m pip install -r requirements-dev.txt
 make check
 ```
 
-The contract checker validates synthetic API examples and local links. Runtime checks cover lifecycle, credential/storage isolation, import boundaries and builds. CI runs the same commands. Tests establish only implemented paths; they do not establish future product endpoint safety, feed usefulness or Pi capacity.
+The contract checker validates synthetic API examples and local links. Runtime checks cover lifecycle, credential/storage isolation, import boundaries and builds. CI runs the same commands. Tests establish only implemented paths; HTTP tests additionally exercise actual endpoint isolation and contract behavior; none of these establishes feed usefulness or Pi capacity.
 
 ## Relationship to North Cloud
 

@@ -63,6 +63,17 @@ type FeedSource struct {
 	SourceID string
 }
 
+type FeedbackEvent struct {
+	TenantID        string
+	ID              string
+	SnapshotID      string
+	ArticleID       string
+	FeedID          string
+	Action          string
+	ReversesEventID sql.NullString
+	CreatedAt       int64
+}
+
 type PollAttempt struct {
 	ID            string
 	TenantID      string
