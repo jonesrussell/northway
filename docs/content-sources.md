@@ -1,6 +1,6 @@
 # Content sources and the Raspberry Pi pilot
 
-Status: design, not a running collector. The initial host is the user's Raspberry Pi. Model, RAM, operating-system architecture and storage are not yet confirmed; the earlier 1 GiB budget is a hypothesis, not a hardware requirement or measured result.
+Status: design, not a running collector. A [disabled five-source PHP proposal and device evidence checklist](pilot-readiness.md) are now prepared for #9, with synthetic fixtures and offline validation. The initial host is the user's Raspberry Pi. Installed model, RAM, operating-system architecture and storage are not live-verified; private infra documentation describes targets, not measured capacity. The earlier 1 GiB budget is a hypothesis, not a hardware requirement or measured result.
 
 ## Initial content
 

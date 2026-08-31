@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>Synthetic PHP news</title>
+  <link>https://publisher.invalid/</link>
+  <description>Authored fixture; not a publisher feed.</description>
+  <item>
+    <guid isPermaLink="false">northway-synthetic-rss-1</guid>
+    <title>Synthetic language release</title>
+    <link>https://publisher.invalid/releases/rss-1</link>
+    <pubDate>Sun, 30 Aug 2026 10:00:00 GMT</pubDate>
+    <description>Fixture text is untrusted and is not retained by the metadata-only proposal.</description>
+    <enclosure url="https://media.invalid/not-to-be-fetched.png" length="123" type="image/png"/>
+  </item>
+</channel></rss>
