@@ -4,7 +4,7 @@
 
 Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
 
-> Status: Go runtime, SQLite corpus storage, tenant identity and durable query coordination implemented; feed service still in development. The server exposes operational health and authenticated query, snapshot and feedback routes. Configured, migrated storage enables readiness; this does not establish feed functionality. Scoped keys, storage authorization, query claims/cache and spending holds are implemented as internal services; bounded operator-only ingestion and deterministic personal-feed retrieval are implemented as internal services, with authenticated product HTTP routes and reversible feedback now implemented. Provider calls, scheduled activation and deployment remain unimplemented. JSON feed examples remain synthetic fixtures; real service response projection is additionally schema-tested against authored metadata.
+> Status: the local real-news path works end to end. A hash-pinned operator profile provisions five saved feeds and five publisher RSS feeds into SQLite; bounded polling has ingested real metadata, and authenticated deterministic queries return source-linked snapshots. Collection still requires explicit `ingest once` invocations: no unattended scheduler or Pi deployment is installed. First Nations coverage remains blocked by source access/permission, and AI-provider export and commercial redistribution remain disabled.
 
 ## First useful experience
 
@@ -30,6 +30,7 @@ Claudriel submits a saved feed identifier and a minimal explicit intent; technic
 
 - [Run and verify the Go foundation](docs/runtime.md)
 - [SQLite storage, migrations and tests](docs/storage.md)
+- [Run the local real-news pilot](docs/real-news-pilot.md)
 - [Bounded RSS/Atom ingestion and operator command](docs/ingestion.md)
 - [Tenant identity and operator commands](docs/identity.md)
 - [Query transactions, caching and spending holds](docs/query-transactions.md)

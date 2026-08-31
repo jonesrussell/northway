@@ -26,7 +26,7 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		if len(args) != 1 {
 			return errors.New("help takes no arguments")
 		}
-		_, err := io.WriteString(stdout, "Usage: northway <serve|migrate|tenant|key|ingest|version>\nUse northway serve --help, northway migrate --help or northway key --help for configuration.\nIngestion is explicit and bounded; use northway ingest --help. No schedules start automatically.\n")
+		_, err := io.WriteString(stdout, "Usage: northway <serve|migrate|tenant|key|ingest|pilot|version>\nUse northway serve --help, northway migrate --help or northway key --help for configuration.\nIngestion is explicit and bounded; use northway ingest --help. No schedules start automatically.\n")
 		return err
 	case "version":
 		if len(args) != 1 {
@@ -66,6 +66,8 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		return Run(ctx, config, logger)
 	case "ingest":
 		return executeIngest(ctx, args[1:], lookup, stdout)
+	case "pilot":
+		return executePilot(ctx, args[1:], lookup, stdout)
 	case "tenant", "key":
 		return executeIdentity(ctx, args, lookup, stdout)
 	default:

@@ -92,6 +92,57 @@ func (q *Queries) DeleteArticle(ctx context.Context, arg DeleteArticleParams) (i
 	return result.RowsAffected()
 }
 
+const ensurePilotFeed = `-- name: EnsurePilotFeed :exec
+INSERT INTO feeds(tenant_id,id,title,enabled) VALUES(?,?,?,1) ON CONFLICT(tenant_id,id) DO NOTHING
+`
+
+type EnsurePilotFeedParams struct {
+	TenantID string
+	ID       string
+	Title    string
+}
+
+func (q *Queries) EnsurePilotFeed(ctx context.Context, arg EnsurePilotFeedParams) error {
+	_, err := q.db.ExecContext(ctx, ensurePilotFeed, arg.TenantID, arg.ID, arg.Title)
+	return err
+}
+
+const ensurePilotFeedSource = `-- name: EnsurePilotFeedSource :exec
+INSERT INTO feed_sources(tenant_id,feed_id,source_id) VALUES(?,?,?) ON CONFLICT(tenant_id,feed_id,source_id) DO NOTHING
+`
+
+type EnsurePilotFeedSourceParams struct {
+	TenantID string
+	FeedID   string
+	SourceID string
+}
+
+func (q *Queries) EnsurePilotFeedSource(ctx context.Context, arg EnsurePilotFeedSourceParams) error {
+	_, err := q.db.ExecContext(ctx, ensurePilotFeedSource, arg.TenantID, arg.FeedID, arg.SourceID)
+	return err
+}
+
+const ensurePilotSource = `-- name: EnsurePilotSource :exec
+INSERT INTO sources(tenant_id,id,url,title,enabled) VALUES(?,?,?,?,1) ON CONFLICT(tenant_id,id) DO NOTHING
+`
+
+type EnsurePilotSourceParams struct {
+	TenantID string
+	ID       string
+	Url      string
+	Title    string
+}
+
+func (q *Queries) EnsurePilotSource(ctx context.Context, arg EnsurePilotSourceParams) error {
+	_, err := q.db.ExecContext(ctx, ensurePilotSource,
+		arg.TenantID,
+		arg.ID,
+		arg.Url,
+		arg.Title,
+	)
+	return err
+}
+
 const getArticle = `-- name: GetArticle :one
 SELECT a.id,a.source_id,a.origin_id,a.url,a.title,a.body,a.content_hash,a.published_at,a.observed_at FROM articles a JOIN sources s ON s.tenant_id=a.tenant_id AND s.id=a.source_id WHERE a.tenant_id=? AND a.id=? AND s.enabled=1
 `
@@ -127,6 +178,50 @@ func (q *Queries) GetArticle(ctx context.Context, arg GetArticleParams) (GetArti
 		&i.PublishedAt,
 		&i.ObservedAt,
 	)
+	return i, err
+}
+
+const pilotFeedConfig = `-- name: PilotFeedConfig :one
+SELECT title,enabled,preferences FROM feeds WHERE tenant_id=? AND id=?
+`
+
+type PilotFeedConfigParams struct {
+	TenantID string
+	ID       string
+}
+
+type PilotFeedConfigRow struct {
+	Title       string
+	Enabled     int64
+	Preferences string
+}
+
+func (q *Queries) PilotFeedConfig(ctx context.Context, arg PilotFeedConfigParams) (PilotFeedConfigRow, error) {
+	row := q.db.QueryRowContext(ctx, pilotFeedConfig, arg.TenantID, arg.ID)
+	var i PilotFeedConfigRow
+	err := row.Scan(&i.Title, &i.Enabled, &i.Preferences)
+	return i, err
+}
+
+const pilotSourceConfig = `-- name: PilotSourceConfig :one
+SELECT url,title,enabled FROM sources WHERE tenant_id=? AND id=?
+`
+
+type PilotSourceConfigParams struct {
+	TenantID string
+	ID       string
+}
+
+type PilotSourceConfigRow struct {
+	Url     string
+	Title   string
+	Enabled int64
+}
+
+func (q *Queries) PilotSourceConfig(ctx context.Context, arg PilotSourceConfigParams) (PilotSourceConfigRow, error) {
+	row := q.db.QueryRowContext(ctx, pilotSourceConfig, arg.TenantID, arg.ID)
+	var i PilotSourceConfigRow
+	err := row.Scan(&i.Url, &i.Title, &i.Enabled)
 	return i, err
 }
 

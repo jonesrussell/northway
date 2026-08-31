@@ -67,6 +67,29 @@ def main():
     value = json.loads((ROOT / "catalogue/personal-pilot.json").read_text(encoding="utf-8"))
     bootstrap = json.loads((ROOT / "catalogue/php-pilot.json").read_text(encoding="utf-8"))
     validate(value, validator, bootstrap)
+    active_schema = json.loads((ROOT / "catalogue/personal-local-v1.schema.json").read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(active_schema)
+    active = json.loads((ROOT / "catalogue/personal-local-v1.json").read_text(encoding="utf-8"))
+    Draft202012Validator(active_schema, format_checker=FormatChecker()).validate(active)
+    selected = {source["id"]: source for source in value["sources"]}
+    active_by_url = {source["feed_url"]: source for source in active["sources"]}
+    if not set(active_by_url).issubset({source["feed_url"] for source in value["sources"]}):
+        raise ValueError("active profile escaped owner-selected endpoints")
+    catalogue_by_url = {source["feed_url"]: source for source in value["sources"]}
+    for url, source in active_by_url.items():
+        candidate = catalogue_by_url[url]
+        if source["title"] != candidate["name"] or not candidate["operator_approved"]:
+            raise ValueError("active source identity is not owner-selected")
+    active_catalogue_ids = {catalogue_by_url[url]["id"] for url in active_by_url}
+    excluded = {entry["catalogue_id"] for entry in active["excluded"]}
+    if active_catalogue_ids & excluded or active_catalogue_ids | excluded != set(selected):
+        raise ValueError("active and excluded sources must partition the exact selection")
+    feed_ids = {feed["id"] for feed in active["feeds"]}
+    if len(feed_ids) != len(active["feeds"]):
+        raise ValueError("duplicate runnable feed identity")
+    for source in active["sources"]:
+        if set(source["feed_ids"]) - feed_ids:
+            raise ValueError("active source references unknown saved feed")
     # Keep the human approval record aligned with the schema-pinned selection.
     record = (ROOT / value["owner_approval"]["record"]).read_text(encoding="utf-8")
     rows = [tuple(cell.strip() for cell in line.split("|")[1:-1])
@@ -132,7 +155,7 @@ def main():
     assert len(items) == 5 and len({x.findtext("guid") for x in items}) == 5
     assert {x.findtext("category") for x in items} == set(value["interest_areas"])
     assert sum(x.find("pubDate") is None for x in items) == 1
-    print(f"PASS: 10 owner-selected disabled sources, {len(mutations)} rejected changes, 5 no-project query shapes, synthetic RSS; no network")
+    print(f"PASS: 10 owner-selected disabled sources, {len(mutations)} rejected changes, 5 no-project query shapes, runnable 5-source profile, synthetic RSS; no network")
 
 
 if __name__ == "__main__":
