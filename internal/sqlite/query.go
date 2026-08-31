@@ -249,7 +249,7 @@ func (s *Store) completeQuery(ctx context.Context, principal identity.Principal,
 			if w.RankerVersion != query.DeterministicVersion || !sameScope(w, scope) || w.SpendState != "reserved" || w.ReservedMicros != 0 {
 				return query.ErrConflict
 			}
-			details, pref, err = retrievalDetails(ctx, q, w, retrieval)
+			details, pref, err = retrievalDetails(ctx, q, w, retrieval, now)
 			if err != nil {
 				return err
 			}
@@ -309,8 +309,12 @@ func (s *Store) completeQuery(ctx context.Context, principal identity.Principal,
 			if err != nil || len(data) > 65536 {
 				return query.ErrInvalid
 			}
-			if err = q.SnapshotDetails(ctx, sqlc.SnapshotDetailsParams{Details: string(data), TenantID: w.TenantID, ID: snapshot.ID}); err != nil {
+			n, err := q.SnapshotDetails(ctx, sqlc.SnapshotDetailsParams{Details: string(data), TenantID: w.TenantID, ID: snapshot.ID})
+			if err != nil {
 				return err
+			}
+			if n != 1 {
+				return query.ErrConflict
 			}
 		}
 		w.WorkState = "done"
@@ -351,7 +355,9 @@ func loadSnapshot(ctx context.Context, q *sqlc.Queries, tenant, id string, now t
 			}
 			if n == 0 {
 				snapshot.Details.Sources[i].Allowed = false
-				snapshot.Suppressed = true
+				if source.Allowed {
+					snapshot.Suppressed = true
+				}
 			}
 		}
 	}

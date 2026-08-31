@@ -21,5 +21,5 @@ JOIN feed_sources fs ON fs.tenant_id=fd.tenant_id AND fs.feed_id=fd.id AND fs.so
 JOIN sources s ON s.tenant_id=fs.tenant_id AND s.id=fs.source_id
 WHERE fd.tenant_id=? AND fd.id=? AND fs.source_id=? AND fd.enabled=1 AND s.enabled=1;
 
--- name: SnapshotDetails :exec
+-- name: SnapshotDetails :execrows
 UPDATE query_snapshots SET details=? WHERE tenant_id=? AND id=?;

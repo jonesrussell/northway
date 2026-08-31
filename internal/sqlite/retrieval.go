@@ -103,7 +103,11 @@ func (s *Store) RetrieveCandidates(ctx context.Context, p identity.Principal, id
 	}
 	corpus := query.Corpus{Preferences: pref, Terms: query.Terms(r.Context, pref.UseContext)}
 	include, exclude := query.LiteralMatch(corpus.Terms), query.LiteralMatch(pref.Exclude)
-	for _, cat := range pref.Categories {
+	categories := pref.Categories
+	if len(categories) > 1 && len(categories) > r.Limit {
+		categories = categories[:r.Limit]
+	}
+	for _, cat := range categories {
 		ids := []string{}
 		groups := map[string]string{}
 		for _, rule := range pref.Sources {
@@ -174,7 +178,7 @@ func (s *Store) CompleteRetrieval(ctx context.Context, p identity.Principal, id 
 	return s.completeQuery(ctx, p, id, "deterministic_fallback", r.Selections, query.Settlement{Known: true}, &r)
 }
 
-func retrievalDetails(ctx context.Context, q *sqlc.Queries, w sqlc.QueryWork, r *query.Retrieval) (*query.Details, feed.Preferences, error) {
+func retrievalDetails(ctx context.Context, q *sqlc.Queries, w sqlc.QueryWork, r *query.Retrieval, now time.Time) (*query.Details, feed.Preferences, error) {
 	pref, err := preferences(ctx, q, w.TenantID, w.FeedID)
 	if err != nil {
 		return nil, pref, err
@@ -201,7 +205,7 @@ func retrievalDetails(ctx context.Context, q *sqlc.Queries, w sqlc.QueryWork, r 
 	detail := &query.Details{Categories: slices.Clone(cats), Warnings: slices.Clone(r.Warnings), Sources: []query.SourceHealth{}}
 	for _, src := range sources {
 		health := query.SourceHealth{SourceID: src.SourceID, Allowed: src.Allowed == 1}
-		if src.LastSuccess.Valid && src.IntervalUs > 0 && src.LastSuccess.Int64 <= w.CreatedAt {
+		if src.LastSuccess.Valid && src.IntervalUs > 0 && src.LastSuccess.Int64 <= now.UnixMicro() {
 			until := time.UnixMicro(src.LastSuccess.Int64).UTC().Add(2 * time.Duration(src.IntervalUs) * time.Microsecond)
 			if validTimestamp(until) {
 				health.CurrentUntil = &until

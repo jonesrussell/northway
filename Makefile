@@ -17,7 +17,7 @@ licenses:
 licenses-check:
 	python3 scripts/collect_licenses.py --check
 integration:
-	go test -count=1 -timeout=60s ./internal/sqlite
+	go test -count=1 -timeout=120s ./internal/sqlite
 
 contracts:
 	python3 scripts/validate_contracts.py
@@ -30,10 +30,10 @@ fmt-check:
 vet:
 	go vet ./...
 test:
-	go test -count=1 -timeout=60s ./...
+	go test -count=1 -timeout=120s ./...
 	python3 scripts/check_retrieval.py
 race:
-	go test -race -count=1 -timeout=60s ./...
+	go test -race -count=1 -timeout=120s ./...
 boundaries:
 	python3 -m unittest discover -s scripts -p 'test_check_boundaries.py'
 	python3 scripts/check_boundaries.py

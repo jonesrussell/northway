@@ -118,7 +118,7 @@ func (q *Queries) RetrievalSources(ctx context.Context, arg RetrievalSourcesPara
 	return items, nil
 }
 
-const snapshotDetails = `-- name: SnapshotDetails :exec
+const snapshotDetails = `-- name: SnapshotDetails :execrows
 UPDATE query_snapshots SET details=? WHERE tenant_id=? AND id=?
 `
 
@@ -128,7 +128,10 @@ type SnapshotDetailsParams struct {
 	ID       string
 }
 
-func (q *Queries) SnapshotDetails(ctx context.Context, arg SnapshotDetailsParams) error {
-	_, err := q.db.ExecContext(ctx, snapshotDetails, arg.Details, arg.TenantID, arg.ID)
-	return err
+func (q *Queries) SnapshotDetails(ctx context.Context, arg SnapshotDetailsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, snapshotDetails, arg.Details, arg.TenantID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

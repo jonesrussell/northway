@@ -119,16 +119,6 @@ func EffectiveTime(a article.Article) time.Time {
 	}
 	return a.ObservedAt
 }
-func score(c Candidate, terms []string) int {
-	words := tokens(c.Article.Title)
-	n := 0
-	for _, term := range terms {
-		if slices.Contains(words, term) {
-			n++
-		}
-	}
-	return n
-}
 
 // Select is deterministic over a bounded, authorized metadata shortlist.
 func Select(c Corpus, limit int) (Retrieval, error) {
@@ -157,10 +147,6 @@ func Select(c Corpus, limit int) (Retrieval, error) {
 		}
 		sort.Slice(candidates, func(i, j int) bool {
 			a, b := candidates[i], candidates[j]
-			x, y := score(a, c.Terms), score(b, c.Terms)
-			if x != y {
-				return x > y
-			}
 			ta, tb := EffectiveTime(a.Article), EffectiveTime(b.Article)
 			if !ta.Equal(tb) {
 				return ta.After(tb)

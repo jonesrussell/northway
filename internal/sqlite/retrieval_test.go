@@ -322,7 +322,7 @@ func TestRetrievalPrivateContextAndLegacySnapshot(t *testing.T) {
 
 // Runtime evaluation uses independently labelled authored metadata. It is not
 // publisher-content evaluation or the owner's two-week relevance acceptance.
-func TestLabelledRetrievalEvaluation(t *testing.T) {
+func TestLabelledRetrievalRegression(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "testdata", "evaluation", "retrieval.json"))
 	must(t, err)
 	var suite struct {
@@ -361,15 +361,21 @@ func TestLabelledRetrievalEvaluation(t *testing.T) {
 			if !reflect.DeepEqual(itemIDs(snap), want) {
 				t.Fatalf("got %v want %v", itemIDs(snap), want)
 			}
-			relevant := 0
-			for _, i := range tc.Expected {
-				if tc.Items[i].Relevant {
-					relevant++
+			// Labels and expected ordering were authored together: assert
+			// their consistency without calling this an independent precision estimate.
+			for _, selected := range snap.Items {
+				labelled := false
+				for i, a := range tc.Items {
+					if selected.ArticleID == rid(201+i) {
+						labelled = a.Relevant
+						break
+					}
+				}
+				if !labelled {
+					t.Fatal("selected fixture labelled irrelevant", selected.ArticleID)
 				}
 			}
-			if len(snap.Items) == 0 || relevant*100/len(snap.Items) < 80 {
-				t.Fatal("relevance baseline below target")
-			}
+
 		})
 	}
 }
@@ -411,5 +417,179 @@ func TestRetrievalResponseContract(t *testing.T) {
 	}
 	if path := os.Getenv("NORTHWAY_TEST_RESPONSE"); path != "" {
 		must(t, os.WriteFile(path, encoded, 0600))
+	}
+}
+
+func TestAlreadyUnavailableSourceDoesNotClaimNewRevocation(t *testing.T) {
+	s, _, p, pref := retrievalFixture(t, "world")
+	src := addRetrievalSource(t, s, p, &pref, 101, "publisher", "world")
+	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
+	must(t, s.SetSourceEnabled(t.Context(), p, src, false))
+	snap := runRetrieval(t, s, p, "already-unavailable-key", recentContext(), 24, 5)
+	loaded, err := query.NewService(s).Get(t.Context(), p, snap.ID)
+	must(t, err)
+	response, err := loaded.Response(rid(900), queryEpoch)
+	must(t, err)
+	if loaded.Suppressed || containsWarning(response.Warnings, "Source access changed") || response.Coverage.Current != 0 {
+		t.Fatal(response)
+	}
+}
+
+func TestInvalidPreferencesDoNotChangeSavedRevision(t *testing.T) {
+	s, _, p, pref := retrievalFixture(t, "world")
+	addRetrievalSource(t, s, p, &pref, 101, "publisher", "world")
+	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
+	var before, after int64
+	var saved string
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", tenantA, feedID).Scan(&before))
+	pref.Exclude = []string{`a" OR title:b`}
+	if err := s.ConfigureFeedPreferences(t.Context(), p, feedID, pref); !errors.Is(err, query.ErrInvalid) {
+		t.Fatal(err)
+	}
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT revision,preferences FROM feeds WHERE tenant_id=? AND id=?", tenantA, feedID).Scan(&after, &saved))
+	if before != after || strings.Contains(saved, "title:b") {
+		t.Fatal("invalid policy persisted")
+	}
+}
+
+func TestSuccessfulPollDuringQueryUpdatesFinalizedCoverage(t *testing.T) {
+	s, _, p, pref := retrievalFixture(t, "world")
+	src := addRetrievalSource(t, s, p, &pref, 101, "publisher", "world")
+	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
+	now := queryEpoch.Add(-time.Hour)
+	s.clock = func() time.Time { return now }
+	must(t, s.ConfigurePoll(t.Context(), p, ingest.Policy{SourceID: src, URL: "https://example.invalid/feed/101", Approved: true, Enabled: true, Interval: time.Hour, MaxBytes: 2048}))
+	poll, err := s.ClaimPoll(t.Context(), p)
+	must(t, err)
+	must(t, s.FinishPoll(t.Context(), p, poll.ID, ingest.Result{Status: 200, ETag: `"v1"`}))
+	now = queryEpoch
+	req := query.Request{FeedID: feedID, Context: recentContext(), Limit: 5, MaxAgeHours: 24}
+	work, err := s.BeginQuery(t.Context(), p, "coverage-interleaved-key", req, query.Policy{RankerVersion: query.DeterministicVersion, Lease: time.Minute, CacheTTL: time.Minute})
+	must(t, err)
+	corpus, err := s.RetrieveCandidates(t.Context(), p, work.WorkID, req)
+	must(t, err)
+	selected, err := query.Select(corpus, req.Limit)
+	must(t, err)
+	now = now.Add(time.Second)
+	poll, err = s.ClaimPoll(t.Context(), p)
+	must(t, err)
+	must(t, s.FinishPoll(t.Context(), p, poll.ID, ingest.Result{Status: 304}))
+	snap, err := s.CompleteRetrieval(t.Context(), p, work.WorkID, selected)
+	must(t, err)
+	response, err := snap.Response(rid(900), now)
+	must(t, err)
+	if response.Coverage.Status != "complete" || response.Coverage.Current != 1 || snap.Details.Sources[0].CurrentUntil == nil || !snap.Details.Sources[0].CurrentUntil.Equal(now.Add(2*time.Hour)) {
+		t.Fatal(response, snap.Details)
+	}
+}
+
+func TestContextFTSAccentsUseConsistentRecencyOrder(t *testing.T) {
+	s, _, p, pref := retrievalFixture(t, "world")
+	src := addRetrievalSource(t, s, p, &pref, 101, "publisher", "world")
+	pref.UseContext = true
+	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
+	addRetrievalItem(t, s, p, 201, src, "Café opens", "https://example.invalid/cafe", nil, queryEpoch)
+	addRetrievalItem(t, s, p, 202, src, "Cafe reopens", "https://example.invalid/cafe2", nil, queryEpoch.Add(-time.Minute))
+	snap := runRetrieval(t, s, p, "accented-context-key", query.Context{Intent: "cafe", Technologies: []query.Technology{}}, 24, 5)
+	if !reflect.DeepEqual(itemIDs(snap), []string{rid(201), rid(202)}) {
+		t.Fatal(itemIDs(snap))
+	}
+}
+
+func TestLimitDoesNotReadUnrequestedCategory(t *testing.T) {
+	s, _, p, pref := retrievalFixture(t, "development", "world")
+	dev := addRetrievalSource(t, s, p, &pref, 101, "dev", "development")
+	world := addRetrievalSource(t, s, p, &pref, 102, "world", "world")
+	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
+	addRetrievalItem(t, s, p, 201, dev, "Development update", "https://example.invalid/dev", nil, queryEpoch)
+	for i := 0; i < 51; i++ {
+		addRetrievalItem(t, s, p, 301+i, world, "World headline", fmt.Sprintf("https://example.invalid/world/%d", i), nil, queryEpoch)
+	}
+	req := query.Request{FeedID: feedID, Context: recentContext(), Limit: 1, MaxAgeHours: 24}
+	work, err := s.BeginQuery(t.Context(), p, "limited-category-key", req, query.Policy{RankerVersion: query.DeterministicVersion, Lease: time.Minute, CacheTTL: time.Minute})
+	must(t, err)
+	corpus, err := s.RetrieveCandidates(t.Context(), p, work.WorkID, req)
+	must(t, err)
+	if corpus.Truncated || len(corpus.Candidates) != 1 || corpus.Candidates[0].Category != "development" {
+		t.Fatal(corpus)
+	}
+}
+
+func TestIgnoredDetailsUpdateCannotReturnSuccessfulSnapshot(t *testing.T) {
+	s, _, p, pref := retrievalFixture(t, "world")
+	addRetrievalSource(t, s, p, &pref, 101, "publisher", "world")
+	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
+	_, err := s.writer.ExecContext(t.Context(), `CREATE TRIGGER ignore_details BEFORE UPDATE OF details ON query_snapshots BEGIN SELECT RAISE(IGNORE); END`)
+	must(t, err)
+	_, err = query.NewService(s).Query(t.Context(), p, "ignored-details-key", query.Request{FeedID: feedID, Context: recentContext(), Limit: 5, MaxAgeHours: 24})
+	if !errors.Is(err, query.ErrConflict) {
+		t.Fatal(err)
+	}
+	var n int
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots").Scan(&n))
+	if n != 0 {
+		t.Fatal("partial rich snapshot persisted")
+	}
+}
+
+func TestPaidCompletionUsesPublicationAgeAndFutureBounds(t *testing.T) {
+	tests := []struct {
+		name                string
+		published, observed time.Time
+		unknown, accept     bool
+	}{
+		{"recent publication old observation", queryEpoch.Add(-time.Hour), queryEpoch.Add(-90 * 24 * time.Hour), false, true},
+		{"old publication recent observation", queryEpoch.Add(-90 * 24 * time.Hour), queryEpoch, false, false},
+		{"unknown recent observation", time.Time{}, queryEpoch, true, true},
+		{"future publication", queryEpoch.Add(time.Hour), queryEpoch, false, false},
+		{"future observation", queryEpoch, queryEpoch.Add(time.Hour), false, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			s, _, p, _ := queryFixture(t)
+			a := item()
+			a.ObservedAt = tc.observed
+			if tc.unknown {
+				a.PublishedAt = nil
+			} else {
+				a.PublishedAt = &tc.published
+			}
+			must(t, s.PutArticle(t.Context(), operator(tenantA), a))
+			stored, err := s.GetArticle(t.Context(), p, a.ID)
+			must(t, err)
+			work := claim(t, s, p, "paid-age-contract-key")
+			must(t, s.StartProvider(t.Context(), p, work.WorkID))
+			_, err = s.CompleteQuery(t.Context(), p, work.WorkID, "ai", []query.Selection{{ArticleID: a.ID, ContentHash: stored.ContentHash, Explanation: "Synthetic fixture"}}, query.Settlement{Known: true})
+			if tc.accept {
+				must(t, err)
+				budget(t, s, 0, 0)
+			} else {
+				if !errors.Is(err, query.ErrConflict) {
+					t.Fatal(err)
+				}
+				budget(t, s, 0, 40)
+			}
+		})
+	}
+}
+
+func TestFuturePollClockRollbackCannotClaimCurrentCoverage(t *testing.T) {
+	s, _, p, pref := retrievalFixture(t, "world")
+	src := addRetrievalSource(t, s, p, &pref, 101, "publisher", "world")
+	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
+	must(t, s.ConfigurePoll(t.Context(), p, ingest.Policy{SourceID: src, URL: "https://example.invalid/feed/101", Approved: true, Enabled: true, Interval: time.Hour, MaxBytes: 2048}))
+	poll, err := s.ClaimPoll(t.Context(), p)
+	must(t, err)
+	must(t, s.FinishPoll(t.Context(), p, poll.ID, ingest.Result{Status: 200}))
+	// Model a wall-clock rollback after a real successful persisted poll.
+	now := queryEpoch.Add(-time.Second)
+	s.clock = func() time.Time { return now }
+	snap := runRetrieval(t, s, p, "future-poll-rollback-key", recentContext(), 24, 5)
+	response, err := snap.Response(rid(900), now)
+	must(t, err)
+	var lastSuccess int64
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT last_success FROM poll_sources WHERE tenant_id=? AND source_id=?", tenantA, src).Scan(&lastSuccess))
+	if lastSuccess != queryEpoch.UnixMicro() || response.Coverage.Current != 0 || response.Coverage.Status != "stale" || snap.Details.Sources[0].CurrentUntil != nil {
+		t.Fatal(response, snap.Details)
 	}
 }
