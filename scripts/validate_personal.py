@@ -127,7 +127,8 @@ def main():
         changed = deepcopy(active)
         candidate = next(source for source in value["sources"] if source["id"] == target_id)
         index = next(i for i, source in enumerate(changed["sources"])
-                     if catalogue_by_url[source["feed_url"]]["id"] == replaced_id)
+                     if next(item for item in value["sources"]
+                             if item["feed_url"] == source["feed_url"])["id"] == replaced_id)
         replaced = changed["sources"][index]
         changed["sources"][index] = {
             "id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
