@@ -32,6 +32,7 @@ vet:
 test:
 	go test -count=1 -timeout=120s ./...
 	python3 scripts/check_retrieval.py
+	python3 scripts/check_http.py
 race:
 	go test -race -count=1 -timeout=120s ./...
 boundaries:

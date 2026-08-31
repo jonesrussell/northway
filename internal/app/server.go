@@ -7,9 +7,13 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/jonesrussell/northway/internal/feedback"
 	"github.com/jonesrussell/northway/internal/httpapi"
+	"github.com/jonesrussell/northway/internal/identity"
+	"github.com/jonesrussell/northway/internal/query"
 	"github.com/jonesrussell/northway/internal/sqlite"
 )
 
@@ -18,6 +22,7 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return err
 	}
 	var checkReady func(context.Context) error
+	api := httpapi.NewAPI(nil, nil, nil)
 	if config.DatabasePath != "" {
 		startupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		store, err := sqlite.Open(startupCtx, config.DatabasePath)
@@ -33,6 +38,7 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		}
 		logger.Info("storage ready", "sqlite_version", version, "compile_options", options)
 		checkReady = store.Ready
+		api = httpapi.NewAPI(identity.NewService(store), query.NewService(store), feedback.NewService(store))
 	}
 	var lc net.ListenConfig
 	listener, err := lc.Listen(ctx, "tcp", config.ListenAddress)
@@ -40,8 +46,16 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return fmt.Errorf("listen: %w", err)
 	}
 	logger.Info("server listening", "address", listener.Addr().String(), "version", Version, "revision", Revision)
-	// Readiness covers configured storage, not the still-unimplemented feed API.
-	return serve(ctx, listener, config, httpapi.NewHandler(checkReady), logger)
+	// Storage readiness is not source freshness or pilot readiness.
+	health := httpapi.NewHandler(checkReady)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/v1/") {
+			api.ServeHTTP(w, r)
+		} else {
+			health.ServeHTTP(w, r)
+		}
+	})
+	return serve(ctx, listener, config, handler, logger)
 }
 
 // serve owns the listener and waits for the HTTP serving goroutine to terminate.

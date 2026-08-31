@@ -66,3 +66,5 @@ Feature services accept narrow interfaces only where substitutable behavior or a
 References: [Go review comments](https://go.dev/wiki/CodeReviewComments), [Go 1.27 notes](https://go.dev/doc/go1.27), and [Go security tooling](https://go.dev/doc/security/). These inform the choices; no dependency compatibility or runtime test is implied by this blueprint.
 
 Issue #13 implements saved selection policy in `internal/feed`, deterministic orchestration/selection/response in `internal/query`, and its concrete read/finalization operations in `internal/sqlite`. No new dependency or generic ranking framework is added; provider ranking remains a separate future adapter.
+
+Issue #16 adds strict JSON/authenticated routing to `internal/httpapi`, an explicit event service in `internal/feedback`, and transactional feedback persistence in `internal/sqlite`. `internal/app` composes them with the existing storage and retrieval services. The shared object-not-found sentinel belongs to `internal/identity`, so transport does not import a concrete database adapter. No runtime dependency is added.

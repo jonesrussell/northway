@@ -19,7 +19,8 @@ import (
 	"github.com/jonesrussell/northway/internal/sqlite/sqlc"
 )
 
-var ErrNotFound = errors.New("object not found in tenant scope")
+// ErrNotFound retains compatibility for storage callers; ownership errors belong to identity.
+var ErrNotFound = identity.ErrNotFound
 
 func access(principal identity.Principal, write bool, ids ...string) (identity.TenantID, error) {
 	var tenant identity.TenantID

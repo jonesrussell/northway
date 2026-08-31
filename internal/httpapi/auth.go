@@ -2,9 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -22,6 +19,7 @@ type Authenticator interface {
 // TLS terminates at the trusted private reverse proxy, not at this wrapper.
 func Require(auth Authenticator, scope identity.Scopes, next func(http.ResponseWriter, *http.Request, identity.Principal)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID(w)
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		values := r.Header.Values("Authorization")
@@ -65,28 +63,12 @@ func Require(auth Authenticator, scope identity.Scopes, next func(http.ResponseW
 }
 
 func authProblem(w http.ResponseWriter, status int) {
-	code, message := "unavailable", "Service temporarily unavailable"
 	switch status {
 	case http.StatusUnauthorized:
-		code, message = "unauthorized", "Valid bearer credentials required"
-		w.Header().Set("WWW-Authenticate", "Bearer")
+		serviceProblem(w, identity.ErrUnauthorized)
 	case http.StatusForbidden:
-		code, message = "forbidden", "Required scope is missing"
+		serviceProblem(w, identity.ErrForbidden)
 	default:
-		w.Header().Set("Retry-After", "1")
+		serviceProblem(w, identity.ErrUnavailable)
 	}
-	var id [16]byte
-	rand.Read(id[:])
-	id[6] = (id[6] & 15) | 64
-	id[8] = (id[8] & 63) | 128
-	h := hex.EncodeToString(id[:])
-	requestID := h[:8] + "-" + h[8:12] + "-" + h[12:16] + "-" + h[16:20] + "-" + h[20:]
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(struct {
-		Code      string `json:"code"`
-		Message   string `json:"message"`
-		RequestID string `json:"request_id"`
-		Retryable bool   `json:"retryable"`
-	}{code, message, requestID, status == http.StatusServiceUnavailable})
 }

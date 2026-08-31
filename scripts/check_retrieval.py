@@ -6,6 +6,11 @@ import subprocess
 import tempfile
 from jsonschema import Draft202012Validator, FormatChecker
 
+# Incomplete optional format dependencies must not weaken standalone checks.
+for name,invalid in [("date-time","yesterday"),("uri","not a uri"),("uuid","not-a-uuid")]:
+    probe=Draft202012Validator({"type":"string","format":name},format_checker=FormatChecker())
+    if probe.is_valid(invalid):
+        raise SystemExit(f"{name} validation unavailable; install requirements-dev.txt including jsonschema[format]")
 root=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix="northway-response-") as directory:
     path=Path(directory)/"response.json"

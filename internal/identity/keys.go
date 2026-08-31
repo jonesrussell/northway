@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	ErrNotFound     = errors.New("object not found in tenant scope")
 	ErrUnauthorized = errors.New("invalid credentials")
 	ErrForbidden    = errors.New("insufficient scope")
 	ErrUnavailable  = errors.New("identity storage unavailable")

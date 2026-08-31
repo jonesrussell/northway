@@ -7,6 +7,7 @@ sql:
       - db/migrations/00004_query_work.sql
       - db/migrations/00005_ingestion.sql
       - db/migrations/00006_retrieval.sql
+      - db/migrations/00007_feedback.sql
     queries: db/queries
     gen:
       go:

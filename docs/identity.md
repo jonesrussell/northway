@@ -1,6 +1,6 @@
 # Tenant identity and operator provisioning
 
-Issue #11 implements key storage/lifecycle, authenticated principals, corpus authorization and a reusable HTTP authorization wrapper. The running server still exposes health/readiness only. There are no feed-query, feedback, key-management or signup HTTP endpoints yet. HTTP isolation tests mount test-only handlers over the real wrapper and SQLite adapter; they are not shipped routes.
+Issue #11 implements key storage/lifecycle, authenticated principals, corpus authorization and a reusable HTTP authorization wrapper. Issue #16 now wires the real query, snapshot and feedback routes through that wrapper; see [the API contract](api.md). Key-management and signup HTTP endpoints remain unimplemented. The original identity probe tests remain as focused authorization tests, and product integration tests exercise the actual shipped handlers over real SQLite.
 
 ## Credentials
 

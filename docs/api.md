@@ -1,6 +1,6 @@
-# Draft HTTP API
+# HTTP API
 
-Status: product routes are specified, not implemented. The reusable authorization wrapper is implemented and tested against real SQLite; see [identity](identity.md). JSON schemas in api/schemas are authoritative shapes; examples are synthetic. These semantics supplement schema validation and require server integration tests in Phase 1. OpenAPI generation and a second-client compatibility gate precede the Phase 2 preview.
+Status: three authenticated product routes are implemented: query, snapshot GET and feedback. Retrieval is deterministic and metadata-only; there are no provider calls or scheduled-list routes. JSON schemas in api/schemas define shapes, with semantics below. Real HTTP/SQLite tests validate input failures, tenant isolation, replay and feedback; actual snapshot/problem responses are checked against the schemas by `make test`. OpenAPI generation and a second-client compatibility gate remain Phase 2 work.
 
 ## Transport and identity
 
@@ -11,7 +11,7 @@ Serve JSON over TLS to authenticated clients. Credentials are scoped service bea
 | POST /v1/feed-queries | feeds:read | 200 feed snapshot; requires Idempotency-Key header |
 | GET /v1/snapshots/{snapshot_id} | feeds:read | 200 stored snapshot, no new model call |
 | POST /v1/feedback | feedback:write | 204 accepted event or identical replay |
-| GET /v1/feeds/{feed_id}/latest-snapshot | feeds:read | Optional scheduled-list mode: 200 stored snapshot or 404 before first result; no paid work |
+| GET /v1/feeds/{feed_id}/latest-snapshot | feeds:read | Planned, not implemented; optional scheduled-list mode |
 
 API keys may have a subset of scopes. All endpoints authorize object ownership; guessing another tenant's ID does not confirm existence. Phase 1 source/feed provisioning is operator-only; feed CRUD belongs to Phase 2.
 
@@ -37,6 +37,26 @@ Feedback uses event_id for idempotency. It must reference an item in an owned av
 
 Errors use problem.schema.json (custom application/json, not a claim of RFC 9457 conformance). Map invalid_request→400, unauthorized→401, forbidden→403 for missing scope, not_found→404 for unavailable/private objects, conflict/in_progress→409, rate_limited→429, unavailable→503. Send Retry-After for retryable throttling/in-progress/service backoff. retryable guides a bounded client retry; it does not promise the same provider work can be repeated safely. Redact internal SQL, source credentials and raw provider output.
 
-The internal query coordination layer now implements durable claims, scoped cache/snapshots and spending reservations; see [implemented behavior and limits](query-transactions.md). It does not yet expose these routes. [Deterministic retrieval](retrieval.md) now produces the full snapshot response projection from authored metadata in real SQLite tests; HTTP decoding/routing remains separate. The future HTTP adapter must map in-progress to 409 with a one-second Retry-After and enforce strict JSON/schema validation.
+The HTTP adapter uses [durable query coordination](query-transactions.md), [deterministic retrieval](retrieval.md) and [atomic reversible feedback](feedback.md). In-progress maps to 409 with a one-second Retry-After. Authentication/transient storage failures return 503 with the same backoff. There is no per-tenant rate limiter yet (#20), so 429 remains reserved; do not expose the pilot publicly before operational abuse/resource gates are complete.
 
 A failed/expired durable query key is terminal: map its unavailable error to `retryable=false` without Retry-After. Transient service failures remain retryable where applicable. Do not automatically replace a terminal key. A cached `deterministic_fallback` remains usable until its TTL even when funding/provider availability improves; its mode remains explicit.
+
+
+## Implemented transport details and limits
+
+- Every matched product attempt has a fresh server-generated X-Request-ID, also returned in snapshot/problem JSON, including authentication failures. A caller-supplied request ID is not trusted. Responses are no-store and nosniff. Auth is checked on every attempt; no credentials, raw context or internal SQL/errors are logged by the adapter.
+- POST requires exactly one application/json Content-Type (optional charset=utf-8), no Content-Encoding and no query parameters. Invalid media type, body over 32 KiB, unsupported method on a known endpoint, invalid UTF-8/unpaired surrogate, unknown/case-mismatched/duplicate decoded object keys, nulls, trailing documents and invalid schema fields return 400 invalid_request. Protocol-level rejection before a request reaches the Go handler is outside the JSON application contract.
+- Fields are case-sensitive, including nested context and technology objects. Optional fields may be omitted but not null; an explicit empty technology version is invalid. Text additionally follows the existing typed query policy: nonblank, no NUL, bounded Unicode lengths; IDs are canonical lowercase UUIDs. Exact integer JSON encodings such as 5, 5.0 and 5e0 normalize identically. Numeric length/exponent and JSON depth are bounded before allocation.
+- POST query requires exactly one Idempotency-Key. GET snapshot accepts no body, query parameters or HEAD alias (HEAD is rejected with 400 and, per HTTP semantics, has no response body); it never calls Query. Unsupported/unclean paths do not redirect to another product operation. The optional latest-snapshot endpoint remains unavailable.
+- The minimum query idempotency retention is 24 hours. A snapshot remains readable past expires_at while its longer replay retention is active; after that it is unavailable even before physical cleanup. A new key after cache expiry can create a new snapshot; an original key preserves its original snapshot. Failed/expired keys are terminal and never automatically recycled. Failure after a claim is created is reported as nonretryable unavailable in the first response too; failed cleanup may leave it in-progress until its bounded lease expires. Do not replace keys automatically.
+- Feedback undo names the same snapshot and article as its target. Identical event replay rechecks current availability; revoked/expired evidence overrides replay, returning 404. Feedback changes a feed revision, but recorded events do not yet affect deterministic selection. See [feedback semantics](feedback.md).
+- TLS terminates at the trusted private reverse proxy; the Go listener defaults to loopback. Migration/provisioning, approved source activation, scheduling, rate limits/retention, Claudriel integration and Pi deployment remain separate operator/release work. This change neither starts collection nor grants source redistribution rights.
+
+
+### Query/feedback overlap and recovery
+
+A feedback event increments the feed revision atomically, as required by the data transaction contract. If it arrives after a query claim and before candidate reading/finalization, that query fails its revision check and becomes terminal (`503 unavailable`, retryable=false). This deliberately preserves the same revision/access fence used for other preference changes; a query cannot complete under a newer revision than it claimed. Even though this deterministic ranker does not yet consume event preferences, the cache invalidation contract remains in force.
+
+Clients should avoid starting a refresh while their own feedback submission is pending. If another client or concurrent event changes the revision anyway, retain and display the last available snapshot (subject to normal access checks), show that the refresh did not complete, and offer an explicit Refresh action. That user action creates a new logical query with a fresh key against current revisions. It is not an automatic retry, periodic panel render or silent key replacement. Do not repeatedly retry the failed key; it stays terminal. If deliberately refreshed work also fails, show service unavailability rather than looping. Prior snapshot GET remains read-only and does not rerank.
+
+This recovery path is tested through real HTTP and SQLite by pausing retrieval, committing feedback, releasing the query, observing terminal failure/replay, reading the old snapshot and explicitly requesting new work under the updated revision. Same-context coalescing and automatically restarting safe deterministic work are separate coordination changes, not implied here.

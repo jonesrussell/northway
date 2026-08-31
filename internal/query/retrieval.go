@@ -216,7 +216,9 @@ func (s *Service) Query(ctx context.Context, p identity.Principal, key string, r
 	}
 	cleanup, done := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 	defer done()
-	return Snapshot{}, errors.Join(err, s.store.FailQuery(cleanup, p, claim.WorkID))
+	// Once a claim exists, a failed attempt is terminal (or still in progress if
+	// cleanup itself fails). A client must not automatically replace its key.
+	return Snapshot{}, errors.Join(ErrUnavailable, err, s.store.FailQuery(cleanup, p, claim.WorkID))
 }
 func (s *Service) Get(ctx context.Context, p identity.Principal, id string) (Snapshot, error) {
 	ctx, cancel := context.WithTimeout(ctx, RetrievalTimeout)
