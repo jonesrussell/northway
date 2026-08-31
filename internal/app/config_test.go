@@ -65,7 +65,7 @@ func TestConfigurationPrecedenceAndValidation(t *testing.T) {
 }
 
 func TestCLIHelpVersionAndUnsupportedWork(t *testing.T) {
-	for _, args := range [][]string{{"--help"}, {"serve", "--help"}, {"version"}} {
+	for _, args := range [][]string{{"--help"}, {"serve", "--help"}, {"migrate", "--help"}, {"version"}} {
 		var out bytes.Buffer
 		if err := Execute(context.Background(), args, environment(nil), &out, io.Discard); err != nil {
 			t.Fatal(err)
@@ -86,6 +86,23 @@ func TestCLIHelpVersionAndUnsupportedWork(t *testing.T) {
 	for _, args := range [][]string{nil, {"ingest"}, {"migrate"}, {"version", "extra"}, {"help", "extra"}, {"serve", "--bad"}} {
 		if err := Execute(context.Background(), args, environment(nil), io.Discard, io.Discard); err == nil {
 			t.Fatalf("unimplemented/invalid command succeeded: %v", args)
+		}
+	}
+}
+
+func TestDatabaseConfigurationAndMigrationFlags(t *testing.T) {
+	config, err := ParseConfig([]string{"--database=chosen.sqlite"}, environment(map[string]string{"NORTHWAY_DATABASE_PATH": "other.sqlite"}), io.Discard)
+	if err != nil || config.DatabasePath != "chosen.sqlite" {
+		t.Fatalf("database precedence: %+v %v", config, err)
+	}
+	path, err := ParseMigrationPath(nil, environment(map[string]string{"NORTHWAY_DATABASE_PATH": "configured.sqlite"}), io.Discard)
+	if err != nil || path != "configured.sqlite" {
+		t.Fatalf("migration environment: %s %v", path, err)
+	}
+	for _, args := range [][]string{nil, {"--database="}, {"--database=x", "extra"}, {"--unknown=private"}} {
+		_, err := ParseMigrationPath(args, environment(nil), io.Discard)
+		if err == nil || strings.Contains(err.Error(), "private") {
+			t.Fatalf("invalid migration flags: %v", err)
 		}
 	}
 }

@@ -4,9 +4,20 @@ VERSION ?= dev
 REVISION ?= $(shell git rev-parse HEAD)$(if $(shell git status --porcelain --untracked-files=normal),-dirty)
 BUILD_FLAGS = -trimpath -buildvcs=false -ldflags="-s -w -X github.com/jonesrussell/northway/internal/app.Version=$(VERSION) -X github.com/jonesrussell/northway/internal/app.Revision=$(REVISION)"
 
-.PHONY: check contracts fmt fmt-check vet test race boundaries build arm64 vuln smoke container-smoke
+.PHONY: check contracts fmt fmt-check vet test integration race boundaries build arm64 vuln smoke container-smoke generate generate-check licenses licenses-check
 
-check: contracts fmt-check vet test boundaries build arm64 smoke
+check: contracts fmt-check vet test boundaries generate-check licenses-check build arm64 smoke
+
+generate:
+	python3 scripts/sqlc.py generate
+generate-check:
+	python3 scripts/sqlc.py check
+licenses:
+	python3 scripts/collect_licenses.py
+licenses-check:
+	python3 scripts/collect_licenses.py --check
+integration:
+	go test -count=1 -timeout=60s ./internal/sqlite
 
 contracts:
 	python3 scripts/validate_contracts.py
@@ -32,6 +43,8 @@ vuln:
 
 smoke: build
 	python3 scripts/smoke_runtime.py
+	python3 scripts/smoke_storage.py
 
 container-smoke:
 	python3 scripts/smoke_container.py "$(IMAGE)" "$(REVISION)"
+	python3 scripts/smoke_storage_container.py "$(IMAGE)" "$(REVISION)"

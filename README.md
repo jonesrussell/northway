@@ -4,7 +4,7 @@
 
 Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
 
-> Status: Go runtime foundation implemented; feed service still in development. The server exposes operational health only, with readiness deliberately unavailable until storage exists. No database, ingestion, tenant API, provider calls or deployment is implemented. JSON feed examples remain synthetic fixtures.
+> Status: Go runtime and SQLite corpus storage implemented; feed service still in development. The server exposes operational health only. Configured, migrated storage enables readiness; this does not establish feed functionality. No ingestion, tenant HTTP API, provider calls or deployment is implemented. JSON feed examples remain synthetic fixtures.
 
 ## First useful experience
 
@@ -27,6 +27,7 @@ Claudriel submits approved technical context and a saved feed identifier. Northw
 ## Start here
 
 - [Run and verify the Go foundation](docs/runtime.md)
+- [SQLite storage, migrations and tests](docs/storage.md)
 - [Delivery project and issue index](docs/delivery/README.md)
 - [Deployment ownership and first implementation slice](docs/deployment.md)
 - [Phased roadmap](docs/roadmap.md)

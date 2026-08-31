@@ -1,6 +1,6 @@
 # Data, transactions and background work
 
-Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: proposed behavior; SQL migrations are Phase 1 work.
+Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: SQLite corpus schema, migrations and connection lifecycle are implemented in #10; ingestion/query/feedback transactions and backup/retention below remain specifications for later slices. See [storage implementation](../storage.md).
 
 ## SQLite invariants
 

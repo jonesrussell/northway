@@ -10,11 +10,29 @@ import (
 	"time"
 
 	"github.com/jonesrussell/northway/internal/httpapi"
+	"github.com/jonesrussell/northway/internal/sqlite"
 )
 
 func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 	if err := config.Validate(); err != nil {
 		return err
+	}
+	var checkReady func(context.Context) error
+	if config.DatabasePath != "" {
+		startupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		store, err := sqlite.Open(startupCtx, config.DatabasePath)
+		if err != nil {
+			cancel()
+			return err
+		}
+		defer store.Close()
+		version, options, err := store.Diagnostics(startupCtx)
+		cancel()
+		if err != nil {
+			return err
+		}
+		logger.Info("storage ready", "sqlite_version", version, "compile_options", options)
+		checkReady = store.Ready
 	}
 	var lc net.ListenConfig
 	listener, err := lc.Listen(ctx, "tcp", config.ListenAddress)
@@ -22,9 +40,8 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return fmt.Errorf("listen: %w", err)
 	}
 	logger.Info("server listening", "address", listener.Addr().String(), "version", Version, "revision", Revision)
-	// There is no storage/query implementation in this work package. Do not
-	// signal readiness to an infra deployment that requires a usable service.
-	return serve(ctx, listener, config, httpapi.NewHandler(nil), logger)
+	// Readiness covers configured storage, not the still-unimplemented feed API.
+	return serve(ctx, listener, config, httpapi.NewHandler(checkReady), logger)
 }
 
 // serve owns the listener and waits for the HTTP serving goroutine to terminate.

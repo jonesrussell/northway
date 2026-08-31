@@ -1,5 +1,9 @@
 **
 !go.mod
+!go.sum
+!db/
+!db/**
+!THIRD_PARTY_NOTICES.txt
 !cmd/
 !cmd/**
 !internal/
