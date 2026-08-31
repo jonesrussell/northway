@@ -1,6 +1,8 @@
-# PHP pilot source and device review
+# PHP bootstrap source and device review
 
 Status: the owner approved the five-source personal, metadata-only pilot and future hourly HTTPS feed polling from the Pi on 2026-08-31. The separately authorized read-only device check and bounded endpoint probes are complete. The [selection manifest](../catalogue/php-pilot.json) remains disabled and the runtime does not load it. This completes source/device discovery for #9, not ingestion implementation, source activation or deployment.
+
+The owner subsequently clarified that the personal product also covers entertainment, Canadian news, First Nations news, world news and development beyond PHP. See [personal feeds](personal-feeds.md). This dated bootstrap approval/evidence is preserved; its exact source set is not a global product limit.
 
 ## Approved first five sources
 

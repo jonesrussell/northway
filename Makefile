@@ -22,6 +22,7 @@ integration:
 contracts:
 	python3 scripts/validate_contracts.py
 	python3 scripts/validate_pilot.py
+	python3 scripts/validate_personal.py
 fmt:
 	go fmt ./...
 fmt-check:

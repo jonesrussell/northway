@@ -1,0 +1,331 @@
+{
+  "schema_version": 1,
+  "planning_only": true,
+  "enabled": false,
+  "scope_status": "owner_requested_interest_areas",
+  "source_selection_status": "candidates_pending_individual_approval",
+  "provider_export_allowed": false,
+  "commercial_use_approved": false,
+  "bootstrap_manifest": "php-pilot.json",
+  "interest_areas": [
+    "development",
+    "entertainment",
+    "canada",
+    "first_nations",
+    "world"
+  ],
+  "proposed_policy": {
+    "proposal_only": true,
+    "bootstrap_attempts_per_day": 120,
+    "new_source_interval_seconds": 14400,
+    "max_total_attempts_per_day": 180,
+    "max_decoded_bytes_per_response": 2097152,
+    "max_total_decoded_bytes_per_day": 67108864,
+    "concurrency": 1,
+    "timeout_seconds": 15,
+    "automatic_retries": 0,
+    "catch_up_bursts": false,
+    "follow_article_links": false,
+    "proposed_metadata_storage_bytes": 268435456
+  },
+  "retained_fields": [
+    "source_item_id",
+    "title",
+    "url",
+    "publisher",
+    "published_at",
+    "observed_at"
+  ],
+  "sources": [
+    {
+      "id": "infoq-programming",
+      "name": "InfoQ Programming",
+      "publisher": "C4Media / InfoQ",
+      "publisher_group": "infoq",
+      "interest_area": "development",
+      "feed_url": "https://feed.infoq.com/programming",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://www.infoq.com/programming/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "InfoQ Programming - C4Media / InfoQ; link to original item",
+      "rights_review": {
+        "status": "limited_syndication_statement",
+        "reference_url": "https://www.infoq.com/terms-and-conditions/",
+        "note": "Terms allow summaries with a link and prohibit whole-work republication. This is not provider-export or SaaS clearance."
+      },
+      "coverage_note": "Software engineering across languages and architecture; one editorial selection, not exhaustive development coverage.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "feed_parsed",
+        "http_status": 200,
+        "decoded_bytes": 13272,
+        "entry_count": 8,
+        "conditional_http_status": 200
+      }
+    },
+    {
+      "id": "github-blog",
+      "name": "GitHub Blog",
+      "publisher": "GitHub",
+      "publisher_group": "github",
+      "interest_area": "development",
+      "feed_url": "https://github.blog/feed/",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://github.blog/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "GitHub Blog - GitHub; link to original item",
+      "rights_review": {
+        "status": "review_pending",
+        "reference_url": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+        "note": "General platform terms are a starting reference; applicability and blog-specific rights need confirmation."
+      },
+      "coverage_note": "Tooling, open source and platform updates; vendor perspective. The conservative probe rejected XML-policy markers, not proof of malicious or invalid XML.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "probe_rejected",
+        "http_status": 200,
+        "decoded_bytes": 173457,
+        "entry_count": null,
+        "conditional_http_status": null
+      }
+    },
+    {
+      "id": "variety",
+      "name": "Variety",
+      "publisher": "Variety / Penske Media",
+      "publisher_group": "pmc",
+      "interest_area": "entertainment",
+      "feed_url": "https://variety.com/feed/",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://variety.com/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "Variety - Variety / Penske Media; link to original item",
+      "rights_review": {
+        "status": "terms_unavailable",
+        "reference_url": "https://pmc.com/terms-of-use/",
+        "note": "Current terms could not be retrieved during this review; do not infer reuse permission from RSS availability."
+      },
+      "coverage_note": "Film, television, music and entertainment industry; not comprehensive games or local arts coverage.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "feed_parsed",
+        "http_status": 200,
+        "decoded_bytes": 18301,
+        "entry_count": 10,
+        "conditional_http_status": 304
+      }
+    },
+    {
+      "id": "global-entertainment",
+      "name": "Global Entertainment",
+      "publisher": "Global News / Corus Entertainment",
+      "publisher_group": "corus",
+      "interest_area": "entertainment",
+      "feed_url": "https://globalnews.ca/entertainment/feed/",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://globalnews.ca/pages/feeds/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "Global Entertainment - Global News / Corus Entertainment; link to original item",
+      "rights_review": {
+        "status": "terms_unavailable",
+        "reference_url": "https://www.corusent.com/terms-of-use/",
+        "note": "Terms endpoint returned 403 to the web research tool; permission review is outstanding."
+      },
+      "coverage_note": "Entertainment headlines; overlaps other entertainment sources.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "feed_parsed",
+        "http_status": 200,
+        "decoded_bytes": 22381,
+        "entry_count": 10,
+        "conditional_http_status": 304
+      }
+    },
+    {
+      "id": "cbc-canada",
+      "name": "CBC Canada",
+      "publisher": "CBC/Radio-Canada",
+      "publisher_group": "cbc",
+      "interest_area": "canada",
+      "feed_url": "https://www.cbc.ca/webfeed/rss/rss-canada",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://www.cbc.ca/rss/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "CBC Canada - CBC/Radio-Canada; link to original item",
+      "rights_review": {
+        "status": "terms_unavailable",
+        "reference_url": "https://www.cbc.ca/aboutus/terms-and-conditions.html",
+        "note": "Current publisher directory/terms were not retrievable here. Endpoint candidate remains unverified; old archived RSS guidance is not current clearance."
+      },
+      "coverage_note": "Canadian national coverage candidate; workstation timeout is not proof of a dead feed.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "timeout",
+        "http_status": null,
+        "decoded_bytes": null,
+        "entry_count": null,
+        "conditional_http_status": null
+      }
+    },
+    {
+      "id": "global-canada",
+      "name": "Global Canada",
+      "publisher": "Global News / Corus Entertainment",
+      "publisher_group": "corus",
+      "interest_area": "canada",
+      "feed_url": "https://globalnews.ca/canada/feed/",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://globalnews.ca/pages/feeds/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "Global Canada - Global News / Corus Entertainment; link to original item",
+      "rights_review": {
+        "status": "terms_unavailable",
+        "reference_url": "https://www.corusent.com/terms-of-use/",
+        "note": "Terms endpoint returned 403 to the web research tool; permission review is outstanding."
+      },
+      "coverage_note": "Canadian headlines; shares an editorial owner with the other Global feeds.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "feed_parsed",
+        "http_status": 200,
+        "decoded_bytes": 21082,
+        "entry_count": 10,
+        "conditional_http_status": 304
+      }
+    },
+    {
+      "id": "anishinabek-news",
+      "name": "Anishinabek News",
+      "publisher": "Anishinabek Nation",
+      "publisher_group": "anishinabek",
+      "interest_area": "first_nations",
+      "feed_url": "https://anishinabeknews.ca/feed/",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://anishinabek.ca/departments/communications/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "Anishinabek News - Anishinabek Nation; link to original item",
+      "rights_review": {
+        "status": "review_pending",
+        "reference_url": "https://anishinabeknews.ca/",
+        "note": "No specific syndication permission established. The workstation feed request returned 403; do not bypass it."
+      },
+      "coverage_note": "Nation/community perspective linked by the Anishinabek Nation communications department; not representative of every First Nation.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "http_refused",
+        "http_status": 403,
+        "decoded_bytes": null,
+        "entry_count": null,
+        "conditional_http_status": null
+      }
+    },
+    {
+      "id": "aptn-news",
+      "name": "APTN News",
+      "publisher": "Aboriginal Peoples Television Network",
+      "publisher_group": "aptn",
+      "interest_area": "first_nations",
+      "feed_url": "https://www.aptnnews.ca/feed/",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://www.aptnnews.ca/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "APTN News - Aboriginal Peoples Television Network; link to original item",
+      "rights_review": {
+        "status": "permission_required",
+        "reference_url": "https://www.aptnnews.ca/terms/",
+        "note": "Published terms restrict systematic automated collection without prior written consent. No automated feed probe performed. Exact feed endpoint is a candidate, not verified."
+      },
+      "coverage_note": "Covers First Nations, Metis and Inuit peoples; retain those distinctions and do not relabel all Indigenous stories as First Nations.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "not_probed",
+        "pi_reachability_verified": false,
+        "outcome": "not_probed",
+        "http_status": null,
+        "decoded_bytes": null,
+        "entry_count": null,
+        "conditional_http_status": null
+      }
+    },
+    {
+      "id": "bbc-world",
+      "name": "BBC World",
+      "publisher": "BBC News",
+      "publisher_group": "bbc",
+      "interest_area": "world",
+      "feed_url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://support.bbc.co.uk/platform/feeds/NewsFeeds.htm",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "BBC World - BBC News; link to original item",
+      "rights_review": {
+        "status": "permission_required",
+        "reference_url": "https://downloads.bbc.co.uk/usingthebbc/bbc_terms_of_use_31March2022english.pdf",
+        "note": "Archived 2022 terms distinguish RSS sharing from metadata/computer-analysis uses. Current applicable terms and permission for this service require confirmation; no AI export."
+      },
+      "coverage_note": "International headlines from one English-language editorial perspective; not comprehensive worldwide coverage.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "feed_parsed",
+        "http_status": 200,
+        "decoded_bytes": 20294,
+        "entry_count": 26,
+        "conditional_http_status": null
+      }
+    },
+    {
+      "id": "global-world",
+      "name": "Global World",
+      "publisher": "Global News / Corus Entertainment",
+      "publisher_group": "corus",
+      "interest_area": "world",
+      "feed_url": "https://globalnews.ca/world/feed/",
+      "expected_format": "rss",
+      "publisher_evidence_url": "https://globalnews.ca/pages/feeds/",
+      "enabled": false,
+      "operator_approved": false,
+      "attribution": "Global World - Global News / Corus Entertainment; link to original item",
+      "rights_review": {
+        "status": "terms_unavailable",
+        "reference_url": "https://www.corusent.com/terms-of-use/",
+        "note": "Terms endpoint returned 403 to the web research tool; permission review is outstanding."
+      },
+      "coverage_note": "International headlines; shares an editorial owner with the other Global feeds.",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "vantage": "workstation_wsl",
+        "pi_reachability_verified": false,
+        "outcome": "feed_parsed",
+        "http_status": 200,
+        "decoded_bytes": 20830,
+        "entry_count": 10,
+        "conditional_http_status": 304
+      }
+    }
+  ]
+}

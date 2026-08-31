@@ -1,0 +1,489 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "planning_only",
+    "enabled",
+    "scope_status",
+    "source_selection_status",
+    "provider_export_allowed",
+    "commercial_use_approved",
+    "bootstrap_manifest",
+    "interest_areas",
+    "proposed_policy",
+    "retained_fields",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "planning_only": {
+      "const": true
+    },
+    "enabled": {
+      "const": false
+    },
+    "scope_status": {
+      "const": "owner_requested_interest_areas"
+    },
+    "source_selection_status": {
+      "const": "candidates_pending_individual_approval"
+    },
+    "provider_export_allowed": {
+      "const": false
+    },
+    "commercial_use_approved": {
+      "const": false
+    },
+    "bootstrap_manifest": {
+      "const": "php-pilot.json"
+    },
+    "interest_areas": {
+      "const": [
+        "development",
+        "entertainment",
+        "canada",
+        "first_nations",
+        "world"
+      ]
+    },
+    "proposed_policy": {
+      "const": {
+        "proposal_only": true,
+        "bootstrap_attempts_per_day": 120,
+        "new_source_interval_seconds": 14400,
+        "max_total_attempts_per_day": 180,
+        "max_decoded_bytes_per_response": 2097152,
+        "max_total_decoded_bytes_per_day": 67108864,
+        "concurrency": 1,
+        "timeout_seconds": 15,
+        "automatic_retries": 0,
+        "catch_up_bursts": false,
+        "follow_article_links": false,
+        "proposed_metadata_storage_bytes": 268435456
+      }
+    },
+    "retained_fields": {
+      "const": [
+        "source_item_id",
+        "title",
+        "url",
+        "publisher",
+        "published_at",
+        "observed_at"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "publisher",
+          "publisher_group",
+          "interest_area",
+          "feed_url",
+          "expected_format",
+          "publisher_evidence_url",
+          "enabled",
+          "operator_approved",
+          "attribution",
+          "rights_review",
+          "coverage_note",
+          "availability"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "publisher_group": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "interest_area": {
+            "enum": [
+              "development",
+              "entertainment",
+              "canada",
+              "first_nations",
+              "world"
+            ]
+          },
+          "feed_url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "^https://"
+          },
+          "expected_format": {
+            "const": "rss"
+          },
+          "publisher_evidence_url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "^https://"
+          },
+          "enabled": {
+            "const": false
+          },
+          "operator_approved": {
+            "const": false
+          },
+          "attribution": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "rights_review": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "reference_url",
+              "note"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "limited_syndication_statement",
+                  "terms_unavailable",
+                  "review_pending",
+                  "permission_required"
+                ]
+              },
+              "reference_url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "pattern": "^https://"
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
+          },
+          "coverage_note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "availability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "checked_on",
+              "vantage",
+              "pi_reachability_verified",
+              "outcome",
+              "http_status",
+              "decoded_bytes",
+              "entry_count",
+              "conditional_http_status"
+            ],
+            "properties": {
+              "checked_on": {
+                "type": "string",
+                "format": "date"
+              },
+              "vantage": {
+                "enum": [
+                  "workstation_wsl",
+                  "not_probed"
+                ]
+              },
+              "pi_reachability_verified": {
+                "const": false
+              },
+              "outcome": {
+                "enum": [
+                  "not_probed",
+                  "feed_parsed",
+                  "timeout",
+                  "http_refused",
+                  "probe_rejected",
+                  "probe_error"
+                ]
+              },
+              "http_status": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 100,
+                "maximum": 599
+              },
+              "decoded_bytes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "entry_count": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "conditional_http_status": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 100,
+                "maximum": 599
+              }
+            }
+          }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "id": {
+                "const": "infoq-programming"
+              },
+              "name": {
+                "const": "InfoQ Programming"
+              },
+              "publisher": {
+                "const": "C4Media / InfoQ"
+              },
+              "publisher_group": {
+                "const": "infoq"
+              },
+              "interest_area": {
+                "const": "development"
+              },
+              "feed_url": {
+                "const": "https://feed.infoq.com/programming"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "github-blog"
+              },
+              "name": {
+                "const": "GitHub Blog"
+              },
+              "publisher": {
+                "const": "GitHub"
+              },
+              "publisher_group": {
+                "const": "github"
+              },
+              "interest_area": {
+                "const": "development"
+              },
+              "feed_url": {
+                "const": "https://github.blog/feed/"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "variety"
+              },
+              "name": {
+                "const": "Variety"
+              },
+              "publisher": {
+                "const": "Variety / Penske Media"
+              },
+              "publisher_group": {
+                "const": "pmc"
+              },
+              "interest_area": {
+                "const": "entertainment"
+              },
+              "feed_url": {
+                "const": "https://variety.com/feed/"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "global-entertainment"
+              },
+              "name": {
+                "const": "Global Entertainment"
+              },
+              "publisher": {
+                "const": "Global News / Corus Entertainment"
+              },
+              "publisher_group": {
+                "const": "corus"
+              },
+              "interest_area": {
+                "const": "entertainment"
+              },
+              "feed_url": {
+                "const": "https://globalnews.ca/entertainment/feed/"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "cbc-canada"
+              },
+              "name": {
+                "const": "CBC Canada"
+              },
+              "publisher": {
+                "const": "CBC/Radio-Canada"
+              },
+              "publisher_group": {
+                "const": "cbc"
+              },
+              "interest_area": {
+                "const": "canada"
+              },
+              "feed_url": {
+                "const": "https://www.cbc.ca/webfeed/rss/rss-canada"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "global-canada"
+              },
+              "name": {
+                "const": "Global Canada"
+              },
+              "publisher": {
+                "const": "Global News / Corus Entertainment"
+              },
+              "publisher_group": {
+                "const": "corus"
+              },
+              "interest_area": {
+                "const": "canada"
+              },
+              "feed_url": {
+                "const": "https://globalnews.ca/canada/feed/"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "anishinabek-news"
+              },
+              "name": {
+                "const": "Anishinabek News"
+              },
+              "publisher": {
+                "const": "Anishinabek Nation"
+              },
+              "publisher_group": {
+                "const": "anishinabek"
+              },
+              "interest_area": {
+                "const": "first_nations"
+              },
+              "feed_url": {
+                "const": "https://anishinabeknews.ca/feed/"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "aptn-news"
+              },
+              "name": {
+                "const": "APTN News"
+              },
+              "publisher": {
+                "const": "Aboriginal Peoples Television Network"
+              },
+              "publisher_group": {
+                "const": "aptn"
+              },
+              "interest_area": {
+                "const": "first_nations"
+              },
+              "feed_url": {
+                "const": "https://www.aptnnews.ca/feed/"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "bbc-world"
+              },
+              "name": {
+                "const": "BBC World"
+              },
+              "publisher": {
+                "const": "BBC News"
+              },
+              "publisher_group": {
+                "const": "bbc"
+              },
+              "interest_area": {
+                "const": "world"
+              },
+              "feed_url": {
+                "const": "https://feeds.bbci.co.uk/news/world/rss.xml"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "global-world"
+              },
+              "name": {
+                "const": "Global World"
+              },
+              "publisher": {
+                "const": "Global News / Corus Entertainment"
+              },
+              "publisher_group": {
+                "const": "corus"
+              },
+              "interest_area": {
+                "const": "world"
+              },
+              "feed_url": {
+                "const": "https://globalnews.ca/world/feed/"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Disabled multi-interest source candidates; not runtime policy"
+}

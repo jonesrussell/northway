@@ -6,6 +6,8 @@ Status: Phase 1 architecture contract. Runtime and initial SQLite corpus storage
 
 Northway owns contextual retrieval, ranking, grounded explanations, source provenance, feed definitions, explicit preference/feedback state, and service usage controls. Its output must be useful to a generic authenticated agent.
 
+Personal feeds span development, entertainment, Canada, First Nations and world news. Saved source selection and optional mixed-digest balance are tenant/feed preferences; project context is optional. See [personal feeds](personal-feeds.md).
+
 Claudriel owns personal memory, repository inspection, the active project/task, selection of context to disclose, and the user interface. It can author/edit feed definitions through the API and further synthesize results. Northway must not require access to its entities, filesystem, PHP framework, or agent runtime.
 
 This extends the earlier personal-only idea: contextual AI ranking belongs in the product, while private context selection stays in the client. Other agents can therefore substitute for Claudriel.
@@ -49,7 +51,7 @@ SQLite has no RLS or server roles. Every private repository method requires an a
 
 Optional [scheduled discovery](specs/scheduled-discovery.md) uses an external web-search-capable provider to acquire cited candidates. This acquisition adapter is separate from the tool-free ranker below, with distinct query/search budgets and provenance. It may use only bounded provider-side search, never local execution. Scheduled digest generation writes cached snapshots for clients to pull.
 
-The agent sends a small explicit context envelope: intent, language/framework/dependency names and versions when known, and optional focus topics. No automatic repository upload, conversation dump or inferred access to other projects. Dependencies can themselves be sensitive; clients choose what to disclose. Do not log raw context by default.
+The agent sends a small explicit context envelope: intent and optional focus topics; language/framework/dependency names and versions are included only for relevant project-focused requests. Personal requests use an empty technologies array under the existing schema. No automatic repository upload, conversation dump or inferred access to other projects. Dependencies can themselves be sensitive; clients choose what to disclose. Do not log raw context by default.
 
 Article text is data, not instructions. The ranker gets no browsing, filesystem, shell or source-management tools. Provider output must reference only permitted candidate IDs; generated facts/explanations must be supported by available evidence. Say when feed-only text is insufficient to establish compatibility or impact. Never claim a dependency is vulnerable merely because an article mentions its name.
 
@@ -62,12 +64,12 @@ Initial retention proposals: articles 90 days where allowed, raw diagnostics at 
 The initial host is a Raspberry Pi; hardware details and final budgets require device validation. See [content sourcing](content-sources.md). No crawling, article-page fetching or browser rendering runs at home. Feed polling uses ordinary outbound HTTPS; if that is also disallowed, collection moves to an external source and the Pi pulls normalized batches. Optional inference runs remotely; deterministic retrieval remains usable without it.
 
 
-Use conditional HTTP requests and persistent poll state. Respect source rate limits, robots/site policy where applicable, request/body bounds and retry backoff. Approved sources are configured by an operator for Phase 1. All fetches validate destinations and redirects; customer-controlled source URLs require a hardened public-network-only fetch path before enablement.
+Use conditional HTTP requests and persistent poll state. Respect source rate limits, robots/site policy where applicable, request/body bounds and publisher deferrals. The initial acquisition policy has zero automatic retries. Approved sources are configured by an operator for Phase 1. All fetches validate destinations and redirects; customer-controlled source URLs require a hardened public-network-only fetch path before enablement.
 
 Return source publication time only if known; never substitute fetch time and label it as publication. Report partial coverage and stale observations rather than interpreting missing data as no news. The approved personal pilot retains metadata only (item ID, title, link, publisher and publication/observation times); descriptions and excerpts require a separate rights decision. Full article access is an explicit later capability, never home crawling. See [content sources](content-sources.md).
 
 ## Resource and cost controls
 
-Start with 5–10 sources, one concurrent feed fetch, bounded candidate and result counts, and one provider call per uncached query. Measure RSS, CPU, storage growth, latency, source freshness and provider usage. Reserve tenant budget atomically before model calls so concurrent requests cannot overrun it. Cache hits, retries, failures and provider tokens have separate counters.
+The PHP bootstrap is five selected sources; the broader personal proposal adds ten disabled candidates under the shared budget in [personal feeds](personal-feeds.md). Keep one concurrent feed fetch and bounded candidate/result counts. One provider call per uncached query is a future ceiling, only after provider export approval. Measure RSS, CPU, storage growth, latency, source freshness and provider usage. Reserve tenant budget atomically before model calls so concurrent requests cannot overrun it. Cache hits, retries, failures and provider tokens have separate counters.
 
 Use bounded structured logs, last-success/error metrics and restore-tested backups. Add dedicated infrastructure only after a measured limitation. Initial 1 GiB host target is unverified and excludes remote inference charges.

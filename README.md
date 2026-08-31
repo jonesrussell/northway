@@ -1,6 +1,6 @@
 # Northway
 
-**Contextual news for AI agents.** Give Northway a description of what you are working on; receive a small, relevant feed with source links, freshness information, and explanations grounded in the articles.
+**Contextual news for AI agents.** Choose a personal feed or provide approved project context; receive a small, relevant selection with source links, freshness information and explanations supported by available evidence.
 
 Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
 
@@ -8,11 +8,13 @@ Claudriel is the first client. Northway is an independent service, not a Claudri
 
 ## First useful experience
 
-While working on a PHP project in Claudriel, ask:
+Choose Development (including PHP), Entertainment, Canada, First Nations or World, or an explicitly selected mixed digest. Personal feeds work without repository context. The PHP sources are the technical bootstrap, not the product boundary. See [the broader personal-feed design and candidates](docs/personal-feeds.md).
+
+For a project-focused Development query in Claudriel, ask:
 
 > Keep me informed about developments relevant to this project. Prioritize releases and practical engineering; skip beginner tutorials.
 
-Claudriel submits approved technical context and a saved feed identifier. Northway retrieves recent articles from selected sources, ranks a bounded shortlist, and returns up to five recommendations with an explanation of relevance. Claudriel renders the feed and sends explicit feedback. It may use its own AI to further synthesize results, but a second client must not need Claudriel to obtain contextual recommendations.
+Claudriel submits a saved feed identifier and a minimal explicit intent; technical context is included only when useful and approved for that query. Northway retrieves recent articles from selected sources, ranks a bounded shortlist, and returns up to five recommendations with an explanation of relevance. Claudriel renders the feed and sends explicit feedback. It may use its own AI to further synthesize results, but a second client must not need Claudriel to obtain contextual recommendations.
 
 ## Design constraints
 
@@ -34,7 +36,8 @@ Claudriel submits approved technical context and a saved feed identifier. Northw
 - [Deployment ownership and first implementation slice](docs/deployment.md)
 - [Phased roadmap](docs/roadmap.md)
 - [Content sources and Raspberry Pi deployment](docs/content-sources.md)
-- [Approved PHP pilot selection and device evidence](docs/pilot-readiness.md)
+- [Personal feeds, broader source candidates and shared budgets](docs/personal-feeds.md)
+- [Approved PHP bootstrap selection and device evidence](docs/pilot-readiness.md)
 - [Scheduled AI discovery and custom lists](docs/specs/scheduled-discovery.md)
 - [Firecrawl or North Cloud-derived external collection](docs/specs/external-collection.md)
 - [Architecture and SaaS boundary](docs/architecture.md)
