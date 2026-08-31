@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "profile": "personal-local-v1",
+  "enabled": true,
+  "use_scope": "personal_metadata_feed_aggregation",
+  "provider_export_allowed": false,
+  "commercial_use_approved": false,
+  "approval_record": "docs/source-approval-2026-08-31.md",
+  "activation_record": "docs/source-activation-2026-08-31.md",
+  "feeds": [
+    {
+      "id": "921bcb1b-e464-5ff4-9a7e-d8b79faa900a",
+      "title": "Development",
+      "categories": [
+        "development"
+      ],
+      "publisher_cap": 2,
+      "use_context": false
+    },
+    {
+      "id": "9978be55-592d-53fc-bdff-a85dda93f24d",
+      "title": "Entertainment",
+      "categories": [
+        "entertainment"
+      ],
+      "publisher_cap": 2,
+      "use_context": false
+    },
+    {
+      "id": "0fcce4ea-02a1-54e8-bf22-a0bc10dbecbf",
+      "title": "Canada",
+      "categories": [
+        "canada"
+      ],
+      "publisher_cap": 2,
+      "use_context": false
+    },
+    {
+      "id": "0ee72c1d-f8b9-5144-aabc-bfe68816e2ac",
+      "title": "World",
+      "categories": [
+        "world"
+      ],
+      "publisher_cap": 2,
+      "use_context": false
+    },
+    {
+      "id": "bdcc63ec-6932-5abb-8b73-8385b6497ebf",
+      "title": "Mixed",
+      "categories": [
+        "development",
+        "entertainment",
+        "canada",
+        "world"
+      ],
+      "publisher_cap": 2,
+      "use_context": false
+    }
+  ],
+  "sources": [
+    {
+      "id": "f5f0352b-e514-5d30-ac8a-a5c5ddeeae7a",
+      "title": "InfoQ Programming",
+      "feed_url": "https://feed.infoq.com/programming",
+      "feed_ids": [
+        "921bcb1b-e464-5ff4-9a7e-d8b79faa900a",
+        "bdcc63ec-6932-5abb-8b73-8385b6497ebf"
+      ],
+      "interval_seconds": 14400,
+      "max_bytes": 2097152,
+      "personal_use_basis": "publisher_summary_link",
+      "publisher_group": "infoq",
+      "categories": [
+        "development"
+      ]
+    },
+    {
+      "id": "c08e32be-e1b6-5065-bd23-859bb052baa3",
+      "title": "GitHub Blog",
+      "feed_url": "https://github.blog/feed/",
+      "feed_ids": [
+        "921bcb1b-e464-5ff4-9a7e-d8b79faa900a",
+        "bdcc63ec-6932-5abb-8b73-8385b6497ebf"
+      ],
+      "interval_seconds": 14400,
+      "max_bytes": 2097152,
+      "personal_use_basis": "owner_directed_official_feed",
+      "publisher_group": "github",
+      "categories": [
+        "development"
+      ]
+    },
+    {
+      "id": "f6287590-48b1-5d97-95ee-50a9464a6af1",
+      "title": "Global Entertainment",
+      "feed_url": "https://globalnews.ca/entertainment/feed/",
+      "feed_ids": [
+        "9978be55-592d-53fc-bdff-a85dda93f24d",
+        "bdcc63ec-6932-5abb-8b73-8385b6497ebf"
+      ],
+      "interval_seconds": 14400,
+      "max_bytes": 2097152,
+      "personal_use_basis": "owner_directed_official_feed",
+      "publisher_group": "corus",
+      "categories": [
+        "entertainment"
+      ]
+    },
+    {
+      "id": "a978e376-d7df-5e7f-b7e7-4420216b8a59",
+      "title": "Global Canada",
+      "feed_url": "https://globalnews.ca/canada/feed/",
+      "feed_ids": [
+        "0fcce4ea-02a1-54e8-bf22-a0bc10dbecbf",
+        "bdcc63ec-6932-5abb-8b73-8385b6497ebf"
+      ],
+      "interval_seconds": 14400,
+      "max_bytes": 2097152,
+      "personal_use_basis": "owner_directed_official_feed",
+      "publisher_group": "corus",
+      "categories": [
+        "canada"
+      ]
+    },
+    {
+      "id": "992d6776-dec1-5909-8249-bd2fecd38759",
+      "title": "Global World",
+      "feed_url": "https://globalnews.ca/world/feed/",
+      "feed_ids": [
+        "0ee72c1d-f8b9-5144-aabc-bfe68816e2ac",
+        "bdcc63ec-6932-5abb-8b73-8385b6497ebf"
+      ],
+      "interval_seconds": 14400,
+      "max_bytes": 2097152,
+      "personal_use_basis": "owner_directed_official_feed",
+      "publisher_group": "corus",
+      "categories": [
+        "world"
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "catalogue_id": "cbc-canada",
+      "reason": "repeated_transport_timeout_from_workstation"
+    },
+    {
+      "catalogue_id": "variety",
+      "reason": "publisher_terms_restrict_automated_and_ai_use"
+    },
+    {
+      "catalogue_id": "anishinabek-news",
+      "reason": "feed_returned_403_and_permission_unconfirmed"
+    },
+    {
+      "catalogue_id": "aptn-news",
+      "reason": "publisher_terms_require_prior_consent_for_automated_collection"
+    },
+    {
+      "catalogue_id": "bbc-world",
+      "reason": "current_metadata_analysis_permission_unresolved"
+    }
+  ]
+}

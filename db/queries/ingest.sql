@@ -1,3 +1,9 @@
+-- name: PollSourceCount :one
+SELECT count(*) FROM poll_sources;
+
+-- name: PilotPollConfig :one
+SELECT approved_url,approved,enabled,interval_us,max_bytes FROM poll_sources WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.arg(source_id);
+
 -- name: PollSourceURL :one
 SELECT url FROM sources WHERE tenant_id=sqlc.arg(tenant_id) AND id=sqlc.arg(source_id);
 

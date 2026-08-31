@@ -298,6 +298,36 @@ func (q *Queries) PendingPoll(ctx context.Context, arg PendingPollParams) (Pendi
 	return i, err
 }
 
+const pilotPollConfig = `-- name: PilotPollConfig :one
+SELECT approved_url,approved,enabled,interval_us,max_bytes FROM poll_sources WHERE tenant_id=?1 AND source_id=?2
+`
+
+type PilotPollConfigParams struct {
+	TenantID string
+	SourceID string
+}
+
+type PilotPollConfigRow struct {
+	ApprovedUrl string
+	Approved    int64
+	Enabled     int64
+	IntervalUs  int64
+	MaxBytes    int64
+}
+
+func (q *Queries) PilotPollConfig(ctx context.Context, arg PilotPollConfigParams) (PilotPollConfigRow, error) {
+	row := q.db.QueryRowContext(ctx, pilotPollConfig, arg.TenantID, arg.SourceID)
+	var i PilotPollConfigRow
+	err := row.Scan(
+		&i.ApprovedUrl,
+		&i.Approved,
+		&i.Enabled,
+		&i.IntervalUs,
+		&i.MaxBytes,
+	)
+	return i, err
+}
+
 const pollCursor = `-- name: PollCursor :one
 SELECT source_id FROM poll_cursors WHERE tenant_id=?1
 `
@@ -345,6 +375,17 @@ func (q *Queries) PollItemIdentity(ctx context.Context, arg PollItemIdentityPara
 	var i PollItemIdentityRow
 	err := row.Scan(&i.SourceID, &i.OriginID)
 	return i, err
+}
+
+const pollSourceCount = `-- name: PollSourceCount :one
+SELECT count(*) FROM poll_sources
+`
+
+func (q *Queries) PollSourceCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, pollSourceCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const pollSourceURL = `-- name: PollSourceURL :one
