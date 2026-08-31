@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "proposal_only": true,
+  "enabled": false,
+  "selection_status": "proposed",
+  "acquisition_location": "undecided",
+  "provider_export_allowed": false,
+  "commercial_use_approved": false,
+  "poll_policy": {
+    "interval_seconds": 3600,
+    "concurrency": 1,
+    "max_decoded_bytes": 2097152,
+    "timeout_seconds": 15,
+    "conditional_requests": true,
+    "follow_article_links": false,
+    "automatic_retries": 0,
+    "stagger": "spread_sources_across_interval"
+  },
+  "proposed_retained_fields": [
+    "source_item_id",
+    "title",
+    "url",
+    "publisher",
+    "published_at",
+    "observed_at"
+  ],
+  "sources": [
+    {
+      "id": "php-news",
+      "name": "PHP news",
+      "publisher": "The PHP Group",
+      "feed_url": "https://www.php.net/feed.atom",
+      "format": "atom",
+      "enabled": false,
+      "topics": [
+        "php",
+        "language-releases"
+      ],
+      "attribution": "The PHP Group — PHP news",
+      "publisher_evidence_url": "https://www.php.net/sitemap.php",
+      "rights_review": {
+        "status": "pending",
+        "reference_url": "https://www.php.net/copyright.php"
+      },
+      "rate_review": "pending",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "evidence": "web_tool_reported_atom_media_type",
+        "xml_parsed": false,
+        "conditional_get_verified": false,
+        "pi_reachability_verified": false
+      }
+    },
+    {
+      "id": "composer-releases",
+      "name": "Composer releases",
+      "publisher": "Composer maintainers",
+      "feed_url": "https://github.com/composer/composer/releases.atom",
+      "format": "atom",
+      "enabled": false,
+      "topics": [
+        "php",
+        "dependency-management"
+      ],
+      "attribution": "Composer maintainers — release announcement on GitHub",
+      "publisher_evidence_url": "https://getcomposer.org/",
+      "rights_review": {
+        "status": "pending",
+        "reference_url": "https://getcomposer.org/"
+      },
+      "rate_review": "pending",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "evidence": "web_tool_reported_atom_media_type",
+        "xml_parsed": false,
+        "conditional_get_verified": false,
+        "pi_reachability_verified": false
+      }
+    },
+    {
+      "id": "phpunit-releases",
+      "name": "PHPUnit releases",
+      "publisher": "Sebastian Bergmann and PHPUnit contributors",
+      "feed_url": "https://github.com/sebastianbergmann/phpunit/releases.atom",
+      "format": "atom",
+      "enabled": false,
+      "topics": [
+        "php",
+        "testing"
+      ],
+      "attribution": "PHPUnit maintainers — release announcement on GitHub",
+      "publisher_evidence_url": "https://phpunit.de/",
+      "rights_review": {
+        "status": "pending",
+        "reference_url": "https://phpunit.de/"
+      },
+      "rate_review": "pending",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "evidence": "web_tool_reported_atom_media_type",
+        "xml_parsed": false,
+        "conditional_get_verified": false,
+        "pi_reachability_verified": false
+      }
+    },
+    {
+      "id": "phpstan-releases",
+      "name": "PHPStan releases",
+      "publisher": "PHPStan maintainers",
+      "feed_url": "https://github.com/phpstan/phpstan/releases.atom",
+      "format": "atom",
+      "enabled": false,
+      "topics": [
+        "php",
+        "static-analysis"
+      ],
+      "attribution": "PHPStan maintainers — release announcement on GitHub",
+      "publisher_evidence_url": "https://phpstan.org/user-guide/getting-started",
+      "rights_review": {
+        "status": "pending",
+        "reference_url": "https://github.com/phpstan/phpstan"
+      },
+      "rate_review": "pending",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "evidence": "web_tool_reported_atom_media_type",
+        "xml_parsed": false,
+        "conditional_get_verified": false,
+        "pi_reachability_verified": false
+      }
+    },
+    {
+      "id": "psalm-releases",
+      "name": "Psalm releases",
+      "publisher": "Psalm maintainers",
+      "feed_url": "https://github.com/vimeo/psalm/releases.atom",
+      "format": "atom",
+      "enabled": false,
+      "topics": [
+        "php",
+        "static-analysis"
+      ],
+      "attribution": "Psalm maintainers — release announcement on GitHub",
+      "publisher_evidence_url": "https://psalm.dev/",
+      "rights_review": {
+        "status": "pending",
+        "reference_url": "https://github.com/vimeo/psalm"
+      },
+      "rate_review": "pending",
+      "availability": {
+        "checked_on": "2026-08-31",
+        "evidence": "web_tool_reported_atom_media_type",
+        "xml_parsed": false,
+        "conditional_get_verified": false,
+        "pi_reachability_verified": false
+      }
+    }
+  ]
+}

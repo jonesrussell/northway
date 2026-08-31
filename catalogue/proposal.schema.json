@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Disabled pilot source proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "proposal_only",
+    "enabled",
+    "selection_status",
+    "acquisition_location",
+    "provider_export_allowed",
+    "commercial_use_approved",
+    "poll_policy",
+    "proposed_retained_fields",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "proposal_only": {
+      "const": true
+    },
+    "enabled": {
+      "const": false
+    },
+    "selection_status": {
+      "const": "proposed"
+    },
+    "acquisition_location": {
+      "const": "undecided"
+    },
+    "provider_export_allowed": {
+      "const": false
+    },
+    "commercial_use_approved": {
+      "const": false
+    },
+    "poll_policy": {
+      "const": {
+        "interval_seconds": 3600,
+        "concurrency": 1,
+        "max_decoded_bytes": 2097152,
+        "timeout_seconds": 15,
+        "conditional_requests": true,
+        "follow_article_links": false,
+        "automatic_retries": 0,
+        "stagger": "spread_sources_across_interval"
+      }
+    },
+    "proposed_retained_fields": {
+      "const": [
+        "source_item_id",
+        "title",
+        "url",
+        "publisher",
+        "published_at",
+        "observed_at"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "publisher",
+          "feed_url",
+          "format",
+          "enabled",
+          "topics",
+          "attribution",
+          "publisher_evidence_url",
+          "rights_review",
+          "rate_review",
+          "availability"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{2,63}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "feed_url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "^https://"
+          },
+          "format": {
+            "const": "atom"
+          },
+          "enabled": {
+            "const": false
+          },
+          "topics": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "attribution": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "publisher_evidence_url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "pattern": "^https://"
+          },
+          "rights_review": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "reference_url"
+            ],
+            "properties": {
+              "status": {
+                "const": "pending"
+              },
+              "reference_url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "pattern": "^https://"
+              }
+            }
+          },
+          "rate_review": {
+            "const": "pending"
+          },
+          "availability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "checked_on",
+              "evidence",
+              "xml_parsed",
+              "conditional_get_verified",
+              "pi_reachability_verified"
+            ],
+            "properties": {
+              "checked_on": {
+                "type": "string",
+                "format": "date"
+              },
+              "evidence": {
+                "const": "web_tool_reported_atom_media_type"
+              },
+              "xml_parsed": {
+                "const": false
+              },
+              "conditional_get_verified": {
+                "const": false
+              },
+              "pi_reachability_verified": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
