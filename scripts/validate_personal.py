@@ -69,11 +69,16 @@ def main():
     validate(value, validator, bootstrap)
     mutations = [
         lambda x: x.update(enabled=True),
+        lambda x: x.update(schema_version=1),
+        lambda x: x.pop("owner_approval"),
+        lambda x: x["owner_approval"].update(scope="collection_and_provider_export"),
+        lambda x: x.update(source_selection_status="candidates_pending_individual_approval"),
+        lambda x: x["sources"][2]["rights_review"].update(status="review_pending"),
         lambda x: x.update(provider_export_allowed=True),
         lambda x: x.update(commercial_use_approved=True),
         lambda x: x.update(source_selection_status="approved"),
         lambda x: x["sources"][0].update(enabled=True),
-        lambda x: x["sources"][0].update(operator_approved=True),
+        lambda x: x["sources"][0].update(operator_approved=False),
         lambda x: x["sources"][0].update(feed_url="https://other.invalid/feed"),
         lambda x: x["sources"].append(deepcopy(x["sources"][0])),
         lambda x: x["sources"].__setitem__(1, deepcopy(x["sources"][0])),
@@ -118,7 +123,7 @@ def main():
     assert len(items) == 5 and len({x.findtext("guid") for x in items}) == 5
     assert {x.findtext("category") for x in items} == set(value["interest_areas"])
     assert sum(x.find("pubDate") is None for x in items) == 1
-    print(f"PASS: 10 disabled candidates, {len(mutations)} rejected changes, 5 no-project query shapes, synthetic RSS; no network")
+    print(f"PASS: 10 owner-selected disabled sources, {len(mutations)} rejected changes, 5 no-project query shapes, synthetic RSS; no network")
 
 
 if __name__ == "__main__":

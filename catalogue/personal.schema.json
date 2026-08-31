@@ -13,11 +13,12 @@
     "interest_areas",
     "proposed_policy",
     "retained_fields",
-    "sources"
+    "sources",
+    "owner_approval"
   ],
   "properties": {
     "schema_version": {
-      "const": 1
+      "const": 2
     },
     "planning_only": {
       "const": true
@@ -29,7 +30,7 @@
       "const": "owner_requested_interest_areas"
     },
     "source_selection_status": {
-      "const": "candidates_pending_individual_approval"
+      "const": "approved_personal_metadata_pilot"
     },
     "provider_export_allowed": {
       "const": false
@@ -147,7 +148,7 @@
             "const": false
           },
           "operator_approved": {
-            "const": false
+            "const": true
           },
           "attribution": {
             "type": "string",
@@ -341,7 +342,7 @@
               "rights_review": {
                 "properties": {
                   "status": {
-                    "const": "terms_unavailable"
+                    "const": "permission_required"
                   }
                 }
               }
@@ -552,8 +553,15 @@
           }
         ]
       }
+    },
+    "owner_approval": {
+      "const": {
+        "approved_on": "2026-08-31",
+        "scope": "exact_sources_personal_metadata_selection_only",
+        "record": "docs/source-approval-2026-08-31.md"
+      }
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Disabled multi-interest source candidates; not runtime policy"
+  "title": "Owner-selected disabled personal sources; not runtime policy"
 }

@@ -1,9 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "planning_only": true,
   "enabled": false,
   "scope_status": "owner_requested_interest_areas",
-  "source_selection_status": "candidates_pending_individual_approval",
+  "source_selection_status": "approved_personal_metadata_pilot",
   "provider_export_allowed": false,
   "commercial_use_approved": false,
   "bootstrap_manifest": "php-pilot.json",
@@ -47,7 +47,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://www.infoq.com/programming/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "InfoQ Programming - C4Media / InfoQ; link to original item",
       "rights_review": {
         "status": "limited_syndication_statement",
@@ -76,7 +76,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://github.blog/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "GitHub Blog - GitHub; link to original item",
       "rights_review": {
         "status": "review_pending",
@@ -105,12 +105,12 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://variety.com/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "Variety - Variety / Penske Media; link to original item",
       "rights_review": {
-        "status": "terms_unavailable",
-        "reference_url": "https://pmc.com/terms-of-use/",
-        "note": "Current terms could not be retrieved during this review; do not infer reuse permission from RSS availability."
+        "status": "permission_required",
+        "reference_url": "https://www.pmc.com/terms-of-use",
+        "note": "Reviewed 2026-08-31: PMC terms dated 2026-08-21 contain feed-specific conditions (section 19) and automated acquisition/AI restrictions (section 9). Hold pending applicable permission or confirmed compliant use; owner selection does not clear this gate."
       },
       "coverage_note": "Film, television, music and entertainment industry; not comprehensive games or local arts coverage.",
       "availability": {
@@ -134,7 +134,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://globalnews.ca/pages/feeds/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "Global Entertainment - Global News / Corus Entertainment; link to original item",
       "rights_review": {
         "status": "terms_unavailable",
@@ -163,7 +163,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://www.cbc.ca/rss/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "CBC Canada - CBC/Radio-Canada; link to original item",
       "rights_review": {
         "status": "terms_unavailable",
@@ -192,7 +192,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://globalnews.ca/pages/feeds/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "Global Canada - Global News / Corus Entertainment; link to original item",
       "rights_review": {
         "status": "terms_unavailable",
@@ -221,7 +221,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://anishinabek.ca/departments/communications/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "Anishinabek News - Anishinabek Nation; link to original item",
       "rights_review": {
         "status": "review_pending",
@@ -250,7 +250,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://www.aptnnews.ca/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "APTN News - Aboriginal Peoples Television Network; link to original item",
       "rights_review": {
         "status": "permission_required",
@@ -279,7 +279,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://support.bbc.co.uk/platform/feeds/NewsFeeds.htm",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "BBC World - BBC News; link to original item",
       "rights_review": {
         "status": "permission_required",
@@ -308,7 +308,7 @@
       "expected_format": "rss",
       "publisher_evidence_url": "https://globalnews.ca/pages/feeds/",
       "enabled": false,
-      "operator_approved": false,
+      "operator_approved": true,
       "attribution": "Global World - Global News / Corus Entertainment; link to original item",
       "rights_review": {
         "status": "terms_unavailable",
@@ -327,5 +327,10 @@
         "conditional_http_status": 304
       }
     }
-  ]
+  ],
+  "owner_approval": {
+    "approved_on": "2026-08-31",
+    "scope": "exact_sources_personal_metadata_selection_only",
+    "record": "docs/source-approval-2026-08-31.md"
+  }
 }
