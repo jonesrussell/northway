@@ -33,7 +33,10 @@ func access(principal identity.Principal, write bool, ids ...string) (identity.T
 		return "", err
 	}
 	for _, id := range ids {
-		if identity.ValidateID(id) != nil {
+		if err := identity.ValidateID(id); err != nil {
+			if write {
+				return "", err
+			}
 			return "", ErrNotFound
 		}
 	}

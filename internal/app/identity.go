@@ -97,7 +97,11 @@ func executeIdentity(ctx context.Context, args []string, lookup func(string) (st
 	}{"complete", tenant, keyID})
 }
 
-func writeNewKey(ctx context.Context, store *sqlite.Store, principal identity.Principal, scopes identity.Scopes, path string) (string, error) {
+type keyCreator interface {
+	CreateAPIKey(context.Context, identity.Principal, identity.KeyRecord) error
+}
+
+func writeNewKey(ctx context.Context, store keyCreator, principal identity.Principal, scopes identity.Scopes, path string) (id string, err error) {
 	// Ancestors are operator-controlled, just as for the private SQLite path.
 	parent := filepath.Dir(path)
 	info, err := os.Lstat(parent)
@@ -112,7 +116,9 @@ func writeNewKey(ctx context.Context, store *sqlite.Store, principal identity.Pr
 	defer func() {
 		file.Close()
 		if !keep {
-			_ = os.Remove(path)
+			if removeErr := os.Remove(path); removeErr != nil && !os.IsNotExist(removeErr) {
+				err = errors.Join(err, errors.New("key output cleanup failed; inspect the requested output path before retrying"))
+			}
 		}
 	}()
 	key, secret, err := identity.GenerateKey(principal, scopes)

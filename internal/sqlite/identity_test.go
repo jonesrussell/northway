@@ -132,13 +132,17 @@ func TestPrincipalGuardsEveryCorpusPath(t *testing.T) {
 	other, err := auth.Authenticate(t.Context(), otherSecret.Reveal())
 	must(t, err)
 	for _, p := range []identity.Principal{{}, feedback} {
-		if _, err := s.GetArticle(t.Context(), p, itemID); err == nil {
+		want := identity.ErrForbidden
+		if p.TenantID() == "" {
+			want = identity.ErrUnauthorized
+		}
+		if _, err := s.GetArticle(t.Context(), p, itemID); !errors.Is(err, want) {
 			t.Fatal("unscoped article read")
 		}
-		if _, err := s.GetFeed(t.Context(), p, feedID); err == nil {
+		if _, err := s.GetFeed(t.Context(), p, feedID); !errors.Is(err, want) {
 			t.Fatal("unscoped feed read")
 		}
-		if _, err := s.Search(t.Context(), p, feedID, "PHP", time.Unix(0, 0), 1); err == nil {
+		if _, err := s.Search(t.Context(), p, feedID, "PHP", time.Unix(0, 0), 1); !errors.Is(err, want) {
 			t.Fatal("unscoped FTS read")
 		}
 	}
@@ -244,5 +248,17 @@ func TestUpgradeSchemaTwoPreservesCorpus(t *testing.T) {
 	_, secret := newKey(t, s, tenantA, identity.FeedsRead)
 	if _, err := identity.NewService(s).Authenticate(t.Context(), secret.Reveal()); err != nil {
 		t.Fatal("upgraded key storage unavailable")
+	}
+}
+
+func TestMalformedOperatorIDsRetainValidation(t *testing.T) {
+	s, _ := fresh(t)
+	seed(t, s, tenantA)
+	err := s.CreateFeed(t.Context(), operator(tenantA), feed.Feed{ID: "malformed", Title: "Invalid"})
+	if err == nil || errors.Is(err, ErrNotFound) || !strings.Contains(err.Error(), "UUID") {
+		t.Fatal("operator validation was hidden")
+	}
+	if _, err := s.GetFeed(t.Context(), operator(tenantA), "malformed"); !errors.Is(err, ErrNotFound) {
+		t.Fatal("malformed read disclosed validation")
 	}
 }
