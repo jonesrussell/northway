@@ -27,6 +27,7 @@ Claudriel submits approved technical context and a saved feed identifier. Northw
 ## Start here
 
 - [Delivery project and issue index](docs/delivery/README.md)
+- [Deployment ownership and first implementation slice](docs/deployment.md)
 - [Phased roadmap](docs/roadmap.md)
 - [Content sources and Raspberry Pi deployment](docs/content-sources.md)
 - [Scheduled AI discovery and custom lists](docs/specs/scheduled-discovery.md)
@@ -58,4 +59,4 @@ The checker validates request/response examples, rejects invalid contract cases,
 
 North Cloud remains the reference implementation during migration. Northway starts with a clean history and imports only selected, useful behavior. North Cloud will be archived only after consumer migration, data preservation, and explicit retirement approval. Creating this repository does not archive, stop, or delete North Cloud.
 
-The repository starts private. No open-source license is granted by this initial commit. Review first-party ownership, third-party notices, source-content rights, and the intended business model before making it public or redistributing imported material.
+The repository is public by explicit owner decision. No open-source license has been selected yet; public visibility alone is not a license grant. Review first-party ownership, third-party notices and source-content rights before redistributing imported material.
