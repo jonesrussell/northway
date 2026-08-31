@@ -299,6 +299,11 @@ func TestSQLiteFullRollsBackCorpusVersionAndFTS(t *testing.T) {
 }
 
 func TestUpgradeRebuildRestartAndExclusiveOwnership(t *testing.T) {
+	for _, version := range []int64{1, 2, 3, 4} {
+		t.Run(fmt.Sprintf("schema-%d", version), func(t *testing.T) { testUpgradeRebuildRestart(t, version) })
+	}
+}
+func testUpgradeRebuildRestart(t *testing.T, version int64) {
 	path := filepath.Join(privateDir(t), "upgrade.sqlite")
 	file, abs, err := lockFile(path, true)
 	must(t, err)
@@ -310,7 +315,7 @@ func TestUpgradeRebuildRestartAndExclusiveOwnership(t *testing.T) {
 	must(t, err)
 	p, err := provider(db, migrations)
 	must(t, err)
-	_, err = p.UpTo(t.Context(), 1)
+	_, err = p.UpTo(t.Context(), version)
 	must(t, err)
 	q := sqlc.New(db)
 	must(t, q.CreateTenant(t.Context(), sqlc.CreateTenantParams{ID: string(tenantA), CreatedAt: 1}))

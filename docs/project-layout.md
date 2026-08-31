@@ -38,7 +38,7 @@ scripts/                  # reproducible checks; no hidden deploy side effects
 .github/                  # CI, dependency updates, issue and PR templates
 ```
 
-One module: `github.com/jonesrussell/northway`. One executable, initially `northway serve`, `northway ingest --once`, and a migration command. No go.work, cross-service modules, generic repository framework, or public pkg/ tree. A public SDK is an explicit Phase 2 contract, not an accidental export of internal types. This follows Go's [server module layout guidance](https://go.dev/doc/modules/layout).
+One module: `github.com/jonesrussell/northway`. One executable, initially `northway serve`, `northway ingest once`, and a migration command. No go.work, cross-service modules, generic repository framework, or public pkg/ tree. A public SDK is an explicit Phase 2 contract, not an accidental export of internal types. This follows Go's [server module layout guidance](https://go.dev/doc/modules/layout).
 
 ## Import rules
 

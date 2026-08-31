@@ -18,6 +18,8 @@ ARG REVISION=unknown
 LABEL org.opencontainers.image.source="https://github.com/jonesrussell/northway" \
       org.opencontainers.image.revision="${REVISION}"
 COPY --from=build /out/northway /northway
+# Trust roots come from the same pinned builder; no custom publisher trust.
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /usr/local/go/LICENSE /licenses/Go-LICENSE
 COPY THIRD_PARTY_NOTICES.txt /licenses/THIRD_PARTY_NOTICES.txt
 # Volume roots may be initialized with engine-specific permissions. Keep the

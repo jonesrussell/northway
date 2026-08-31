@@ -111,7 +111,7 @@ func (s *Store) AttachSource(ctx context.Context, principal identity.Principal, 
 
 // PutArticle atomically updates the current item, records its content version and
 // updates FTS through triggers. Source/origin identity cannot change on update.
-// Lease fencing and poll success advancement are implemented with ingestion #12.
+// Ingestion uses its own fenced, metadata-only batch operation in ingest.go.
 func (s *Store) PutArticle(ctx context.Context, principal identity.Principal, v article.Article) error {
 	tenant, err := access(principal, true, v.ID, v.SourceID)
 	if err != nil {
