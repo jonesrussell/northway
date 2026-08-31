@@ -63,7 +63,7 @@
     "sources": {
       "type": "array",
       "minItems": 5,
-      "maxItems": 10,
+      "maxItems": 5,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -228,7 +228,89 @@
               }
             ]
           }
-        }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "id": {
+                "const": "php-news"
+              },
+              "name": {
+                "const": "PHP news"
+              },
+              "publisher": {
+                "const": "The PHP Group"
+              },
+              "feed_url": {
+                "const": "https://www.php.net/feed.atom"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "composer-releases"
+              },
+              "name": {
+                "const": "Composer releases"
+              },
+              "publisher": {
+                "const": "Composer maintainers"
+              },
+              "feed_url": {
+                "const": "https://github.com/composer/composer/releases.atom"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "phpunit-releases"
+              },
+              "name": {
+                "const": "PHPUnit releases"
+              },
+              "publisher": {
+                "const": "Sebastian Bergmann and PHPUnit contributors"
+              },
+              "feed_url": {
+                "const": "https://github.com/sebastianbergmann/phpunit/releases.atom"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "phpstan-releases"
+              },
+              "name": {
+                "const": "PHPStan releases"
+              },
+              "publisher": {
+                "const": "PHPStan maintainers"
+              },
+              "feed_url": {
+                "const": "https://github.com/phpstan/phpstan/releases.atom"
+              }
+            }
+          },
+          {
+            "properties": {
+              "id": {
+                "const": "psalm-releases"
+              },
+              "name": {
+                "const": "Psalm releases"
+              },
+              "publisher": {
+                "const": "Psalm maintainers"
+              },
+              "feed_url": {
+                "const": "https://github.com/vimeo/psalm/releases.atom"
+              }
+            }
+          }
+        ]
       }
     },
     "owner_approval": {

@@ -111,6 +111,10 @@ def main():
     check_proposal(proposal, validator)
     mutations = [
         lambda x: x.update(enabled=True),
+        lambda x: x["sources"].append(dict(deepcopy(x["sources"][0]), id="unapproved-source", feed_url="https://example.invalid/feed")),
+        lambda x: x["sources"][0].update(id="unapproved-source", feed_url="https://example.invalid/feed"),
+        lambda x: x["sources"][0].update(feed_url=x["sources"][1]["feed_url"]),
+        lambda x: x["sources"][3]["availability"].update(conditional_get_verified=True),
         lambda x: x.update(provider_export_allowed=True),
         lambda x: x.update(commercial_use_approved=True),
         lambda x: x.update(acquisition_location="external_unapproved"),
