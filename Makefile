@@ -1,7 +1,7 @@
 GOVULNCHECK_VERSION := v1.7.0
 IMAGE ?= northway:local
 VERSION ?= dev
-REVISION ?= $(shell git rev-parse HEAD)
+REVISION ?= $(shell git rev-parse HEAD)$(if $(shell git status --porcelain --untracked-files=normal),-dirty)
 BUILD_FLAGS = -trimpath -buildvcs=false -ldflags="-s -w -X github.com/jonesrussell/northway/internal/app.Version=$(VERSION) -X github.com/jonesrussell/northway/internal/app.Revision=$(REVISION)"
 
 .PHONY: check contracts fmt fmt-check vet test race boundaries build arm64 vuln smoke container-smoke

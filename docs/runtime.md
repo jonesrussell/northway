@@ -18,6 +18,10 @@ SIGINT/SIGTERM stops accepting connections and drains active requests within the
 
 ## Verification
 
+All fatal command errors use the same JSON stderr format as server logs and exit nonzero, including invalid configuration and bind failures. The process smoke checks these failure paths and retains raw startup diagnostics if a log line is incomplete or is not JSON.
+
+Host Makefile builds append `-dirty` to the HEAD revision when tracked changes or untracked, non-ignored files exist. Ignored build outputs do not mark the tree dirty. An explicit `REVISION` remains a caller-supplied override; container build arguments and matching labels are metadata, not a source attestation. Build distributable artifacts from a verified clean checkout.
+
 ```sh
 python3 -m pip install -r requirements-dev.txt
 make check
