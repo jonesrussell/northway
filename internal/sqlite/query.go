@@ -11,9 +11,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jonesrussell/northway/internal/feed"
 	"github.com/jonesrussell/northway/internal/identity"
 	"github.com/jonesrussell/northway/internal/query"
 	"github.com/jonesrussell/northway/internal/sqlite/sqlc"
+	"slices"
 )
 
 func queryID() string {
@@ -43,8 +45,8 @@ func sameScope(w sqlc.QueryWork, scope sqlc.QueryScopeRow) bool {
 	return w.FeedRevision == scope.Revision && w.CorpusRevision == scope.CorpusRevision && w.EntitlementRevision == scope.EntitlementRevision
 }
 
-// Twenty items, even with sixfold JSON escaping of every bounded title, URL
-// byte and explanation rune, plus IDs/field names, fit below 440,000 bytes.
+// Twenty items fit within 512 KiB, including sixfold JSON escaping of bounded
+// title, URL, source and explanation fields plus timestamps and identifiers.
 // Keep the migration CHECK aligned; the worst-case round-trip test covers both.
 const snapshotJSONLimit = 512 * 1024
 
@@ -204,6 +206,9 @@ func settle(ctx context.Context, q *sqlc.Queries, w *sqlc.QueryWork, value query
 // together. It rejects stale or invented candidates. Explanation grounding is
 // the later ranker's responsibility; storage never trusts caller titles/URLs.
 func (s *Store) CompleteQuery(ctx context.Context, principal identity.Principal, id, mode string, selections []query.Selection, cost query.Settlement) (query.Snapshot, error) {
+	return s.completeQuery(ctx, principal, id, mode, selections, cost, nil)
+}
+func (s *Store) completeQuery(ctx context.Context, principal identity.Principal, id, mode string, selections []query.Selection, cost query.Settlement, retrieval *query.Retrieval) (query.Snapshot, error) {
 	tenant, err := access(principal, false, id)
 	if err != nil {
 		return query.Snapshot{}, err
@@ -238,6 +243,17 @@ func (s *Store) CompleteQuery(ctx context.Context, principal identity.Principal,
 		if w.FeedRevision != scope.Revision || w.EntitlementRevision != scope.EntitlementRevision {
 			return query.ErrConflict
 		}
+		var details *query.Details
+		var pref feed.Preferences
+		if retrieval != nil {
+			if w.RankerVersion != query.DeterministicVersion || !sameScope(w, scope) || w.SpendState != "reserved" || w.ReservedMicros != 0 {
+				return query.ErrConflict
+			}
+			details, pref, err = retrievalDetails(ctx, q, w, retrieval)
+			if err != nil {
+				return err
+			}
+		}
 		items := make([]query.Item, 0, len(selections))
 		for _, selection := range selections {
 			a, err := q.QueryArticle(ctx, sqlc.QueryArticleParams{TenantID: w.TenantID, FeedID: w.FeedID, ID: selection.ArticleID})
@@ -247,10 +263,34 @@ func (s *Store) CompleteQuery(ctx context.Context, principal identity.Principal,
 			if err != nil {
 				return err
 			}
-			if a.ContentHash != selection.ContentHash || a.ObservedAt < w.SinceAt {
+			effective := a.ObservedAt
+			if a.PublishedAt.Valid {
+				effective = a.PublishedAt.Int64
+			}
+			if a.ContentHash != selection.ContentHash || effective < w.SinceAt || effective > w.CreatedAt || a.ObservedAt > w.CreatedAt {
 				return query.ErrConflict
 			}
-			items = append(items, query.Item{ArticleID: a.ID, SourceID: a.SourceID, ContentHash: a.ContentHash, Title: a.Title, URL: a.Url, Explanation: selection.Explanation})
+			item := query.Item{ArticleID: a.ID, SourceID: a.SourceID, ContentHash: a.ContentHash, Title: a.Title, URL: a.Url, Explanation: selection.Explanation}
+			if retrieval != nil {
+				allowed := false
+				for _, rule := range pref.Sources {
+					if rule.SourceID == a.SourceID && slices.Contains(rule.Categories, selection.Category) {
+						allowed = true
+						break
+					}
+				}
+				if !allowed || !slices.Contains(retrieval.Categories, selection.Category) {
+					return query.ErrConflict
+				}
+				item.SourceName = a.SourceName
+				item.ObservedAt = time.UnixMicro(a.ObservedAt).UTC()
+				item.Category = selection.Category
+				if a.PublishedAt.Valid {
+					t := time.UnixMicro(a.PublishedAt.Int64).UTC()
+					item.PublishedAt = &t
+				}
+			}
+			items = append(items, item)
 		}
 		encoded, err := json.Marshal(items)
 		if err != nil || len(encoded) > snapshotJSONLimit {
@@ -260,9 +300,18 @@ func (s *Store) CompleteQuery(ctx context.Context, principal identity.Principal,
 			return err
 		}
 		expires := now.Add(time.Duration(w.CacheTtl) * time.Microsecond)
-		snapshot = query.Snapshot{ID: queryID(), FeedID: w.FeedID, RankerVersion: w.RankerVersion, Mode: mode, FeedRevision: w.FeedRevision, GeneratedAt: now, ExpiresAt: expires, Items: items}
+		snapshot = query.Snapshot{ID: queryID(), FeedID: w.FeedID, RankerVersion: w.RankerVersion, Mode: mode, FeedRevision: w.FeedRevision, GeneratedAt: now, ExpiresAt: expires, Items: items, Details: details}
 		if err := q.CreateQuerySnapshot(ctx, sqlc.CreateQuerySnapshotParams{TenantID: w.TenantID, ID: snapshot.ID, FeedID: w.FeedID, RequestHash: w.RequestHash, FeedRevision: w.FeedRevision, CorpusRevision: w.CorpusRevision, EntitlementRevision: w.EntitlementRevision, RankerVersion: w.RankerVersion, Mode: mode, GeneratedAt: now.UnixMicro(), ExpiresAt: expires.UnixMicro(), RetainUntil: max(w.RetainUntil, expires.UnixMicro()), Items: string(encoded)}); err != nil {
 			return err
+		}
+		if details != nil {
+			data, err := json.Marshal(details)
+			if err != nil || len(data) > 65536 {
+				return query.ErrInvalid
+			}
+			if err = q.SnapshotDetails(ctx, sqlc.SnapshotDetailsParams{Details: string(data), TenantID: w.TenantID, ID: snapshot.ID}); err != nil {
+				return err
+			}
 		}
 		w.WorkState = "done"
 		w.SnapshotID = sql.NullString{String: snapshot.ID, Valid: true}
@@ -290,10 +339,32 @@ func loadSnapshot(ctx context.Context, q *sqlc.Queries, tenant, id string, now t
 		return query.Snapshot{}, query.ErrUnavailable
 	}
 	snapshot := query.Snapshot{ID: v.ID, FeedID: v.FeedID, FeedRevision: v.FeedRevision, RankerVersion: v.RankerVersion, Mode: v.Mode, GeneratedAt: time.UnixMicro(v.GeneratedAt).UTC(), ExpiresAt: time.UnixMicro(v.ExpiresAt).UTC(), Items: make([]query.Item, 0, len(items))}
+	if v.Details != "" {
+		snapshot.Details = &query.Details{}
+		if json.Unmarshal([]byte(v.Details), snapshot.Details) != nil || len(snapshot.Details.Sources) < 1 || len(snapshot.Details.Sources) > 100 {
+			return query.Snapshot{}, query.ErrUnavailable
+		}
+		for i, source := range snapshot.Details.Sources {
+			n, err := q.RetrievalSourceAllowed(ctx, sqlc.RetrievalSourceAllowedParams{TenantID: tenant, ID: v.FeedID, SourceID: source.SourceID})
+			if err != nil {
+				return query.Snapshot{}, err
+			}
+			if n == 0 {
+				snapshot.Details.Sources[i].Allowed = false
+				snapshot.Suppressed = true
+			}
+		}
+	}
 	for _, item := range items {
 		n, err := q.QuerySourceAllowed(ctx, sqlc.QuerySourceAllowedParams{TenantID: tenant, FeedID: v.FeedID, SourceID: item.SourceID})
 		if err != nil {
 			return query.Snapshot{}, err
+		}
+		if snapshot.Details != nil && n > 0 {
+			n, err = q.RetrievalSourceAllowed(ctx, sqlc.RetrievalSourceAllowedParams{TenantID: tenant, ID: v.FeedID, SourceID: item.SourceID})
+			if err != nil {
+				return query.Snapshot{}, err
+			}
 		}
 		if n == 0 {
 			snapshot.Suppressed = true

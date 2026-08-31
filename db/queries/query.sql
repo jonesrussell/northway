@@ -22,7 +22,7 @@ UPDATE query_snapshots SET retain_until=max(retain_until,sqlc.arg(retain_until))
 INSERT INTO query_snapshots(tenant_id,id,feed_id,request_hash,feed_revision,corpus_revision,entitlement_revision,ranker_version,mode,generated_at,expires_at,retain_until,items)
 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?);
 -- name: QueryArticle :one
-SELECT a.id,a.source_id,a.content_hash,a.title,a.url,a.observed_at FROM articles a
+SELECT a.id,a.source_id,a.content_hash,a.title,a.url,a.observed_at,a.published_at,s.title AS source_name FROM articles a
 JOIN feed_sources f ON f.tenant_id=a.tenant_id AND f.source_id=a.source_id
 JOIN sources s ON s.tenant_id=a.tenant_id AND s.id=a.source_id
 WHERE a.tenant_id=? AND f.feed_id=? AND a.id=? AND s.enabled=1;

@@ -4,7 +4,7 @@
 
 Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
 
-> Status: Go runtime, SQLite corpus storage, tenant identity and durable query coordination implemented; feed service still in development. The server exposes operational health only. Configured, migrated storage enables readiness; this does not establish feed functionality. Scoped keys, storage authorization, query claims/cache and spending holds are implemented as internal services; bounded operator-only ingestion is implemented, but no product HTTP API, provider calls, scheduled activation or deployment is implemented. JSON feed examples remain synthetic fixtures.
+> Status: Go runtime, SQLite corpus storage, tenant identity and durable query coordination implemented; feed service still in development. The server exposes operational health only. Configured, migrated storage enables readiness; this does not establish feed functionality. Scoped keys, storage authorization, query claims/cache and spending holds are implemented as internal services; bounded operator-only ingestion and deterministic personal-feed retrieval are implemented as internal services, but no product HTTP API, provider calls, scheduled activation or deployment is implemented. JSON feed examples remain synthetic fixtures; real service response projection is additionally schema-tested against authored metadata.
 
 ## First useful experience
 
@@ -33,6 +33,7 @@ Claudriel submits a saved feed identifier and a minimal explicit intent; technic
 - [Bounded RSS/Atom ingestion and operator command](docs/ingestion.md)
 - [Tenant identity and operator commands](docs/identity.md)
 - [Query transactions, caching and spending holds](docs/query-transactions.md)
+- [Deterministic personal retrieval and metadata-grounded snapshots](docs/retrieval.md)
 - [Delivery project and issue index](docs/delivery/README.md)
 - [Deployment ownership and first implementation slice](docs/deployment.md)
 - [Phased roadmap](docs/roadmap.md)

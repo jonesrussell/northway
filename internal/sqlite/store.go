@@ -22,7 +22,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const schemaVersion = 5
+const schemaVersion = 6
 const busyMilliseconds = 50
 
 // Store is a single-process SQLite owner. Close only after all users have stopped.

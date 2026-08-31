@@ -58,3 +58,5 @@ make container-smoke first verifies health-only behavior, then creates a uniquel
 Use Goose v3.27.3's provider library inside the migration command rather than importing its multi-driver CLI. Only modernc SQLite is registered; no dotenv loader or other database driver is linked. This refines the earlier tool-only selection to preserve one executable and embedded immutable migrations. Inspect the actual linked package graph and THIRD_PARTY_NOTICES.txt; a module's go.mod includes tool/test dependencies that are not necessarily linked into Northway. sqlc remains development-only. Go's license and generated third-party notices are included in the container.
 
 Sources: [modernc connector/DSN contract](https://pkg.go.dev/modernc.org/sqlite), [Goose provider](https://pressly.github.io/goose/documentation/provider/), [SQLite FTS5](https://www.sqlite.org/fts5.html), [SQLite WAL](https://www.sqlite.org/wal.html).
+
+Migration 6 adds saved selection preferences and rich snapshot details. See [deterministic retrieval](retrieval.md) for the implemented service, bounds, response projection and legacy snapshot handling.

@@ -1,6 +1,6 @@
 # Personal feeds beyond PHP
 
-Status: source curation and design for #44, not implemented ingestion, ranking or UI. The owner requested development (including PHP), entertainment, Canadian news, First Nations news and world news. PHP remains a useful technical bootstrap; it does not define the product or the full personal-pilot acceptance gate.
+Status: curation/design completed in #44. Bounded ingestion (#12) and [deterministic retrieval](retrieval.md) (#13) are now internal services; sources remain disabled and UI/activation remain unimplemented. The owner requested development (including PHP), entertainment, Canadian news, First Nations news and world news. PHP remains a useful technical bootstrap; it does not define the product or the full personal-pilot acceptance gate.
 
 ## Source candidates and evidence
 
@@ -43,7 +43,7 @@ Provision tenant-owned saved feeds for Development, Entertainment, Canada, First
 
 The existing query schema already supports personal requests: keep `context` and a short explicit `intent`, use `technologies: []`, and optionally set focus topics. Do not omit required fields or invent a new query parameter. See [synthetic query shapes](../testdata/personal/queries.json). These shapes are not implemented HTTP endpoints. Private project context is optional input to a selected Development query, not a required ingredient of a personal news query. Switching to Canada must not forward PHP dependency lists. Selected-feed eligibility comes before contextual ranking; personal feeds cannot be suppressed merely because a coding project is active.
 
-In #13, a broad personal intent with no technologies must retrieve recent eligible items from the saved feed, even if literal words such as "show recent news" do not match FTS. Use FTS when meaningful search/context terms exist; do not make PHP/development vocabulary a hidden precondition. Produce metadata-grounded recommendations with original links and publication/observation times. A headline is insufficient for detailed summaries, verified event claims or version applicability. The default remains deterministic while provider export is unapproved.
+In the implemented #13 service, a broad personal intent with no technologies must retrieve recent eligible items from the saved feed, even if literal words such as "show recent news" do not match FTS. Use FTS when meaningful search/context terms exist; do not make PHP/development vocabulary a hidden precondition. Produce metadata-grounded recommendations with original links and publication/observation times. A headline is insufficient for detailed summaries, verified event claims or version applicability. The default remains deterministic while provider export is unapproved.
 
 ## Mixed digest and honest coverage
 
@@ -53,7 +53,7 @@ Resolve cross-category conflicts in the saved category order: Development, Enter
 
 Emit each authorized item/canonical URL at most once across categories. Assign a multi-category item to one category deterministically. With missing/duplicate/category-cap-limited candidates, return fewer than five and explain the gap; do not silently fill First Nations coverage with generic national news. Only an explicit future preference revision may change balance or allow redistribution of empty slots. Content-based clustering across different URLs is future work; do not merge stories merely because titles look alike. Category balance, source selection and publisher limits belong to the saved feed/preference revision already represented in cache identity, never an untracked UI-only setting.
 
-The current draft response has source-level coverage, not per-category coverage fields. #13/#16 must use existing warnings for missing categories initially or introduce any new structured coverage field through a separate schema change. Do not claim today's transport or query coordination already performs category balancing. At present First Nations acquisition is unresolved, Canadian coverage depends heavily on one reachable publisher, and world coverage is limited to English-language editorial perspectives. Report and resolve those gaps before calling the personal pilot representative or complete.
+The current draft response has source-level coverage, not per-category coverage fields. #13/#16 must use existing warnings for missing categories initially or introduce any new structured coverage field through a separate schema change. The internal retrieval service now implements category balancing; the product HTTP adapter remains unimplemented. At present First Nations acquisition is unresolved, Canadian coverage depends heavily on one reachable publisher, and world coverage is limited to English-language editorial perspectives. Report and resolve those gaps before calling the personal pilot representative or complete.
 
 ## One shared resource budget
 

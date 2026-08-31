@@ -1,6 +1,6 @@
 # Data, transactions and background work
 
-Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: SQLite corpus schema, migrations and connection lifecycle are implemented in #10; scoped keys and principal authorization are implemented in #11; durable query claims/cache/holds are implemented in #14 (see [query coordination](../query-transactions.md)); bounded ingestion is implemented in #12 (see [ingestion](../ingestion.md)); full retrieval/API, feedback and backup/retention remain later slices. See [storage implementation](../storage.md).
+Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: SQLite corpus schema, migrations and connection lifecycle are implemented in #10; scoped keys and principal authorization are implemented in #11; durable query claims/cache/holds are implemented in #14 (see [query coordination](../query-transactions.md)); bounded ingestion is implemented in #12 (see [ingestion](../ingestion.md)); deterministic internal retrieval is implemented in #13 (see [retrieval](../retrieval.md)); product API, feedback and backup/retention remain later slices. See [storage implementation](../storage.md).
 
 ## SQLite invariants
 
