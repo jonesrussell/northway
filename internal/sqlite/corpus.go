@@ -21,16 +21,23 @@ import (
 
 var ErrNotFound = errors.New("object not found in tenant scope")
 
-func scope(tenant identity.TenantID, ids ...string) error {
-	if err := tenant.Validate(); err != nil {
-		return err
+func access(principal identity.Principal, write bool, ids ...string) (identity.TenantID, error) {
+	var tenant identity.TenantID
+	var err error
+	if write {
+		tenant, err = principal.RequireOperator()
+	} else {
+		tenant, err = principal.Require(identity.FeedsRead)
+	}
+	if err != nil {
+		return "", err
 	}
 	for _, id := range ids {
-		if err := identity.ValidateID(id); err != nil {
-			return err
+		if identity.ValidateID(id) != nil {
+			return "", ErrNotFound
 		}
 	}
-	return nil
+	return tenant, nil
 }
 
 func text(value string, max int, empty bool) bool {
@@ -55,7 +62,7 @@ func validTimestamp(value time.Time) bool {
 
 // CreateTenant is an operator-only provisioning seam, not a public endpoint.
 func (s *Store) CreateTenant(ctx context.Context, tenant identity.TenantID) error {
-	if err := scope(tenant); err != nil {
+	if err := tenant.Validate(); err != nil {
 		return err
 	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
@@ -63,8 +70,9 @@ func (s *Store) CreateTenant(ctx context.Context, tenant identity.TenantID) erro
 	})
 }
 
-func (s *Store) CreateSource(ctx context.Context, tenant identity.TenantID, v source.Source) error {
-	if err := scope(tenant, v.ID); err != nil {
+func (s *Store) CreateSource(ctx context.Context, principal identity.Principal, v source.Source) error {
+	tenant, err := access(principal, true, v.ID)
+	if err != nil {
 		return err
 	}
 	if !link(v.URL) || !text(v.Title, 512, false) {
@@ -75,8 +83,9 @@ func (s *Store) CreateSource(ctx context.Context, tenant identity.TenantID, v so
 	})
 }
 
-func (s *Store) CreateFeed(ctx context.Context, tenant identity.TenantID, v feed.Feed) error {
-	if err := scope(tenant, v.ID); err != nil {
+func (s *Store) CreateFeed(ctx context.Context, principal identity.Principal, v feed.Feed) error {
+	tenant, err := access(principal, true, v.ID)
+	if err != nil {
 		return err
 	}
 	if !text(v.Title, 512, false) {
@@ -87,8 +96,9 @@ func (s *Store) CreateFeed(ctx context.Context, tenant identity.TenantID, v feed
 	})
 }
 
-func (s *Store) AttachSource(ctx context.Context, tenant identity.TenantID, feedID, sourceID string) error {
-	if err := scope(tenant, feedID, sourceID); err != nil {
+func (s *Store) AttachSource(ctx context.Context, principal identity.Principal, feedID, sourceID string) error {
+	tenant, err := access(principal, true, feedID, sourceID)
+	if err != nil {
 		return err
 	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
@@ -99,8 +109,9 @@ func (s *Store) AttachSource(ctx context.Context, tenant identity.TenantID, feed
 // PutArticle atomically updates the current item, records its content version and
 // updates FTS through triggers. Source/origin identity cannot change on update.
 // Lease fencing and poll success advancement are implemented with ingestion #12.
-func (s *Store) PutArticle(ctx context.Context, tenant identity.TenantID, v article.Article) error {
-	if err := scope(tenant, v.ID, v.SourceID); err != nil {
+func (s *Store) PutArticle(ctx context.Context, principal identity.Principal, v article.Article) error {
+	tenant, err := access(principal, true, v.ID, v.SourceID)
+	if err != nil {
 		return err
 	}
 	if !link(v.URL) || !text(v.Title, 512, false) || !text(v.Body, 65536, true) || !text(v.OriginID, 2048, false) || !validTimestamp(v.ObservedAt) {
@@ -127,8 +138,9 @@ func (s *Store) PutArticle(ctx context.Context, tenant identity.TenantID, v arti
 	})
 }
 
-func (s *Store) GetArticle(ctx context.Context, tenant identity.TenantID, id string) (article.Article, error) {
-	if err := scope(tenant, id); err != nil {
+func (s *Store) GetArticle(ctx context.Context, principal identity.Principal, id string) (article.Article, error) {
+	tenant, err := access(principal, false, id)
+	if err != nil {
 		return article.Article{}, err
 	}
 	v, err := sqlc.New(s.readers).GetArticle(ctx, sqlc.GetArticleParams{TenantID: string(tenant), ID: id})
@@ -150,8 +162,9 @@ func fromRow(v sqlc.GetArticleRow) article.Article {
 	return a
 }
 
-func (s *Store) DeleteArticle(ctx context.Context, tenant identity.TenantID, id string) error {
-	if err := scope(tenant, id); err != nil {
+func (s *Store) DeleteArticle(ctx context.Context, principal identity.Principal, id string) error {
+	tenant, err := access(principal, true, id)
+	if err != nil {
 		return err
 	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
@@ -185,8 +198,9 @@ func matchExpression(input string) (string, error) {
 
 // Search returns bounded, tenant/feed-scoped storage candidates only. This is
 // not the contextual query/ranking API. SQL and MATCH syntax are bounded apart.
-func (s *Store) Search(ctx context.Context, tenant identity.TenantID, feedID, terms string, since time.Time, limit int) ([]article.Article, error) {
-	if err := scope(tenant, feedID); err != nil {
+func (s *Store) Search(ctx context.Context, principal identity.Principal, feedID, terms string, since time.Time, limit int) ([]article.Article, error) {
+	tenant, err := access(principal, false, feedID)
+	if err != nil {
 		return nil, err
 	}
 	if !validTimestamp(since) || limit < 1 || limit > 50 {

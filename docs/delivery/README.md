@@ -75,7 +75,7 @@ Consumers accounted for, retained data restored, cutover/rollback reviewed and o
 
 ## Verification and enforcement
 
-The initial foundation checker verified synthetic schema/examples and local links. The runtime and SQLite slices add process lifecycle, real-file tenant isolation, migration/FTS/lock/failure tests, generated SQL checks and local container migration/restart smoke tests. Current command evidence belongs to the linked issues/PRs and CI, not this navigation index. Source polling, paid provider search, credential/HTTP tenant authorization, Pi deployment and backup/restore remain future gates; storage tests alone do not establish them.
+The initial foundation checker verified synthetic schema/examples and local links. Runtime, SQLite and identity slices add lifecycle, real-file tenant isolation, migration/FTS/lock/failure tests, generated SQL checks, operator key lifecycle, HTTP authorization-wrapper tests and local container smoke tests. Current command evidence belongs to the linked issues/PRs and CI, not this navigation index. Source polling, paid provider search, product HTTP routes, Pi deployment and backup/restore remain future gates; the implemented foundation does not establish them.
 
 Initial private-repository workflow runs did not start because GitHub reported an account billing/spending restriction. After the owner made Northway public, [a new hosted run](https://github.com/jonesrussell/northway/actions/runs/33348835800) started and revealed a pip-cache dependency-path error. The workflow now explicitly uses requirements-dev.txt. Check the current PR/run for hosted verification; neither Dependabot success nor the old billing failure establishes its current state.
 

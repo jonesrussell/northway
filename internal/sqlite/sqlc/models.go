@@ -8,6 +8,16 @@ import (
 	"database/sql"
 )
 
+type ApiKey struct {
+	ID         string
+	TenantID   string
+	Digest     []byte
+	Scopes     int64
+	CreatedAt  int64
+	LastUsedAt sql.NullInt64
+	RevokedAt  sql.NullInt64
+}
+
 type Article struct {
 	Rowid       int64
 	TenantID    string

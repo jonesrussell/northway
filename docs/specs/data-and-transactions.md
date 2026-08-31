@@ -1,6 +1,6 @@
 # Data, transactions and background work
 
-Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: SQLite corpus schema, migrations and connection lifecycle are implemented in #10; ingestion/query/feedback transactions and backup/retention below remain specifications for later slices. See [storage implementation](../storage.md).
+Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: SQLite corpus schema, migrations and connection lifecycle are implemented in #10; scoped keys and principal authorization are implemented in #11; ingestion/query/feedback transactions and backup/retention below remain specifications for later slices. See [storage implementation](../storage.md).
 
 ## SQLite invariants
 
@@ -10,7 +10,7 @@ SQLite provides no server roles or row-level security. Restrict file/directory a
 
 Use opaque UUID strings consistently in JSON, Go and SQL. Store IDs as validated TEXT and timestamps as UTC integer microseconds, converting explicitly to RFC3339 at the API boundary. Validate article timestamps and search lower bounds against the Unix epoch through the end of UTC year 9999 before integer conversion; discard sub-microsecond precision. Prefer STRICT tables and CHECK constraints for enums, booleans and nonnegative counters. Never use floating point for quota/cost accounting. Define unique source/item identity and version hashes independently of presentation titles.
 
-Store API keys as a nonsecret lookup prefix and a cryptographic digest of high-entropy secret material; constant-time comparison, revocation and last-used metadata. Never record raw keys. Exact generation/storage design is reviewed in the identity issue.
+Store API keys as a nonsecret lookup prefix and a cryptographic digest of high-entropy secret material; constant-time comparison, revocation and last-used metadata. Never record raw keys. The implemented design and limits are documented in [identity](../identity.md).
 
 ## Transaction boundaries
 

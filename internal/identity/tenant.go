@@ -1,4 +1,4 @@
-// Package identity defines tenant scope. Credential validation arrives in #11.
+// Package identity owns authenticated principals, scopes and key lifecycle.
 package identity
 
 import (
@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// TenantID is an explicit storage scope, not proof of authentication. The future
-// authentication boundary must derive it from validated credentials, never input.
+// TenantID identifies ownership; it is not proof of authentication. Corpus
+// operations derive it from a Principal, never a request's tenant field.
 type TenantID string
 
 func (id TenantID) Validate() error { return ValidateID(string(id)) }
