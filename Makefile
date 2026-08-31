@@ -34,4 +34,4 @@ smoke: build
 	python3 scripts/smoke_runtime.py
 
 container-smoke:
-	python3 scripts/smoke_container.py "$(IMAGE)"
+	python3 scripts/smoke_container.py "$(IMAGE)" "$(REVISION)"

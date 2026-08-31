@@ -8,6 +8,7 @@ import urllib.error
 import urllib.request
 
 image = sys.argv[1]
+expected_revision = sys.argv[2]
 def docker(*args):
     return subprocess.check_output(["docker", *args], text=True).strip()
 
@@ -18,6 +19,9 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 try:
     info = json.loads(docker("inspect", container))[0]
     assert info["Config"]["User"] == "65532:65532", "container runs with unexpected identity"
+    assert info["Config"]["Labels"]["org.opencontainers.image.revision"] == expected_revision, "image revision mismatch"
+    version = json.loads(docker("exec", container, "/northway", "version"))
+    assert version["revision"] == expected_revision, "binary revision mismatch"
     assert info["HostConfig"]["ReadonlyRootfs"], "root filesystem is writable"
     binding = info["NetworkSettings"]["Ports"]["8080/tcp"][0]
     assert binding["HostIp"] == "127.0.0.1", "smoke port is not private"
