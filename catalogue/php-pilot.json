@@ -2,8 +2,8 @@
   "schema_version": 1,
   "proposal_only": true,
   "enabled": false,
-  "selection_status": "proposed",
-  "acquisition_location": "undecided",
+  "selection_status": "approved_personal_metadata_pilot",
+  "acquisition_location": "pi",
   "provider_export_allowed": false,
   "commercial_use_approved": false,
   "poll_policy": {
@@ -45,10 +45,14 @@
       "rate_review": "pending",
       "availability": {
         "checked_on": "2026-08-31",
-        "evidence": "web_tool_reported_atom_media_type",
-        "xml_parsed": false,
-        "conditional_get_verified": false,
-        "pi_reachability_verified": false
+        "evidence": "bounded_pi_https_probe",
+        "xml_parsed": true,
+        "conditional_get_verified": true,
+        "pi_reachability_verified": true,
+        "http_status": 200,
+        "decoded_bytes": 1461199,
+        "entry_count": 870,
+        "conditional_http_status": 304
       }
     },
     {
@@ -71,10 +75,14 @@
       "rate_review": "pending",
       "availability": {
         "checked_on": "2026-08-31",
-        "evidence": "web_tool_reported_atom_media_type",
-        "xml_parsed": false,
-        "conditional_get_verified": false,
-        "pi_reachability_verified": false
+        "evidence": "bounded_pi_https_probe",
+        "xml_parsed": true,
+        "conditional_get_verified": true,
+        "pi_reachability_verified": true,
+        "http_status": 200,
+        "decoded_bytes": 47517,
+        "entry_count": 10,
+        "conditional_http_status": 304
       }
     },
     {
@@ -97,10 +105,14 @@
       "rate_review": "pending",
       "availability": {
         "checked_on": "2026-08-31",
-        "evidence": "web_tool_reported_atom_media_type",
-        "xml_parsed": false,
-        "conditional_get_verified": false,
-        "pi_reachability_verified": false
+        "evidence": "bounded_pi_https_probe",
+        "xml_parsed": true,
+        "conditional_get_verified": true,
+        "pi_reachability_verified": true,
+        "http_status": 200,
+        "decoded_bytes": 32547,
+        "entry_count": 10,
+        "conditional_http_status": 304
       }
     },
     {
@@ -123,10 +135,14 @@
       "rate_review": "pending",
       "availability": {
         "checked_on": "2026-08-31",
-        "evidence": "web_tool_reported_atom_media_type",
-        "xml_parsed": false,
+        "evidence": "bounded_pi_https_probe",
+        "xml_parsed": true,
         "conditional_get_verified": false,
-        "pi_reachability_verified": false
+        "pi_reachability_verified": true,
+        "http_status": 200,
+        "decoded_bytes": 274862,
+        "entry_count": 10,
+        "conditional_http_status": 200
       }
     },
     {
@@ -149,11 +165,21 @@
       "rate_review": "pending",
       "availability": {
         "checked_on": "2026-08-31",
-        "evidence": "web_tool_reported_atom_media_type",
-        "xml_parsed": false,
-        "conditional_get_verified": false,
-        "pi_reachability_verified": false
+        "evidence": "bounded_pi_https_probe",
+        "xml_parsed": true,
+        "conditional_get_verified": true,
+        "pi_reachability_verified": true,
+        "http_status": 200,
+        "decoded_bytes": 73864,
+        "entry_count": 10,
+        "conditional_http_status": 304
       }
     }
-  ]
+  ],
+  "owner_approval": {
+    "recorded_on": "2026-08-31",
+    "scope": "five_source_personal_metadata_pilot_and_hourly_pi_https_polling",
+    "deployment_authorized": false,
+    "scheduled_polling_enabled": false
+  }
 }
