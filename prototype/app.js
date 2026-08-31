@@ -1,6 +1,7 @@
 const storyList = document.querySelector("#story-list");
 const statusCard = document.querySelector("#status-card");
 const statusText = document.querySelector("#status-text");
+const announceText = document.querySelector("#announce-text");
 const briefingHeading = document.querySelector("#briefing-heading");
 const briefingMeta = document.querySelector("#briefing-meta");
 const coverage = document.querySelector("#coverage");
@@ -11,6 +12,8 @@ const tabs = [...document.querySelectorAll(".feed-tab")];
 const feedLabels = Object.freeze({ mixed: "Mixed", development: "Development", entertainment: "Entertainment", canada: "Canada", world: "World" });
 
 let activeFeed = "mixed";
+let displayedFeed = "mixed";
+let hasSnapshot = false;
 let activeRequest = 0;
 let loading = false;
 let activeController;
@@ -51,12 +54,6 @@ function safePublisherURL(value) {
   }
 }
 
-function usefulSummary(item) {
-  if (typeof item.summary !== "string" || item.summary.trim() === "") return null;
-  const summary = item.summary.trim();
-  return /^headline metadata only\b/i.test(summary) ? null : summary;
-}
-
 function createStory(item, index) {
   const story = document.createElement("li");
   story.className = "story";
@@ -69,12 +66,6 @@ function createStory(item, index) {
   source.className = "story-source";
   const title = appendText(document.createElement("h3"), item.title || "Untitled story");
   body.append(source, title);
-  const summaryText = usefulSummary(item);
-  if (summaryText) {
-    const summary = appendText(document.createElement("p"), summaryText);
-    summary.className = "story-summary";
-    body.append(summary);
-  }
 
   const side = document.createElement("div");
   side.className = "story-side";
@@ -107,7 +98,16 @@ function showCoverage(snapshot) {
 
   coverageText.textContent = notes.length ? `${base} ${notes.join(" ")}` : base;
   coverageStatus.textContent = state;
+  coverageStatus.dataset.status = state;
   coverage.hidden = false;
+}
+
+function selectFeed(feed) {
+  for (const tab of tabs) {
+    const selected = tab.dataset.feed === feed;
+    tab.classList.toggle("is-active", selected);
+    tab.setAttribute("aria-pressed", String(selected));
+  }
 }
 
 async function loadFeed(feed) {
@@ -119,11 +119,11 @@ async function loadFeed(feed) {
   loading = true;
   briefingHeading.textContent = feedLabels[feed];
   storyList.setAttribute("aria-busy", "true");
-  coverage.hidden = true;
   statusCard.hidden = false;
   statusCard.classList.remove("is-error");
   statusCard.querySelector(".loader").hidden = false;
   statusText.textContent = "Asking Northway for a fresh snapshot…";
+  announceText.textContent = `Loading ${feedLabels[feed]} feed.`;
   refreshButton.setAttribute("aria-disabled", "true");
 
   try {
@@ -138,6 +138,9 @@ async function loadFeed(feed) {
     if (requestNumber !== activeRequest) return;
 
     const { snapshot } = result;
+    displayedFeed = feed;
+    hasSnapshot = true;
+    selectFeed(feed);
     briefingHeading.textContent = result.feed.label;
     briefingMeta.textContent = `Generated ${formatDate(snapshot.generated_at)} · ${snapshot.ranking?.mode?.replaceAll("_", " ") || "ranked"}`;
 
@@ -147,18 +150,26 @@ async function loadFeed(feed) {
       statusCard.hidden = false;
       statusCard.querySelector(".loader").hidden = true;
       statusText.textContent = "No current stories matched this feed. The empty result is preserved rather than padded.";
+      announceText.textContent = `${result.feed.label} feed loaded with no current stories.`;
     } else {
       statusCard.hidden = true;
+      announceText.textContent = `${result.feed.label} feed loaded with ${items.length} ${items.length === 1 ? "story" : "stories"}.`;
     }
     showCoverage(snapshot);
   } catch (error) {
     if (requestNumber !== activeRequest) return;
     if (error.name === "AbortError") return;
-    briefingMeta.textContent = "Service unavailable";
+    activeFeed = displayedFeed;
+    selectFeed(displayedFeed);
+    briefingHeading.textContent = feedLabels[displayedFeed];
+    briefingMeta.textContent = hasSnapshot ? `Refresh failed · showing last available ${feedLabels[displayedFeed]} feed` : "Service unavailable";
     statusCard.hidden = false;
     statusCard.classList.add("is-error");
     statusCard.querySelector(".loader").hidden = true;
     statusText.textContent = error.message;
+    announceText.textContent = hasSnapshot
+      ? `${feedLabels[feed]} feed failed to load. Showing the last available ${feedLabels[displayedFeed]} feed.`
+      : `${feedLabels[feed]} feed failed to load.`;
   } finally {
     if (requestNumber === activeRequest) {
       storyList.setAttribute("aria-busy", "false");
@@ -170,11 +181,7 @@ async function loadFeed(feed) {
 
 for (const tab of tabs) {
   tab.addEventListener("click", () => {
-    for (const candidate of tabs) {
-      const selected = candidate === tab;
-      candidate.classList.toggle("is-active", selected);
-      candidate.setAttribute("aria-pressed", String(selected));
-    }
+    selectFeed(tab.dataset.feed);
     loadFeed(tab.dataset.feed);
   });
 }

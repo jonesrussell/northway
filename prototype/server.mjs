@@ -10,6 +10,15 @@ const port = Number.parseInt(process.env.PORT ?? "4173", 10);
 const northwayURL = (process.env.NORTHWAY_URL ?? "http://127.0.0.1:8080").replace(/\/$/, "");
 const apiKey = process.env.NORTHWAY_API_KEY;
 
+if (!["127.0.0.1", "localhost", "::1"].includes(host)) {
+  throw new Error("HOST must be a loopback address; this prototype cannot be exposed.");
+}
+if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+  throw new Error("PORT must be an integer from 1 to 65535.");
+}
+
+const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`]);
+
 const feeds = Object.freeze({
   mixed: {
     id: "bdcc63ec-6932-5abb-8b73-8385b6497ebf",
@@ -135,6 +144,11 @@ async function retrieveNews(request, response) {
       return;
     }
 
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      json(response, 502, { error: "Northway returned an unreadable response." });
+      return;
+    }
+
     json(response, 200, { feed: { key: input.feed, label: selected.label }, snapshot: body });
   } catch (error) {
     const timedOut = error?.name === "TimeoutError";
@@ -143,6 +157,10 @@ async function retrieveNews(request, response) {
 }
 
 async function handleRequest(request, response) {
+  if (!allowedHosts.has(request.headers.host)) {
+    json(response, 400, { error: "Invalid Host header." });
+    return;
+  }
   const url = new URL(request.url ?? "/", "http://localhost");
 
   if (request.method === "GET" && url.pathname === "/healthz") {

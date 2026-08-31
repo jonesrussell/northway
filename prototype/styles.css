@@ -35,6 +35,7 @@ button, a { font: inherit; }
 .status-card { align-items: center; background: var(--accent-soft); color: var(--accent); display: flex; font-size: 13px; gap: 10px; margin: 14px 20px; padding: 11px 12px; }
 .status-card.is-error { background: #36201f; color: #f09a8c; }
 .status-card[hidden] { display: none; }
+.sr-only { height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; width: 1px; clip: rect(0,0,0,0); white-space: nowrap; }
 .loader { animation: spin .8s linear infinite; border: 2px solid rgba(116,183,232,.2); border-radius: 50%; border-right-color: var(--accent); height: 14px; width: 14px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .story-list { list-style: none; margin: 0; padding: 0; }
@@ -44,7 +45,6 @@ button, a { font: inherit; }
 .story-number { color: #7d8a95; font-size: 11px; padding-top: 3px; }
 .story-source { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .07em; margin: 0 0 5px; text-transform: uppercase; }
 .story h3 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; line-height: 1.35; margin: 0; }
-.story-summary { color: var(--muted); font-size: 12px; line-height: 1.45; margin: 7px 0 0; }
 .story-side { align-items: flex-end; display: flex; flex-direction: column; justify-content: space-between; }
 .story-time { color: var(--muted); font-size: 11px; text-align: right; }
 .story-link { color: var(--accent); font-size: 11px; font-weight: 650; text-decoration: none; }
@@ -53,7 +53,10 @@ button, a { font: inherit; }
 .coverage[hidden] { display: none; }
 .coverage .section-label { margin-bottom: 3px; }
 .coverage p { line-height: 1.45; margin: 0; }
-.coverage-status { border: 1px solid var(--line); border-radius: 999px; color: var(--success); font-size: 9px; font-weight: 800; letter-spacing: .07em; padding: 5px 8px; text-transform: uppercase; white-space: nowrap; }
+.coverage-status { border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .07em; padding: 5px 8px; text-transform: uppercase; white-space: nowrap; }
+.coverage-status[data-status="complete"] { color: var(--success); }
+.coverage-status[data-status="partial"] { color: #e5b454; }
+.coverage-status[data-status="stale"] { color: #f09a8c; }
 
 @media (max-width: 680px) {
   .page-shell { padding: 0 10px 24px; }
