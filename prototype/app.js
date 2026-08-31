@@ -8,9 +8,12 @@ const coverageText = document.querySelector("#coverage-text");
 const coverageStatus = document.querySelector("#coverage-status");
 const refreshButton = document.querySelector("#refresh-button");
 const tabs = [...document.querySelectorAll(".feed-tab")];
+const feedLabels = Object.freeze({ mixed: "Mixed", development: "Development", entertainment: "Entertainment", canada: "Canada", world: "World" });
 
 let activeFeed = "mixed";
 let activeRequest = 0;
+let loading = false;
+let activeController;
 
 function appendText(element, text) {
   element.append(document.createTextNode(text ?? ""));
@@ -18,12 +21,14 @@ function appendText(element, text) {
 }
 
 function formatDate(value) {
+  if (typeof value !== "string" || value.trim() === "") return "Time unavailable";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Time unavailable";
   return new Intl.DateTimeFormat("en-CA", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function relativeTime(value) {
+  if (typeof value !== "string" || value.trim() === "") return "Date unavailable";
   const timestamp = new Date(value).getTime();
   if (Number.isNaN(timestamp)) return "Date unavailable";
   const seconds = Math.round((timestamp - Date.now()) / 1000);
@@ -75,7 +80,7 @@ function createStory(item, index) {
   side.className = "story-side";
   const time = appendText(document.createElement("time"), relativeTime(item.published_at));
   time.className = "story-time";
-  time.dateTime = item.published_at || "";
+  if (typeof item.published_at === "string" && item.published_at.trim() !== "") time.dateTime = item.published_at;
   time.title = formatDate(item.published_at);
   const publisherURL = safePublisherURL(item.url);
   const link = appendText(document.createElement(publisherURL ? "a" : "span"), publisherURL ? "Read at source ↗" : "Source unavailable");
@@ -106,20 +111,25 @@ function showCoverage(snapshot) {
 }
 
 async function loadFeed(feed) {
+  if (loading && feed === activeFeed) return;
+  activeController?.abort();
+  activeController = new AbortController();
   const requestNumber = ++activeRequest;
   activeFeed = feed;
-  storyList.replaceChildren();
+  loading = true;
+  briefingHeading.textContent = feedLabels[feed];
   storyList.setAttribute("aria-busy", "true");
   coverage.hidden = true;
   statusCard.hidden = false;
   statusCard.classList.remove("is-error");
   statusCard.querySelector(".loader").hidden = false;
   statusText.textContent = "Asking Northway for a fresh snapshot…";
-  refreshButton.disabled = true;
+  refreshButton.setAttribute("aria-disabled", "true");
 
   try {
     const response = await fetch("/api/news", {
       method: "POST",
+      signal: activeController.signal,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ feed, maxAgeHours: 168 }),
     });
@@ -143,6 +153,7 @@ async function loadFeed(feed) {
     showCoverage(snapshot);
   } catch (error) {
     if (requestNumber !== activeRequest) return;
+    if (error.name === "AbortError") return;
     briefingMeta.textContent = "Service unavailable";
     statusCard.hidden = false;
     statusCard.classList.add("is-error");
@@ -151,7 +162,8 @@ async function loadFeed(feed) {
   } finally {
     if (requestNumber === activeRequest) {
       storyList.setAttribute("aria-busy", "false");
-      refreshButton.disabled = false;
+      refreshButton.setAttribute("aria-disabled", "false");
+      loading = false;
     }
   }
 }
@@ -161,7 +173,7 @@ for (const tab of tabs) {
     for (const candidate of tabs) {
       const selected = candidate === tab;
       candidate.classList.toggle("is-active", selected);
-      candidate.setAttribute("aria-selected", String(selected));
+      candidate.setAttribute("aria-pressed", String(selected));
     }
     loadFeed(tab.dataset.feed);
   });

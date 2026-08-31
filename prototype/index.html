@@ -12,18 +12,17 @@
     <div class="page-shell">
       <header class="masthead">
         <h1>Northway feeds</h1>
-        <div class="live-state"><span class="live-dot" aria-hidden="true"></span> Connected</div>
       </header>
 
       <main>
         <section class="reader" aria-labelledby="briefing-heading">
           <div class="feed-bar">
-            <div class="feed-tabs" role="tablist" aria-label="News feed">
-              <button class="feed-tab is-active" type="button" role="tab" aria-selected="true" data-feed="mixed">Mixed</button>
-              <button class="feed-tab" type="button" role="tab" aria-selected="false" data-feed="development">Development</button>
-              <button class="feed-tab" type="button" role="tab" aria-selected="false" data-feed="entertainment">Entertainment</button>
-              <button class="feed-tab" type="button" role="tab" aria-selected="false" data-feed="canada">Canada</button>
-              <button class="feed-tab" type="button" role="tab" aria-selected="false" data-feed="world">World</button>
+            <div class="feed-tabs" role="group" aria-label="News feed">
+              <button class="feed-tab is-active" type="button" aria-pressed="true" data-feed="mixed">Mixed</button>
+              <button class="feed-tab" type="button" aria-pressed="false" data-feed="development">Development</button>
+              <button class="feed-tab" type="button" aria-pressed="false" data-feed="entertainment">Entertainment</button>
+              <button class="feed-tab" type="button" aria-pressed="false" data-feed="canada">Canada</button>
+              <button class="feed-tab" type="button" aria-pressed="false" data-feed="world">World</button>
             </div>
             <button class="refresh" type="button" id="refresh-button">
               <span aria-hidden="true">↻</span> Refresh
@@ -35,7 +34,7 @@
               <p class="section-label">Feed</p>
               <h2 id="briefing-heading">Mixed</h2>
             </div>
-            <div class="briefing-meta" id="briefing-meta" aria-live="polite">Retrieving your news…</div>
+            <div class="briefing-meta" id="briefing-meta">Retrieving your news…</div>
           </div>
 
           <div class="status-card" id="status-card" role="status">
@@ -43,7 +42,7 @@
             <span id="status-text">Asking Northway for a fresh snapshot…</span>
           </div>
 
-          <ol class="story-list" id="story-list" aria-live="polite" aria-busy="true"></ol>
+          <ol class="story-list" id="story-list" aria-busy="true"></ol>
 
           <aside class="coverage" id="coverage" hidden>
             <div>

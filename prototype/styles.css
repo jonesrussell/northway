@@ -17,8 +17,6 @@ button, a { font: inherit; }
 .page-shell { margin: 0 auto; max-width: 1040px; padding: 0 20px 40px; }
 .masthead { align-items: center; display: flex; justify-content: space-between; min-height: 64px; }
 .masthead h1 { font-size: 17px; letter-spacing: -.01em; margin: 0; }
-.live-state { align-items: center; color: var(--muted); display: flex; font-size: 12px; gap: 7px; }
-.live-dot { background: var(--success); border-radius: 50%; height: 8px; width: 8px; }
 .reader { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .feed-bar { align-items: center; border-bottom: 1px solid var(--line); display: flex; gap: 16px; justify-content: space-between; padding: 10px 14px; }
 .feed-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
@@ -28,7 +26,7 @@ button, a { font: inherit; }
 .feed-tab.is-active { background: var(--accent-soft); color: var(--accent); }
 .refresh { border-color: var(--line); color: var(--ink); }
 .refresh:hover { background: var(--bg); }
-.refresh:disabled { cursor: wait; opacity: .5; }
+.refresh[aria-disabled="true"] { cursor: wait; opacity: .5; }
 .feed-tab:focus-visible, .refresh:focus-visible, .story-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .briefing-head { align-items: center; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; padding: 16px 20px; }
 .section-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .1em; margin: 0 0 3px; text-transform: uppercase; }
@@ -43,7 +41,7 @@ button, a { font: inherit; }
 .story { border-bottom: 1px solid var(--line); display: grid; gap: 14px; grid-template-columns: 30px minmax(0,1fr) 125px; padding: 17px 20px; }
 .story:last-child { border-bottom: 0; }
 .story:hover { background: #192127; }
-.story-number { color: #64717b; font-size: 11px; padding-top: 3px; }
+.story-number { color: #7d8a95; font-size: 11px; padding-top: 3px; }
 .story-source { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .07em; margin: 0 0 5px; text-transform: uppercase; }
 .story h3 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; line-height: 1.35; margin: 0; }
 .story-summary { color: var(--muted); font-size: 12px; line-height: 1.45; margin: 7px 0 0; }
@@ -60,7 +58,6 @@ button, a { font: inherit; }
 @media (max-width: 680px) {
   .page-shell { padding: 0 10px 24px; }
   .masthead { min-height: 52px; }
-  .live-state { font-size: 11px; }
   .feed-bar { align-items: stretch; flex-direction: column; gap: 8px; }
   .refresh { align-self: flex-end; }
   .briefing-head { align-items: flex-start; flex-direction: column; gap: 7px; padding: 14px; }

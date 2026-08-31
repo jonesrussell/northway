@@ -78,6 +78,17 @@ async function retrieveNews(request, response) {
     return;
   }
 
+  const contentType = request.headers["content-type"]?.split(";", 1)[0].trim().toLowerCase();
+  if (contentType !== "application/json") {
+    json(response, 415, { error: "Content-Type must be application/json." });
+    return;
+  }
+  const fetchSite = request.headers["sec-fetch-site"];
+  if (fetchSite && fetchSite !== "same-origin") {
+    json(response, 403, { error: "Cross-site requests are not accepted." });
+    return;
+  }
+
   let input;
   try {
     input = await readJSON(request);
@@ -86,11 +97,11 @@ async function retrieveNews(request, response) {
     return;
   }
 
-  const selected = feeds[input.feed];
-  if (!selected) {
+  if (!input || typeof input !== "object" || Array.isArray(input) || !Object.hasOwn(feeds, input.feed)) {
     json(response, 400, { error: "Choose one of the available feeds." });
     return;
   }
+  const selected = feeds[input.feed];
 
   const maxAgeHours = Number.isInteger(input.maxAgeHours) && input.maxAgeHours >= 1 && input.maxAgeHours <= 336
     ? input.maxAgeHours
@@ -131,8 +142,8 @@ async function retrieveNews(request, response) {
   }
 }
 
-const server = createServer(async (request, response) => {
-  const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+async function handleRequest(request, response) {
+  const url = new URL(request.url ?? "/", "http://localhost");
 
   if (request.method === "GET" && url.pathname === "/healthz") {
     json(response, 200, { status: "ok", northway_configured: Boolean(apiKey) });
@@ -163,6 +174,16 @@ const server = createServer(async (request, response) => {
   }
 
   json(response, 404, { error: "Not found." });
+}
+
+const server = createServer((request, response) => {
+  handleRequest(request, response).catch(() => {
+    if (!response.headersSent) {
+      json(response, 500, { error: "The prototype could not process the request." });
+      return;
+    }
+    response.destroy();
+  });
 });
 
 server.listen(port, host, () => {
