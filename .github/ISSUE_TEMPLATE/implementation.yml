@@ -1,0 +1,40 @@
+name: Implementation work
+description: A bounded, spec-linked work package
+title: "[Work] "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome and scope
+      description: State the user-visible outcome and explicit non-goals.
+    validations:
+      required: true
+  - type: textarea
+    id: specs
+    attributes:
+      label: Requirements and specs
+      description: Link NW-xxx requirements and relevant specs/ADRs.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Observable behavior, negative cases and evidence required.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and milestone
+      description: Name prerequisite issues and release milestone; explain when the issue is Ready.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Validation, risks and rollback
+      description: Commands/tests, tenant/data/cost impact, and rollback.
+    validations:
+      required: true

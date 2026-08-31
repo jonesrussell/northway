@@ -1,0 +1,63 @@
+{
+  "verified_at": "2026-08-30",
+  "status": "selected-not-installed",
+  "go": "1.27.0",
+  "modules": [
+    {
+      "path": "modernc.org/sqlite",
+      "version": "v1.57.0",
+      "use": "runtime",
+      "phase": "1",
+      "metadata": "https://proxy.golang.org/modernc.org/sqlite/@v/v1.57.0.info"
+    },
+    {
+      "path": "github.com/mmcdole/gofeed",
+      "version": "v1.4.2",
+      "use": "runtime",
+      "phase": "1",
+      "metadata": "https://proxy.golang.org/github.com/mmcdole/gofeed/@v/v1.4.2.info"
+    },
+    {
+      "path": "golang.org/x/sync",
+      "version": "v0.22.0",
+      "use": "runtime",
+      "phase": "1",
+      "metadata": "https://proxy.golang.org/golang.org/x/sync/@v/v0.22.0.info"
+    },
+    {
+      "path": "golang.org/x/time",
+      "version": "v0.15.0",
+      "use": "runtime",
+      "phase": "1",
+      "metadata": "https://proxy.golang.org/golang.org/x/time/@v/v0.15.0.info"
+    },
+    {
+      "path": "github.com/anthropics/anthropic-sdk-go",
+      "version": "v1.68.0",
+      "use": "runtime",
+      "phase": "1",
+      "metadata": "https://proxy.golang.org/github.com/anthropics/anthropic-sdk-go/@v/v1.68.0.info"
+    },
+    {
+      "path": "github.com/pressly/goose/v3",
+      "version": "v3.27.3",
+      "use": "tool",
+      "phase": "1",
+      "metadata": "https://proxy.golang.org/github.com/pressly/goose/v3/@v/v3.27.3.info"
+    },
+    {
+      "path": "github.com/sqlc-dev/sqlc",
+      "version": "v1.31.1",
+      "use": "tool",
+      "phase": "1",
+      "metadata": "https://proxy.golang.org/github.com/sqlc-dev/sqlc/@v/v1.31.1.info"
+    },
+    {
+      "path": "github.com/modelcontextprotocol/go-sdk",
+      "version": "v1.7.0",
+      "use": "runtime",
+      "phase": "2",
+      "metadata": "https://proxy.golang.org/github.com/modelcontextprotocol/go-sdk/@v/v1.7.0.info"
+    }
+  ]
+}

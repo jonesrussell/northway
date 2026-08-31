@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "feedback",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "article_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "action": {
+      "enum": [
+        "save",
+        "dismiss",
+        "less_like_this",
+        "undo"
+      ]
+    },
+    "reverses_event_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "event_id",
+    "snapshot_id",
+    "article_id",
+    "action"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "undo"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "reverses_event_id"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "reverses_event_id"
+          ]
+        }
+      }
+    }
+  ]
+}

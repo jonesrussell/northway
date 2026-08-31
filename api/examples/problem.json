@@ -1,0 +1,6 @@
+{
+  "code": "rate_limited",
+  "message": "Request budget exhausted.",
+  "request_id": "00000000-0000-4000-8000-000000000006",
+  "retryable": true
+}

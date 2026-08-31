@@ -1,0 +1,18 @@
+{
+  "feed_id": "00000000-0000-4000-8000-000000000001",
+  "context": {
+    "intent": "Practical PHP development; prioritize release notes and skip introductory tutorials.",
+    "technologies": [
+      {
+        "name": "PHP",
+        "version": "8.x"
+      }
+    ],
+    "focus": [
+      "releases",
+      "testing"
+    ]
+  },
+  "max_age_hours": 168,
+  "limit": 5
+}

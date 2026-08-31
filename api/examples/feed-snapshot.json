@@ -1,0 +1,39 @@
+{
+  "request_id": "00000000-0000-4000-8000-000000000004",
+  "snapshot_id": "00000000-0000-4000-8000-000000000002",
+  "feed_id": "00000000-0000-4000-8000-000000000001",
+  "feed_revision": 1,
+  "generated_at": "2026-08-30T18:00:00Z",
+  "expires_at": "2026-09-06T18:00:00Z",
+  "ranking": {
+    "mode": "ai",
+    "version": "fixture-v1"
+  },
+  "coverage": {
+    "status": "partial",
+    "sources_selected": 5,
+    "sources_current": 4
+  },
+  "warnings": [
+    "Synthetic example; one selected source is unavailable."
+  ],
+  "items": [
+    {
+      "article_id": "00000000-0000-4000-8000-000000000003",
+      "title": "Synthetic example: improving PHP test feedback",
+      "url": "https://publisher.example/php-testing",
+      "source_name": "Synthetic publisher",
+      "published_at": null,
+      "observed_at": "2026-08-30T17:00:00Z",
+      "summary": "A fixture article discussing practical PHP testing.",
+      "why_relevant": "Matches the PHP technology and testing focus in the supplied context; no version-specific applicability has been established.",
+      "evidence": [
+        {
+          "source_url": "https://publisher.example/php-testing",
+          "text": "This synthetic feed entry discusses practical PHP testing.",
+          "basis": "feed_excerpt"
+        }
+      ]
+    }
+  ]
+}
