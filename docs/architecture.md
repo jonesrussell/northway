@@ -64,7 +64,7 @@ The initial host is a Raspberry Pi; hardware details and final budgets require d
 
 Use conditional HTTP requests and persistent poll state. Respect source rate limits, robots/site policy where applicable, request/body bounds and retry backoff. Approved sources are configured by an operator for Phase 1. All fetches validate destinations and redirects; customer-controlled source URLs require a hardened public-network-only fetch path before enablement.
 
-Return source publication time only if known; never substitute fetch time and label it as publication. Report partial coverage and stale observations rather than interpreting missing data as no news. At first, use feed descriptions/text; full article access is an explicit later capability.
+Return source publication time only if known; never substitute fetch time and label it as publication. Report partial coverage and stale observations rather than interpreting missing data as no news. The approved personal pilot retains metadata only (item ID, title, link, publisher and publication/observation times); descriptions and excerpts require a separate rights decision. Full article access is an explicit later capability, never home crawling. See [content sources](content-sources.md).
 
 ## Resource and cost controls
 
