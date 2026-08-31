@@ -1,13 +1,13 @@
 :root {
-  color-scheme: light;
-  --bg: #f5f6f7;
-  --panel: #fff;
-  --ink: #182026;
-  --muted: #65717c;
-  --line: #dfe3e7;
-  --accent: #1769aa;
-  --accent-soft: #e8f1f8;
-  --success: #238636;
+  color-scheme: dark;
+  --bg: #0f1418;
+  --panel: #151b20;
+  --ink: #d7dde2;
+  --muted: #8b98a3;
+  --line: #2a343c;
+  --accent: #74b7e8;
+  --accent-soft: #1a2c39;
+  --success: #66c27a;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -35,15 +35,15 @@ button, a { font: inherit; }
 .briefing-head h2 { font-size: 20px; letter-spacing: -.02em; margin: 0; }
 .briefing-meta { color: var(--muted); font-size: 11px; text-align: right; }
 .status-card { align-items: center; background: var(--accent-soft); color: var(--accent); display: flex; font-size: 13px; gap: 10px; margin: 14px 20px; padding: 11px 12px; }
-.status-card.is-error { background: #fff0ed; color: #a33b27; }
+.status-card.is-error { background: #36201f; color: #f09a8c; }
 .status-card[hidden] { display: none; }
-.loader { animation: spin .8s linear infinite; border: 2px solid rgba(23,105,170,.2); border-radius: 50%; border-right-color: var(--accent); height: 14px; width: 14px; }
+.loader { animation: spin .8s linear infinite; border: 2px solid rgba(116,183,232,.2); border-radius: 50%; border-right-color: var(--accent); height: 14px; width: 14px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .story-list { list-style: none; margin: 0; padding: 0; }
 .story { border-bottom: 1px solid var(--line); display: grid; gap: 14px; grid-template-columns: 30px minmax(0,1fr) 125px; padding: 17px 20px; }
 .story:last-child { border-bottom: 0; }
-.story:hover { background: #fafbfc; }
-.story-number { color: #9aa3aa; font-size: 11px; padding-top: 3px; }
+.story:hover { background: #192127; }
+.story-number { color: #64717b; font-size: 11px; padding-top: 3px; }
 .story-source { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .07em; margin: 0 0 5px; text-transform: uppercase; }
 .story h3 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; line-height: 1.35; margin: 0; }
 .story-summary { color: var(--muted); font-size: 12px; line-height: 1.45; margin: 7px 0 0; }
@@ -51,7 +51,7 @@ button, a { font: inherit; }
 .story-time { color: var(--muted); font-size: 11px; text-align: right; }
 .story-link { color: var(--accent); font-size: 11px; font-weight: 650; text-decoration: none; }
 .story-link:hover { text-decoration: underline; }
-.coverage { align-items: start; background: #f8f9fa; border-top: 1px solid var(--line); color: var(--muted); display: flex; font-size: 11px; gap: 20px; justify-content: space-between; padding: 12px 20px; }
+.coverage { align-items: start; background: #11171b; border-top: 1px solid var(--line); color: var(--muted); display: flex; font-size: 11px; gap: 20px; justify-content: space-between; padding: 12px 20px; }
 .coverage[hidden] { display: none; }
 .coverage .section-label { margin-bottom: 3px; }
 .coverage p { line-height: 1.45; margin: 0; }
