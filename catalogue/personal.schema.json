@@ -279,6 +279,13 @@
               },
               "feed_url": {
                 "const": "https://feed.infoq.com/programming"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "limited_syndication_statement"
+                  }
+                }
               }
             }
           },
@@ -301,6 +308,13 @@
               },
               "feed_url": {
                 "const": "https://github.blog/feed/"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "review_pending"
+                  }
+                }
               }
             }
           },
@@ -323,6 +337,13 @@
               },
               "feed_url": {
                 "const": "https://variety.com/feed/"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "terms_unavailable"
+                  }
+                }
               }
             }
           },
@@ -345,6 +366,13 @@
               },
               "feed_url": {
                 "const": "https://globalnews.ca/entertainment/feed/"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "terms_unavailable"
+                  }
+                }
               }
             }
           },
@@ -367,6 +395,13 @@
               },
               "feed_url": {
                 "const": "https://www.cbc.ca/webfeed/rss/rss-canada"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "terms_unavailable"
+                  }
+                }
               }
             }
           },
@@ -389,6 +424,13 @@
               },
               "feed_url": {
                 "const": "https://globalnews.ca/canada/feed/"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "terms_unavailable"
+                  }
+                }
               }
             }
           },
@@ -411,6 +453,13 @@
               },
               "feed_url": {
                 "const": "https://anishinabeknews.ca/feed/"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "review_pending"
+                  }
+                }
               }
             }
           },
@@ -433,6 +482,13 @@
               },
               "feed_url": {
                 "const": "https://www.aptnnews.ca/feed/"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "permission_required"
+                  }
+                }
               }
             }
           },
@@ -455,6 +511,13 @@
               },
               "feed_url": {
                 "const": "https://feeds.bbci.co.uk/news/world/rss.xml"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "permission_required"
+                  }
+                }
               }
             }
           },
@@ -477,6 +540,13 @@
               },
               "feed_url": {
                 "const": "https://globalnews.ca/world/feed/"
+              },
+              "rights_review": {
+                "properties": {
+                  "status": {
+                    "const": "terms_unavailable"
+                  }
+                }
               }
             }
           }

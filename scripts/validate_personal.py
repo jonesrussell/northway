@@ -79,6 +79,8 @@ def main():
         lambda x: x["sources"].__setitem__(1, deepcopy(x["sources"][0])),
         lambda x: x["sources"][0].update(interest_area="world"),
         lambda x: x["sources"][0]["rights_review"].update(status="approved"),
+        lambda x: x["sources"][7]["rights_review"].update(status="review_pending"),
+        lambda x: x["sources"][8]["rights_review"].update(status="review_pending"),
         lambda x: x["sources"][0]["availability"].update(pi_reachability_verified=True),
         lambda x: x["sources"][0]["availability"].update(http_status=403),
         lambda x: x["sources"][7]["availability"].update(http_status=200),
@@ -116,7 +118,7 @@ def main():
     assert len(items) == 5 and len({x.findtext("guid") for x in items}) == 5
     assert {x.findtext("category") for x in items} == set(value["interest_areas"])
     assert sum(x.find("pubDate") is None for x in items) == 1
-    print(f"PASS: 10 disabled candidates, {len(mutations)} rejected changes, 5 context-free query shapes, synthetic RSS; no network")
+    print(f"PASS: 10 disabled candidates, {len(mutations)} rejected changes, 5 no-project query shapes, synthetic RSS; no network")
 
 
 if __name__ == "__main__":
