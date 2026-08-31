@@ -1,6 +1,6 @@
 # Runtime foundation
 
-Implemented in issues #8 and #10: one Go 1.27.0 module, process lifecycle, explicit configuration, health endpoints, SQLite corpus storage and migrations, and reproducible checks. Feed ingestion, credential validation, tenant HTTP APIs, provider calls and scheduled jobs do not exist yet. A running health endpoint is not a usable feed service. See [storage](storage.md) for schema and migration details.
+Implemented in issues #8 and #10: one Go 1.27.0 module, process lifecycle, explicit configuration, health endpoints, SQLite corpus storage and migrations, and reproducible checks. Scoped credentials, query coordination and [operator-only ingestion](ingestion.md) have since been implemented. Tenant product HTTP APIs, provider calls and scheduled jobs do not exist yet. A running health endpoint is not a usable feed service. See [storage](storage.md) for schema and migration details.
 
 ## Run locally
 
@@ -46,10 +46,10 @@ docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
 
 `make container-smoke IMAGE=northway:local` tests the explicitly named local image on ephemeral loopback ports, non-root/read-only with dropped capabilities and a 128 MiB limit. It checks health-only behavior, then migration, storage readiness and restart using a disposable named volume; it removes only its own test resources. The limit is a smoke-test condition, not a measured pilot budget.
 
-The image uses a digest-pinned Go builder and a scratch runtime, runs as UID/GID 65532, and contains no shell, PHP, crawler, local model or separate database server. Container listen defaults to 0.0.0.0:8080; host port publication remains explicit. /data/northway is private and owned by 65532; mount storage at /data and use /data/northway/northway.sqlite. Production storage mounting and migration orchestration remain in waaseyaa-infra. No implicit volume is created by the image. Before network acquisition is implemented, add and review a CA trust bundle.
+The image uses a digest-pinned Go builder and a scratch runtime, runs as UID/GID 65532, and contains no shell, PHP, crawler, local model or separate database server. Container listen defaults to 0.0.0.0:8080; host port publication remains explicit. /data/northway is private and owned by 65532; mount storage at /data and use /data/northway/northway.sqlite. Production storage mounting and migration orchestration remain in waaseyaa-infra. No implicit volume is created by the image. The CA trust bundle is copied from the same digest-pinned builder for verified outbound HTTPS; no publisher certificates or private trust roots are added.
 
 make arm64 produces bin/northway-linux-arm64 using CGO_ENABLED=0. Artifact architecture inspection proves the build target, not Pi execution, workload capacity or power-loss recovery. Native ARM testing belongs to the infra/device acceptance gate. CPU architecture does not change the service's container/deployment ownership.
 
 ## Dependency and license evidence
 
-go.mod/go.sum pin modernc SQLite and the Goose migration library and their resolved dependencies. sqlc is a checksum-pinned development binary; no feed or AI SDK is installed. make licenses records notices for actually linked application modules. The separate vulnerability scanner downloads its own tool graph and is not linked into Northway. The container includes /licenses/Go-LICENSE and /licenses/THIRD_PARTY_NOTICES.txt. No first-party license is selected and no publisher-content rights are implied.
+go.mod/go.sum pin modernc SQLite and the Goose migration library and their resolved dependencies. sqlc is a checksum-pinned development binary; gofeed v1.4.2 is installed for bounded feed parsing; no AI SDK is installed. make licenses records notices for actually linked application modules. The separate vulnerability scanner downloads its own tool graph and is not linked into Northway. The container includes /licenses/Go-LICENSE and /licenses/THIRD_PARTY_NOTICES.txt. No first-party license is selected and no publisher-content rights are implied.

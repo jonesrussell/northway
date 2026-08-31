@@ -62,6 +62,41 @@ type FeedSource struct {
 	SourceID string
 }
 
+type PollAttempt struct {
+	ID            string
+	TenantID      string
+	SourceID      string
+	StartedAt     int64
+	LeaseUntil    int64
+	ChargedAt     int64
+	ChargedBytes  int64
+	ReservedBytes int64
+	State         string
+}
+
+type PollCursor struct {
+	TenantID string
+	SourceID string
+}
+
+type PollSource struct {
+	TenantID    string
+	SourceID    string
+	ApprovedUrl string
+	Approved    int64
+	Enabled     int64
+	IntervalUs  int64
+	MaxBytes    int64
+	NextAt      int64
+	Etag        string
+	Modified    string
+	LastSuccess sql.NullInt64
+	LastAttempt sql.NullInt64
+	LastStatus  int64
+	LastError   string
+	ClaimID     sql.NullString
+}
+
 type QuerySnapshot struct {
 	TenantID            string
 	ID                  string
