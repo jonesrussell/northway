@@ -91,3 +91,11 @@ func TestIngestCLIRejectsActivationAndLeaks(t *testing.T) {
 		t.Fatal(out.String(), err)
 	}
 }
+
+func TestCorpusFailureIsNotSuccessfulDeferral(t *testing.T) {
+	var out bytes.Buffer
+	err := reportIngestion(&out, ingest.Result{Status: 200, Items: []ingest.Item{{Title: "Discarded"}}}, ingest.ErrCorpusFull)
+	if err == nil || out.Len() != 0 || !strings.Contains(err.Error(), "retention review") {
+		t.Fatal("false success", out.String(), err)
+	}
+}

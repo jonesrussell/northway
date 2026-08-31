@@ -22,13 +22,14 @@ const (
 )
 
 var (
-	ErrIdle    = errors.New("no eligible feed due")
-	ErrBudget  = errors.New("acquisition budget exhausted")
-	ErrBusy    = errors.New("acquisition already in progress")
-	ErrLease   = errors.New("poll claim expired or unavailable")
-	ErrInvalid = errors.New("invalid ingestion input")
-	ErrFetch   = errors.New("feed fetch failed")
-	ErrParse   = errors.New("feed parse failed")
+	ErrIdle       = errors.New("no eligible feed due")
+	ErrBudget     = errors.New("acquisition budget exhausted")
+	ErrCorpusFull = errors.New("corpus admission limit reached")
+	ErrBusy       = errors.New("acquisition already in progress")
+	ErrLease      = errors.New("poll claim expired or unavailable")
+	ErrInvalid    = errors.New("invalid ingestion input")
+	ErrFetch      = errors.New("feed fetch failed")
+	ErrParse      = errors.New("feed parse failed")
 )
 
 // Policy is operator-only. Approval and Enabled are deliberately separate.
@@ -98,7 +99,13 @@ func (s *Service) RunOnce(ctx context.Context, p identity.Principal) (Result, er
 	finishCtx, finishCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer finishCancel()
 	if err := s.store.FinishPoll(finishCtx, p, claim.ID, result); err != nil {
-		return result, err
+		if errors.Is(err, ErrCorpusFull) {
+			// The batch rolled back. Record failure without publishing parsed
+			// items or new validators; stop reserving the active slot.
+			failed := Result{Status: result.Status, Bytes: result.Bytes, NotBefore: result.NotBefore, Failure: "corpus_full"}
+			return failed, errors.Join(err, s.store.FinishPoll(finishCtx, p, claim.ID, failed))
+		}
+		return Result{}, err
 	}
 	if result.Failure != "" {
 		return result, ErrFetch

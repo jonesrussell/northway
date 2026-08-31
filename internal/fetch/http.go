@@ -86,7 +86,7 @@ func notBefore(h http.Header, now time.Time) time.Time {
 	}
 	if v := h.Get("Retry-After"); v != "" {
 		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 {
-			if n > 604800 {
+			if n > int64((1<<63-1)/int64(time.Second)) {
 				set(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC))
 			} else {
 				set(now.Add(time.Duration(n) * time.Second))
@@ -94,22 +94,25 @@ func notBefore(h http.Header, now time.Time) time.Time {
 		} else if t, err := http.ParseTime(v); err == nil {
 			set(t)
 		} else {
-			set(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC))
+			set(now.Add(7 * 24 * time.Hour))
 		}
 	}
 	// Fail closed on excessive or malformed holds: require operator review;
 	// FinishPoll preserves longer representable absolute Retry-After dates.
-	age, _ := strconv.ParseInt(h.Get("Age"), 10, 64)
+	age, ageErr := strconv.ParseInt(h.Get("Age"), 10, 64)
+	if ageErr != nil {
+		age = 0
+	}
 	age = max(age, 0)
-	for _, part := range strings.Split(h.Get("Cache-Control"), ",") {
+	for _, part := range strings.Split(strings.Join(h.Values("Cache-Control"), ","), ",") {
 		key, value, ok := strings.Cut(strings.TrimSpace(part), "=")
 		if ok && strings.EqualFold(key, "max-age") {
 			n, err := strconv.ParseInt(strings.Trim(value, "\""), 10, 64)
 			if err != nil || n < 0 {
-				set(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC))
+				set(now.Add(7 * 24 * time.Hour))
 			}
 			if err == nil && n > age {
-				if n-age > 604800 {
+				if n-age > int64((1<<63-1)/int64(time.Second)) {
 					set(time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC))
 				} else {
 					set(now.Add(time.Duration(n-age) * time.Second))
@@ -200,7 +203,7 @@ func readResponse(ctx context.Context, resp *http.Response, limit int64, now tim
 		result.Failure = "body"
 		return result
 	}
-	for _, part := range strings.Split(resp.Header.Get("Cache-Control"), ",") {
+	for _, part := range strings.Split(strings.Join(resp.Header.Values("Cache-Control"), ","), ",") {
 		if strings.EqualFold(strings.TrimSpace(part), "no-store") {
 			result.Failure = "no_store"
 			return result

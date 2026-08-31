@@ -106,3 +106,16 @@ func BenchmarkParseLargeFeed(b *testing.B) {
 		}
 	}
 }
+
+func TestStylesheetPIIsInertAndTokenCapIndependent(t *testing.T) {
+	withStyle := strings.Replace(rss, "?><rss", `?><?xml-stylesheet type="text/xsl" href="https://127.0.0.1/never-fetch"?><rss`, 1)
+	items, err := Parse(t.Context(), []byte(withStyle))
+	if err != nil || len(items) != 1 {
+		t.Fatal("valid inert PI rejected", err)
+	}
+	// Zero entries, below byte/depth caps, but exceeds the independent token cap.
+	manyTokens := `<rss version="2.0"><channel>` + strings.Repeat("<extension/>", 30000) + "</channel></rss>"
+	if _, err = Parse(t.Context(), []byte(manyTokens)); err == nil {
+		t.Fatal("token cap not enforced")
+	}
+}

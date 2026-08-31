@@ -57,8 +57,14 @@ func executeIngest(ctx context.Context, args []string, lookup func(string) (stri
 	}
 	defer store.Close()
 	result, err := ingest.New(store, fetch.New()).RunOnce(ctx, principal)
+	return reportIngestion(out, result, err)
+}
+
+func reportIngestion(out io.Writer, result ingest.Result, err error) error {
 	status := "complete"
 	switch {
+	case errors.Is(err, ingest.ErrCorpusFull):
+		return errors.New("corpus admission limit reached; operator retention review required")
 	case errors.Is(err, ingest.ErrIdle):
 		status = "idle"
 	case errors.Is(err, ingest.ErrBudget):

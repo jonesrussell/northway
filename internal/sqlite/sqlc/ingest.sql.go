@@ -309,6 +309,23 @@ func (q *Queries) PollCursor(ctx context.Context, tenantID string) (string, erro
 	return source_id, err
 }
 
+const pollItemByOrigin = `-- name: PollItemByOrigin :one
+SELECT id FROM articles WHERE tenant_id=?1 AND source_id=?2 AND origin_id=?3
+`
+
+type PollItemByOriginParams struct {
+	TenantID string
+	SourceID string
+	OriginID string
+}
+
+func (q *Queries) PollItemByOrigin(ctx context.Context, arg PollItemByOriginParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, pollItemByOrigin, arg.TenantID, arg.SourceID, arg.OriginID)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const pollItemIdentity = `-- name: PollItemIdentity :one
 SELECT source_id,origin_id FROM articles WHERE tenant_id=?1 AND id=?2
 `
@@ -392,6 +409,25 @@ func (q *Queries) PutPollItem(ctx context.Context, arg PutPollItemParams) (int64
 		arg.PublishedAt,
 		arg.ObservedAt,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const resetPollSchedule = `-- name: ResetPollSchedule :execrows
+UPDATE poll_sources SET next_at=?1,claim_id=NULL
+WHERE tenant_id=?2 AND source_id=?3
+`
+
+type ResetPollScheduleParams struct {
+	NextAt   int64
+	TenantID string
+	SourceID string
+}
+
+func (q *Queries) ResetPollSchedule(ctx context.Context, arg ResetPollScheduleParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, resetPollSchedule, arg.NextAt, arg.TenantID, arg.SourceID)
 	if err != nil {
 		return 0, err
 	}

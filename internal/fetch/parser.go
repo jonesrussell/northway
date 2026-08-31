@@ -63,7 +63,9 @@ func screenXML(ctx context.Context, body []byte) error {
 		case xml.Directive:
 			return ingest.ErrParse
 		case xml.ProcInst:
-			if v.Target != "xml" || roots != 0 {
+			// Stylesheet and other processing instructions are inert data. Neither
+			// preflight nor gofeed.Parse fetches their targets.
+			if v.Target == "xml" && roots != 0 {
 				return ingest.ErrParse
 			}
 		case xml.StartElement:

@@ -16,8 +16,8 @@ Do not import .env files, production data, personal documents, generated model a
 
 | Capability / reference paths | Target phase | Status | Required adaptation / proof |
 |---|---|---|---|
-| Conditional feed fetch: crawler/internal/feed/http_fetcher.go; feed/poller.go | 1 | Candidate, not imported | Extract from crawler bootstrap; persist poll state in Northway; 304, timeout, redirect and oversize-response fixtures. |
-| Feed parsing and normalization under crawler/internal/feed/ | 1 | Candidate, not imported | Stable identity, URL canonicalization, duplicate syndication and changed-item behavior; no Elasticsearch writes. |
+| Conditional feed fetch: crawler/internal/feed/http_fetcher.go; feed/poller.go | 1 | Selected behavior imported in #12 | Bounded fetch adapter and atomic SQLite poll state; no crawler bootstrap. See import record below. |
+| Feed parsing and normalization under crawler/internal/feed/ | 1 | Selected behavior imported in #12 | RSS/Atom metadata, upstream item identity and changed-item versions; no Elasticsearch writes. Cross-source deduplication remains retrieval work. |
 | Naming/dedup helpers under infrastructure/naming/ and crawler storage paths | 1 | Review before selection | Replace source-name-index coupling with stable source IDs; do not port create-if-absent semantics that suppress real updates. |
 | Selected quality/topic rules under classifier/internal/classifier/ | 1–2 | Candidate, not imported | Keep only PHP/news retrieval value; create labelled evaluations; remove database-per-service and sidecar dependencies. |
 | Source registry concepts under source-manager/ | 1–2 | Design reference | Northway owns sources added for its pilot; later registry cutover needs an explicit mapping and single writer for each migrated source. No dual authoritative registries for the same migration scope. |

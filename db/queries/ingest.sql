@@ -73,3 +73,10 @@ SELECT source_id,origin_id FROM articles WHERE tenant_id=sqlc.arg(tenant_id) AND
 INSERT INTO articles(tenant_id,id,source_id,origin_id,url,title,body,content_hash,published_at,observed_at)
 VALUES(sqlc.arg(tenant_id),sqlc.arg(id),sqlc.arg(source_id),sqlc.arg(origin_id),sqlc.arg(url),sqlc.arg(title),'',sqlc.arg(content_hash),sqlc.arg(published_at),sqlc.arg(observed_at)) ON CONFLICT(tenant_id,id) DO UPDATE SET url=excluded.url,title=excluded.title,body='',content_hash=excluded.content_hash,published_at=excluded.published_at,observed_at=excluded.observed_at
 WHERE articles.content_hash!=excluded.content_hash OR articles.url!=excluded.url OR articles.published_at IS NOT excluded.published_at OR articles.body!='';
+
+-- name: PollItemByOrigin :one
+SELECT id FROM articles WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.arg(source_id) AND origin_id=sqlc.arg(origin_id);
+
+-- name: ResetPollSchedule :execrows
+UPDATE poll_sources SET next_at=sqlc.arg(next_at),claim_id=NULL
+WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.arg(source_id);

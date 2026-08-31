@@ -195,3 +195,42 @@ func TestFetchDeadlineStopsBodyWithoutRetry(t *testing.T) {
 		t.Fatal(result, count.Load())
 	}
 }
+
+func TestSuccessfulResponseLongHoldsAndRepeatedCacheHeaders(t *testing.T) {
+	now := time.Date(2026, 8, 31, 0, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		h    http.Header
+		want time.Time
+	}{
+		{http.Header{"Cache-Control": []string{"max-age=2592000"}}, now.Add(30 * 24 * time.Hour)},
+		{http.Header{"Retry-After": []string{now.Add(48 * time.Hour).Format(http.TimeFormat)}}, now.Add(48 * time.Hour)},
+		{http.Header{"Retry-After": []string{"broken"}}, now.Add(7 * 24 * time.Hour)},
+		{http.Header{"Expires": []string{now.AddDate(10, 0, 0).Format(http.TimeFormat)}}, now.AddDate(10, 0, 0)},
+	} {
+		result := readResponse(t.Context(), &http.Response{StatusCode: 200, Header: tc.h, Body: io.NopCloser(strings.NewReader(rss))}, 2048, now)
+		if result.Failure != "" || !result.NotBefore.Equal(tc.want) {
+			t.Fatal(result, tc.want)
+		}
+	}
+	h := http.Header{"Cache-Control": []string{"max-age=3600", "no-store"}}
+	result := readResponse(t.Context(), &http.Response{StatusCode: 200, Header: h, Body: io.NopCloser(strings.NewReader(rss))}, 2048, now)
+	if result.Failure != "no_store" || len(result.Items) != 0 {
+		t.Fatal("second cache header ignored", result)
+	}
+}
+
+func TestUnsolicited304RejectedByTransport(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(304) }))
+	defer srv.Close()
+	c := New()
+	c.resolver = &fakeResolver{ips: []netip.Addr{netip.MustParseAddr("1.1.1.1")}}
+	c.roots = x509.NewCertPool()
+	c.roots.AddCert(srv.Certificate())
+	c.dial = func(ctx context.Context, n, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, n, srv.Listener.Addr().String())
+	}
+	result := c.Fetch(t.Context(), ingest.Claim{URL: "https://example.com/feed", MaxBytes: 2048})
+	if result.Failure != "http" || result.Status != 304 {
+		t.Fatal(result)
+	}
+}

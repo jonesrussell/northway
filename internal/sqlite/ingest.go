@@ -156,7 +156,7 @@ func validResult(r ingest.Result) bool {
 		return false
 	}
 	switch r.Failure {
-	case "", "transport", "http", "encoding", "body", "parse", "no_store":
+	case "", "transport", "http", "encoding", "body", "parse", "no_store", "corpus_full":
 	default:
 		return false
 	}
@@ -231,7 +231,7 @@ func (s *Store) FinishPoll(ctx context.Context, p identity.Principal, id string,
 				return err
 			}
 			if items > ingest.MaxSourceItems || versions > ingest.MaxSourceVersions {
-				return ingest.ErrBudget
+				return ingest.ErrCorpusFull
 			}
 		}
 		// Failed/uncertain transfer bytes are conservatively charged in full. Known
@@ -272,6 +272,12 @@ func putFeedItem(ctx context.Context, q *sqlc.Queries, tenant, source string, v 
 	sum := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%v:%d", v.Title, v.URL, published.Valid, published.Int64)))
 	hash := hex.EncodeToString(sum[:])
 	id := itemIDFor(source, v.OriginID)
+	existingID, err := q.PollItemByOrigin(ctx, sqlc.PollItemByOriginParams{TenantID: tenant, SourceID: source, OriginID: v.OriginID})
+	if err == nil {
+		id = existingID
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
 	old, err := q.PollItemIdentity(ctx, sqlc.PollItemIdentityParams{TenantID: tenant, ID: id})
 	if err == nil && (old.SourceID != source || old.OriginID != v.OriginID) {
 		return ingest.ErrInvalid
@@ -287,3 +293,28 @@ func putFeedItem(ctx context.Context, q *sqlc.Queries, tenant, source string, v 
 }
 
 var _ ingest.Store = (*Store)(nil)
+
+// ResetPollSchedule is an explicit local-operator recovery seam after review of
+// publisher headers/policy. Unlike ConfigurePoll, it may shorten an existing
+// hold. It neither enables collection nor refunds attempts/bytes. Pending work
+// is fenced and remains charged. There is deliberately no public reset route.
+func (s *Store) ResetPollSchedule(ctx context.Context, p identity.Principal, sourceID string) error {
+	tenant, err := access(p, true, sourceID)
+	if err != nil {
+		return err
+	}
+	return s.write(ctx, func(q *sqlc.Queries) error {
+		now := s.queryTime()
+		if !validTimestamp(now) {
+			return ingest.ErrInvalid
+		}
+		n, err := q.ResetPollSchedule(ctx, sqlc.ResetPollScheduleParams{NextAt: now.UnixMicro(), TenantID: string(tenant), SourceID: sourceID})
+		if err != nil {
+			return err
+		}
+		if n != 1 {
+			return ErrNotFound
+		}
+		return nil
+	})
+}

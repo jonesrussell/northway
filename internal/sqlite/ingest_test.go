@@ -364,3 +364,99 @@ func TestAPIKeysCannotOperateCollector(t *testing.T) {
 		t.Fatal("API key committed collector result")
 	}
 }
+
+func TestLongSuccessfulHoldHasExplicitOperatorRecovery(t *testing.T) {
+	s, _, now := pollSetup(t)
+	p := operator(tenantA)
+	claim, err := s.ClaimPoll(t.Context(), p)
+	must(t, err)
+	result := pollResult()
+	result.NotBefore = now.Add(30 * 24 * time.Hour)
+	must(t, s.FinishPoll(t.Context(), p, claim.ID, result))
+	*now = now.Add(2 * time.Hour)
+	policy := ingest.Policy{SourceID: sourceID, URL: claim.URL, Approved: true, Enabled: true, Interval: time.Hour, MaxBytes: 2048}
+	must(t, s.ConfigurePoll(t.Context(), p, policy))
+	if _, err = s.ClaimPoll(t.Context(), p); !errors.Is(err, ingest.ErrIdle) {
+		t.Fatal("ordinary configuration shortened publisher hold", err)
+	}
+	_, secret := newKey(t, s, tenantA, identity.FeedsRead)
+	key, err := identity.NewService(s).Authenticate(t.Context(), secret.Reveal())
+	must(t, err)
+	if err = s.ResetPollSchedule(t.Context(), key, sourceID); err == nil {
+		t.Fatal("API key reset hold")
+	}
+	must(t, s.ResetPollSchedule(t.Context(), p, sourceID))
+	if _, err = s.ClaimPoll(t.Context(), p); err != nil {
+		t.Fatal("operator recovery unavailable", err)
+	}
+}
+
+func TestExistingNaturalKeyKeepsItsArticleID(t *testing.T) {
+	s, _, _ := pollSetup(t)
+	p := operator(tenantA)
+	a := item()
+	a.OriginID = "one"
+	must(t, s.PutArticle(t.Context(), p, a))
+	claim, err := s.ClaimPoll(t.Context(), p)
+	must(t, err)
+	must(t, s.FinishPoll(t.Context(), p, claim.ID, pollResult()))
+	got, err := s.GetArticle(t.Context(), p, itemID)
+	must(t, err)
+	if got.Title != "Community news" || got.Body != "" {
+		t.Fatal(got)
+	}
+	var count int
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM articles").Scan(&count))
+	if count != 1 {
+		t.Fatal("natural key duplicated")
+	}
+}
+
+type fullCorpusFetcher struct{}
+
+func (fullCorpusFetcher) Fetch(context.Context, ingest.Claim) ingest.Result { return pollResult() }
+func TestCorpusCapFailsAndSettlesWithoutPublishingItems(t *testing.T) {
+	s, _, _ := pollSetup(t)
+	s.clock = nil
+	_, err := s.writer.ExecContext(t.Context(), "UPDATE poll_sources SET next_at=0")
+	must(t, err)
+	// Bulk synthetic prior corpus, with valid identity and actual FTS triggers.
+	_, err = s.writer.ExecContext(t.Context(), `WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<5000)
+INSERT INTO articles(tenant_id,id,source_id,origin_id,url,title,body,content_hash,observed_at)
+SELECT ?,printf('%08x-0000-4000-8000-000000000000',x),?,printf('old-%d',x),'https://example.invalid/old','Prior item','',?,1 FROM n`, tenantA, sourceID, strings.Repeat("a", 64))
+	must(t, err)
+	result, err := ingest.New(s, fullCorpusFetcher{}).RunOnce(t.Context(), operator(tenantA))
+	if !errors.Is(err, ingest.ErrCorpusFull) || len(result.Items) != 0 || result.Failure != "corpus_full" {
+		t.Fatal(result, err)
+	}
+	var count int
+	var state, category string
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM articles").Scan(&count))
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT state FROM poll_attempts").Scan(&state))
+	must(t, s.readers.QueryRowContext(t.Context(), "SELECT last_error FROM poll_sources").Scan(&category))
+	if count != 5000 || state != "done" || category != "corpus_full" {
+		t.Fatal("corpus cap not rolled back/settled", count, state, category)
+	}
+}
+
+func TestPolicyApprovalAndSourceCountGuard(t *testing.T) {
+	s, _, _ := pollSetup(t)
+	p := operator(tenantA)
+	v := ingest.Policy{SourceID: sourceID, URL: "https://example.invalid/feed", Enabled: true, Interval: time.Hour, MaxBytes: 2048}
+	if err := s.ConfigurePoll(t.Context(), p, v); !errors.Is(err, ingest.ErrInvalid) {
+		t.Fatal("unapproved policy enabled", err)
+	}
+	for i := 0; i < 100; i++ {
+		id := fmt.Sprintf("%08x-0000-4000-8000-000000000000", i+100)
+		url := fmt.Sprintf("https://example.invalid/feed-%d", i)
+		must(t, s.CreateSource(t.Context(), p, source.Source{ID: id, URL: url, Title: "Synthetic"}))
+		err := s.ConfigurePoll(t.Context(), p, ingest.Policy{SourceID: id, URL: url, Interval: time.Hour, MaxBytes: 2048})
+		if i == 99 {
+			if !errors.Is(err, ingest.ErrBudget) {
+				t.Fatal("101st policy allowed", err)
+			}
+		} else {
+			must(t, err)
+		}
+	}
+}
