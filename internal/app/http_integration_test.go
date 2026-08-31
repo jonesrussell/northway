@@ -398,6 +398,7 @@ type pausedRetrievalStore struct {
 	*sqlite.Store
 	once             sync.Once
 	entered, release chan struct{}
+	completed        chan error
 }
 
 func (s *pausedRetrievalStore) RetrieveCandidates(ctx context.Context, p identity.Principal, id string, r query.Request) (query.Corpus, error) {
@@ -414,11 +415,16 @@ func (s *pausedRetrievalStore) RetrieveCandidates(ctx context.Context, p identit
 	})
 	return corpus, ctx.Err()
 }
+func (s *pausedRetrievalStore) CompleteRetrieval(ctx context.Context, p identity.Principal, id string, r query.Retrieval) (query.Snapshot, error) {
+	snapshot, err := s.Store.CompleteRetrieval(ctx, p, id, r)
+	s.completed <- err
+	return snapshot, err
+}
 func TestHTTPFeedbackDuringQueryHasExplicitRefreshRecovery(t *testing.T) {
 	f := apiFixture(t)
 	status, b, _ := f.request(t, "POST", "/v1/feed-queries", queryBody(), f.key, "before-interleaving", nil)
 	old := httpSnapshot(t, status, b)
-	paused := &pausedRetrievalStore{Store: f.s, entered: make(chan struct{}), release: make(chan struct{})}
+	paused := &pausedRetrievalStore{Store: f.s, entered: make(chan struct{}), release: make(chan struct{}), completed: make(chan error, 1)}
 	server := httptest.NewServer(httpapi.NewAPI(identity.NewService(f.s), query.NewService(paused), feedback.NewService(f.s)))
 	defer server.Close()
 	f.server = server
@@ -428,14 +434,32 @@ func TestHTTPFeedbackDuringQueryHasExplicitRefreshRecovery(t *testing.T) {
 		status int
 		body   []byte
 		header http.Header
+		err    error
 	}
 	finished := make(chan result, 1)
 	go func() {
-		status, b, h := f.request(t, "POST", "/v1/feed-queries", body, f.key, "interleaved-query-key", nil)
-		finished <- result{status, b, h}
+		// No testing fatal calls or shared response recorder in the worker.
+		req, err := http.NewRequestWithContext(t.Context(), "POST", server.URL+"/v1/feed-queries", strings.NewReader(body))
+		if err != nil {
+			finished <- result{err: err}
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+f.key.Reveal())
+		req.Header.Set("Idempotency-Key", "interleaved-query-key")
+		response, err := server.Client().Do(req)
+		if err != nil {
+			finished <- result{err: err}
+			return
+		}
+		defer response.Body.Close()
+		data, err := io.ReadAll(response.Body)
+		finished <- result{response.StatusCode, data, response.Header, err}
 	}()
 	select {
 	case <-paused.entered:
+	case early := <-finished:
+		t.Fatalf("query ended before candidate pause: status=%d err=%v", early.status, early.err)
 	case <-time.After(3 * time.Second):
 		t.Fatal("query did not reach candidates")
 	}
@@ -450,11 +474,21 @@ func TestHTTPFeedbackDuringQueryHasExplicitRefreshRecovery(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("query did not finish")
 	}
+	check(t, failed.err)
+	select {
+	case cause := <-paused.completed:
+		if !errors.Is(cause, query.ErrConflict) || errors.Is(cause, context.DeadlineExceeded) {
+			t.Fatalf("wanted revision conflict, got %v", cause)
+		}
+	default:
+		t.Fatal("query did not reach real finalization")
+	}
 	expectProblem(t, failed.status, failed.body, failed.header, 503, "unavailable", false)
 	status, b, h := f.request(t, "POST", "/v1/feed-queries", body, f.key, "interleaved-query-key", nil)
 	expectProblem(t, status, b, h, 503, "unavailable", false)
 	status, b, _ = f.request(t, "GET", "/v1/snapshots/"+old.SnapshotID, "", f.key, "", nil)
-	if !reflect.DeepEqual(httpSnapshot(t, status, b).Items, old.Items) {
+	stored := httpSnapshot(t, status, b)
+	if !reflect.DeepEqual(stored.Items, old.Items) || stored.GeneratedAt != old.GeneratedAt || stored.Ranking != old.Ranking {
 		t.Fatal("old snapshot changed")
 	}
 	// Represents an explicit user refresh, never an automatic retry/render loop.
@@ -462,5 +496,20 @@ func TestHTTPFeedbackDuringQueryHasExplicitRefreshRecovery(t *testing.T) {
 	refreshed := httpSnapshot(t, status, b)
 	if refreshed.SnapshotID == old.SnapshotID || refreshed.FeedRevision != old.FeedRevision+1 {
 		t.Fatal("refresh did not use current revision")
+	}
+}
+
+func TestHTTPSnapshotHEADIsRejectedWithoutBody(t *testing.T) {
+	f := apiFixture(t)
+	req, err := http.NewRequestWithContext(t.Context(), "HEAD", f.server.URL+"/v1/snapshots/"+hid(999), nil)
+	check(t, err)
+	req.Header.Set("Authorization", "Bearer "+f.key.Reveal())
+	response, err := f.server.Client().Do(req)
+	check(t, err)
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	check(t, err)
+	if response.StatusCode != 400 || len(body) != 0 || response.Header.Get("Cache-Control") != "no-store" || identity.ValidateID(response.Header.Get("X-Request-ID")) != nil {
+		t.Fatal(response.StatusCode, string(body), response.Header)
 	}
 }
