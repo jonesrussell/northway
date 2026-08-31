@@ -46,6 +46,12 @@ function safePublisherURL(value) {
   }
 }
 
+function usefulSummary(item) {
+  if (typeof item.summary !== "string" || item.summary.trim() === "") return null;
+  const summary = item.summary.trim();
+  return /^headline metadata only\b/i.test(summary) ? null : summary;
+}
+
 function createStory(item, index) {
   const story = document.createElement("li");
   story.className = "story";
@@ -57,9 +63,13 @@ function createStory(item, index) {
   const source = appendText(document.createElement("p"), item.source_name || "Unknown source");
   source.className = "story-source";
   const title = appendText(document.createElement("h3"), item.title || "Untitled story");
-  const summary = appendText(document.createElement("p"), item.summary || item.why_relevant || "Open the publisher to read the full story.");
-  summary.className = "story-summary";
-  body.append(source, title, summary);
+  body.append(source, title);
+  const summaryText = usefulSummary(item);
+  if (summaryText) {
+    const summary = appendText(document.createElement("p"), summaryText);
+    summary.className = "story-summary";
+    body.append(summary);
+  }
 
   const side = document.createElement("div");
   side.className = "story-side";
