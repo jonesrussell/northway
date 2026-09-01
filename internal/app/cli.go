@@ -26,7 +26,7 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		if len(args) != 1 {
 			return errors.New("help takes no arguments")
 		}
-		_, err := io.WriteString(stdout, "Usage: northway <serve|migrate|tenant|key|ingest|pilot|version>\nUse northway serve --help, northway migrate --help or northway key --help for configuration.\nIngestion is bounded; unattended polling requires an explicit serve --poll-tenant UUID.\n")
+		_, err := io.WriteString(stdout, "Usage: northway <serve|migrate|backup|healthcheck|tenant|key|ingest|pilot|version>\nUse northway serve --help, northway migrate --help, northway backup --help or northway key --help for configuration.\nIngestion is bounded; unattended polling requires an explicit serve --poll-tenant UUID.\n")
 		return err
 	case "version":
 		if len(args) != 1 {
@@ -54,6 +54,32 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		}
 		slog.New(slog.NewJSONHandler(stderr, nil)).Info("migrations complete")
 		return nil
+	case "backup":
+		source, output, err := ParseBackupPaths(args[1:], lookup, stdout)
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		backupCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		defer cancel()
+		if err := sqlite.Backup(backupCtx, source, output); err != nil {
+			return err
+		}
+		slog.New(slog.NewJSONHandler(stderr, nil)).Info("backup complete")
+		return nil
+	case "healthcheck":
+		if len(args) == 2 && (args[1] == "--help" || args[1] == "-h") {
+			_, err := io.WriteString(stdout, "Usage: northway healthcheck\nChecks the fixed storage-backed container readiness endpoint at 127.0.0.1:8080.\n")
+			return err
+		}
+		if len(args) != 1 {
+			return errors.New("healthcheck takes no arguments")
+		}
+		probeCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		return checkLocalReadiness(probeCtx, localReadinessURL)
 	case "serve":
 		config, err := ParseConfig(args[1:], lookup, stdout)
 		if errors.Is(err, flag.ErrHelp) {

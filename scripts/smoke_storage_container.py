@@ -40,6 +40,7 @@ try:
             try:
                 with opener.open(url, timeout=1) as response:
                     assert response.status == 200 and json.load(response)["status"] == "ready"
+                docker("exec", container, "/northway", "healthcheck")
                 break
             except (urllib.error.URLError, TimeoutError):
                 if time.monotonic() >= deadline:
@@ -48,7 +49,10 @@ try:
         docker("stop", "--time", "12", container)
         state = json.loads(docker("inspect", container))[0]["State"]
         assert state["ExitCode"] == 0 and not state["OOMKilled"], state
-    print("PASS: non-root migration, storage volume, readiness and restart at 128 MiB smoke limit")
+    backup = "/data/northway/smoke-backup.sqlite"
+    docker("run", "--rm", *limits, *mount, image, "backup", "--database=/data/northway/northway.sqlite", f"--output={backup}")
+    docker("run", "--rm", *limits, *mount, image, "migrate", f"--database={backup}")
+    print("PASS: non-root migration, storage volume, readiness, restart and coherent offline backup at 128 MiB smoke limit")
 finally:
     if container and re.fullmatch(r"[0-9a-f]{64}", container):
         subprocess.run(["docker", "rm", "--force", container], check=True, stdout=subprocess.DEVNULL)

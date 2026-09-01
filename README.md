@@ -4,7 +4,7 @@
 
 Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
 
-> Status: the local real-news path works end to end. A hash-pinned operator profile provisions five saved feeds and five publisher RSS feeds into SQLite; bounded polling has ingested real metadata, and authenticated deterministic queries return source-linked snapshots. The server can run that same bounded collector serially for one explicitly configured tenant; polling remains disabled by default and no Pi deployment is installed. First Nations coverage remains blocked by source access/permission, and AI-provider export and commercial redistribution remain disabled.
+> Status: the local real-news path works end to end. A hash-pinned operator profile provisions five saved feeds and five publisher RSS feeds into SQLite; bounded polling has ingested real metadata, and authenticated deterministic queries return source-linked snapshots. The server can run that same bounded collector serially for one explicitly configured tenant; polling remains disabled by default and no Pi deployment is installed. A coherent offline backup command and scratch-compatible local readiness probe are available for the deployment owner. First Nations coverage remains blocked by source access/permission, and AI-provider export and commercial redistribution remain disabled.
 
 ## First useful experience
 
