@@ -189,6 +189,7 @@ func TestOperatorCommandsPrivateKeyHandoff(t *testing.T) {
 		return app.Execute(t.Context(), args, lookup, &stdout, &stderr)
 	}
 	check(t, run("tenant", "create", "--tenant", string(tenantOne)))
+	check(t, run("tenant", "create", "--tenant", string(tenantOne)))
 	output := filepath.Join(dir, "client.key")
 	check(t, run("key", "create", "--tenant", string(tenantOne), "--scopes", "feeds:read", "--output", output))
 	raw, err := os.ReadFile(output)

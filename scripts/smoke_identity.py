@@ -33,6 +33,7 @@ with tempfile.TemporaryDirectory(prefix="northway-identity-") as directory:
     assert output.read_bytes().strip() == secret
     assert secret not in refused.stdout + refused.stderr
     assert json.loads(refused.stderr)["level"] == "ERROR"
+    run("tenant", "create", "--tenant", tenant)
     run("key", "revoke", "--tenant", tenant, "--key-id", key_id)
     run("key", "revoke", "--tenant", tenant, "--key-id", key_id)
 

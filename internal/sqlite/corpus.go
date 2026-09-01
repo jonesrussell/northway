@@ -65,6 +65,7 @@ func validTimestamp(value time.Time) bool {
 }
 
 // CreateTenant is an operator-only provisioning seam, not a public endpoint.
+// Repeating it preserves the original creation time and revision counters.
 func (s *Store) CreateTenant(ctx context.Context, tenant identity.TenantID) error {
 	if err := tenant.Validate(); err != nil {
 		return err

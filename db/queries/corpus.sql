@@ -1,5 +1,5 @@
 -- name: CreateTenant :exec
-INSERT INTO tenants(id,created_at) VALUES(?,?);
+INSERT INTO tenants(id,created_at) VALUES(?,?) ON CONFLICT(id) DO NOTHING;
 -- name: TenantExists :one
 SELECT count(*) FROM tenants WHERE id=?;
 -- name: CreateSource :exec
