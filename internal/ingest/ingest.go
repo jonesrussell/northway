@@ -94,6 +94,11 @@ func (s *Service) RunOnce(ctx context.Context, p identity.Principal) (Result, er
 	fetchCtx, cancel := context.WithTimeout(leaseCtx, FetchTimeout)
 	result := s.fetcher.Fetch(fetchCtx, claim)
 	cancel()
+	if ctx.Err() != nil {
+		// Preserve conservative accounting while recording an accurate fixed
+		// category for an operator-requested drain.
+		result = Result{Status: result.Status, Bytes: result.Bytes, NotBefore: result.NotBefore, Failure: "cancelled"}
+	}
 	// Cancellation must not erase consumed work. A crash leaves the full byte
 	// reservation charged; a bounded detached settlement records known failures.
 	finishCtx, finishCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)

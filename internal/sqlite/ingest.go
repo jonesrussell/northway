@@ -156,7 +156,7 @@ func validResult(r ingest.Result) bool {
 		return false
 	}
 	switch r.Failure {
-	case "", "transport", "http", "encoding", "body", "parse", "no_store", "corpus_full":
+	case "", "transport", "http", "encoding", "body", "parse", "no_store", "corpus_full", "cancelled":
 	default:
 		return false
 	}

@@ -1,6 +1,6 @@
 # Phased roadmap
 
-Phases are acceptance gates, not delivery-date promises. Ship one useful workflow before expanding the product. Phase 1 has the Go runtime, SQLite corpus storage, scoped credentials/authorization and durable query/cache/spending foundation; bounded operator-only RSS/Atom ingestion and deterministic internal retrieval are now implemented; authenticated query/snapshot/feedback APIs are now implemented. Provider ranking, scheduled activation and deployment remain unimplemented.
+Phases are acceptance gates, not delivery-date promises. Ship one useful workflow before expanding the product. Phase 1 has the Go runtime, SQLite corpus storage, scoped credentials/authorization and durable query/cache/spending foundation; bounded RSS/Atom ingestion, explicitly enabled in-process polling and deterministic internal retrieval are implemented; authenticated query/snapshot/feedback APIs are implemented. Provider ranking, Pi activation and deployment remain unimplemented.
 
 ## Phase 0 — Foundation (this repository)
 

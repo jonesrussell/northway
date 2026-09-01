@@ -323,3 +323,14 @@ func (q *Queries) RecordVersion(ctx context.Context, arg RecordVersionParams) er
 	)
 	return err
 }
+
+const tenantExists = `-- name: TenantExists :one
+SELECT count(*) FROM tenants WHERE id=?
+`
+
+func (q *Queries) TenantExists(ctx context.Context, id string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, tenantExists, id)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}

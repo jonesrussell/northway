@@ -74,6 +74,23 @@ func (s *Store) CreateTenant(ctx context.Context, tenant identity.TenantID) erro
 	})
 }
 
+// RequireTenant verifies trusted startup/job authority against persisted
+// provisioning. It does not create or activate tenant-owned configuration.
+func (s *Store) RequireTenant(ctx context.Context, principal identity.Principal) error {
+	tenant, err := principal.RequireOperator()
+	if err != nil {
+		return err
+	}
+	count, err := sqlc.New(s.readers).TenantExists(ctx, string(tenant))
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (s *Store) CreateSource(ctx context.Context, principal identity.Principal, v source.Source) error {
 	tenant, err := access(principal, true, v.ID)
 	if err != nil {
