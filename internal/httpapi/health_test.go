@@ -29,7 +29,7 @@ func TestHealthAndFailClosedReadiness(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			response := httptest.NewRecorder()
-			NewHandler(tt.ready).ServeHTTP(response, httptest.NewRequest(tt.method, tt.path, nil))
+			NewHandler(tt.ready, nil).ServeHTTP(response, httptest.NewRequest(tt.method, tt.path, nil))
 			if response.Code != tt.status {
 				t.Fatalf("status %d want %d", response.Code, tt.status)
 			}
@@ -53,8 +53,34 @@ func TestCanceledReadinessCannotReportReady(t *testing.T) {
 	cancel()
 	request := httptest.NewRequest("GET", "/readyz", nil).WithContext(ctx)
 	response := httptest.NewRecorder()
-	NewHandler(func(context.Context) error { return nil }).ServeHTTP(response, request)
+	NewHandler(func(context.Context) error { return nil }, nil).ServeHTTP(response, request)
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status %d", response.Code)
+	}
+}
+
+func TestCollectionStatusIsBoundedAndRedacted(t *testing.T) {
+	for _, tt := range []struct {
+		name, supplied, want string
+	}{
+		{"disabled by default", "", "disabled"},
+		{"idle", "idle", "idle"},
+		{"polling", "polling", "polling"},
+		{"degraded", "degraded", "degraded"},
+		{"unknown is fail closed", "secret-source-error", "degraded"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var handler http.Handler
+			if tt.supplied == "" {
+				handler = NewHandler(nil, nil)
+			} else {
+				handler = NewHandler(nil, func() string { return tt.supplied })
+			}
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, httptest.NewRequest("GET", "/statusz", nil))
+			if response.Code != http.StatusOK || response.Body.String() != "{\"status\":\""+tt.want+"\"}\n" {
+				t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+			}
+		})
 	}
 }

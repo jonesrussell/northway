@@ -427,6 +427,22 @@ func TestNewerSchemaAndMalformedIDsFailClosed(t *testing.T) {
 	}
 }
 
+func TestRequireTenantChecksPersistedProvisioning(t *testing.T) {
+	s, _ := fresh(t)
+	defer s.Close()
+	seed(t, s, tenantA)
+
+	if err := s.RequireTenant(t.Context(), operator(tenantA)); err != nil {
+		t.Fatalf("provisioned tenant rejected: %v", err)
+	}
+	if err := s.RequireTenant(t.Context(), operator(tenantB)); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("unprovisioned tenant error = %v, want ErrNotFound", err)
+	}
+	if err := s.RequireTenant(t.Context(), identity.Principal{}); err == nil {
+		t.Fatal("invalid principal accepted")
+	}
+}
+
 // Invalid fixture tenants deliberately yield the zero, unauthorized principal.
 func operator(tenant identity.TenantID) identity.Principal {
 	p, _ := identity.Operator(tenant)

@@ -7,9 +7,15 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jonesrussell/northway/internal/identity"
+	"github.com/jonesrussell/northway/internal/sqlite"
 )
 
 func testConfig() Config          { return Config{ListenAddress: "127.0.0.1:0", ShutdownTimeout: time.Second} }
@@ -29,6 +35,105 @@ func TestRunRejectsInvalidConfigAndBindFailure(t *testing.T) {
 	cfg.ListenAddress = listener.Addr().String()
 	if err := Run(ctx, cfg, discardLogger()); err == nil {
 		t.Fatal("bind failure was swallowed")
+	}
+}
+
+func TestRunRejectsUnprovisionedPollingTenant(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "northway.sqlite")
+	if err := sqlite.Migrate(t.Context(), path); err != nil {
+		t.Fatal(err)
+	}
+	config := testConfig()
+	config.DatabasePath = path
+	config.PollTenant = identity.TenantID("00000000-0000-4000-8000-000000000001")
+	if err := Run(t.Context(), config, discardLogger()); err == nil || !strings.Contains(err.Error(), "not provisioned") {
+		t.Fatalf("error=%v", err)
+	}
+}
+
+func TestRunAcceptsProvisionedPollingTenant(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "northway.sqlite")
+	if err := sqlite.Migrate(t.Context(), path); err != nil {
+		t.Fatal(err)
+	}
+	store, err := sqlite.Open(t.Context(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tenant := identity.TenantID("00000000-0000-4000-8000-000000000001")
+	if err := store.CreateTenant(t.Context(), tenant); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	probe, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := probe.Addr().String()
+	probe.Close()
+	config := testConfig()
+	config.ListenAddress = address
+	config.DatabasePath = path
+	config.PollTenant = tenant
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- Run(ctx, config, discardLogger()) }()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		conn, dialErr := net.DialTimeout("tcp", address, 50*time.Millisecond)
+		if dialErr == nil {
+			conn.Close()
+			break
+		}
+		select {
+		case err := <-done:
+			t.Fatalf("server stopped before listening: %v", err)
+		default:
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("server did not listen")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	statusDeadline := time.Now().Add(3 * time.Second)
+	for {
+		response, err := http.Get("http://" + address + "/statusz")
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := io.ReadAll(response.Body)
+		response.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("status=%d body=%s", response.StatusCode, body)
+		}
+		if string(body) == "{\"status\":\"idle\"}\n" {
+			break
+		}
+		if string(body) != "{\"status\":\"polling\"}\n" {
+			t.Fatalf("unexpected collection status: %s", body)
+		}
+		if time.Now().After(statusDeadline) {
+			t.Fatal("publisher did not settle to idle")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -161,5 +266,56 @@ func TestServeReportsListenerFailure(t *testing.T) {
 	err = serve(context.Background(), listener, testConfig(), http.NotFoundHandler(), discardLogger())
 	if err == nil {
 		t.Fatal("listener failure was swallowed")
+	}
+}
+
+type backgroundFunc func(context.Context) error
+
+func (f backgroundFunc) Run(ctx context.Context) error { return f(ctx) }
+
+func TestBackgroundFailureStopsHTTPService(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := errors.New("collector failed")
+	err = runServices(t.Context(), listener, testConfig(), http.NotFoundHandler(), discardLogger(), backgroundFunc(func(context.Context) error { return want }))
+	if !errors.Is(err, want) {
+		t.Fatalf("error=%v", err)
+	}
+}
+
+func TestServiceShutdownWaitsForBackgroundDrain(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	entered, release := make(chan struct{}), make(chan struct{})
+	background := backgroundFunc(func(ctx context.Context) error {
+		close(entered)
+		<-ctx.Done()
+		<-release
+		return nil
+	})
+	done := make(chan error, 1)
+	go func() {
+		done <- runServices(ctx, listener, testConfig(), http.NotFoundHandler(), discardLogger(), background)
+	}()
+	<-entered
+	cancel()
+	select {
+	case err := <-done:
+		t.Fatalf("returned before background drain: %v", err)
+	case <-time.After(20 * time.Millisecond):
+	}
+	close(release)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("services did not stop")
 	}
 }

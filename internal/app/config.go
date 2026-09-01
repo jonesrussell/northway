@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/netip"
 	"time"
+
+	"github.com/jonesrussell/northway/internal/identity"
 )
 
 // Config is validated before any listener is opened. It contains no secrets.
@@ -15,6 +17,7 @@ type Config struct {
 	ListenAddress   string
 	ShutdownTimeout time.Duration
 	LogLevel        slog.Level
+	PollTenant      identity.TenantID
 }
 
 // ParseConfig applies defaults, explicitly present environment values, then flags.
@@ -30,12 +33,14 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	database := env("NORTHWAY_DATABASE_PATH", "")
 	shutdown := env("NORTHWAY_SHUTDOWN_TIMEOUT", "10s")
 	level := env("NORTHWAY_LOG_LEVEL", "info")
+	pollTenant := env("NORTHWAY_POLL_TENANT", "")
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&listen, "listen", listen, "IP:port to listen on")
 	fs.StringVar(&database, "database", database, "existing migrated SQLite file; empty disables storage")
 	fs.StringVar(&shutdown, "shutdown-timeout", shutdown, "maximum drain time")
 	fs.StringVar(&level, "log-level", level, "debug, info, warn or error")
+	fs.StringVar(&pollTenant, "poll-tenant", pollTenant, "explicit tenant UUID whose approved sources may be polled")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			_, err := io.WriteString(output, serveHelp)
@@ -58,7 +63,7 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	if !ok {
 		return Config{}, errors.New("log level must be debug, info, warn or error")
 	}
-	config := Config{DatabasePath: database, ListenAddress: listen, ShutdownTimeout: timeout, LogLevel: logLevel}
+	config := Config{DatabasePath: database, ListenAddress: listen, ShutdownTimeout: timeout, LogLevel: logLevel, PollTenant: identity.TenantID(pollTenant)}
 	return config, config.Validate()
 }
 
@@ -74,6 +79,14 @@ func (c Config) Validate() error {
 	default:
 		return errors.New("unsupported log level")
 	}
+	if c.PollTenant != "" {
+		if c.DatabasePath == "" {
+			return errors.New("poll tenant requires configured storage")
+		}
+		if _, err := identity.Operator(c.PollTenant); err != nil {
+			return errors.New("poll tenant must be a canonical tenant UUID")
+		}
+	}
 	return nil
 }
 
@@ -82,8 +95,10 @@ const serveHelp = `Usage: northway serve [flags]
   --listen IP:port          default 127.0.0.1:8080; NORTHWAY_LISTEN_ADDR
   --shutdown-timeout 10s    allowed 1s..1m; NORTHWAY_SHUTDOWN_TIMEOUT
   --log-level info          debug|info|warn|error; NORTHWAY_LOG_LEVEL
+  --poll-tenant UUID        enable serial polling for one provisioned tenant; NORTHWAY_POLL_TENANT
 Flags override explicitly present environment values. Port 0 is allowed for local tests.
-The server exposes health only. Readiness requires configured, usable storage.
+Polling is disabled when poll-tenant is empty. It never enables a source or bypasses stored policy.
+Readiness requires configured, usable storage.
 `
 
 func ParseMigrationPath(args []string, lookup func(string) (string, bool), output io.Writer) (string, error) {

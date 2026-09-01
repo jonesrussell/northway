@@ -24,6 +24,7 @@ def expect_failure(args, message):
     assert message in record["error"], record
 
 expect_failure(["serve", "--listen=127.0.0.1:0", "--shutdown-timeout=0s", "--log-level=info"], "shutdown timeout must be between")
+expect_failure(["serve", "--listen=127.0.0.1:0", "--poll-tenant=00000000-0000-4000-8000-000000000001"], "poll tenant requires configured storage")
 with socket.socket() as occupied:
     occupied.bind(("127.0.0.1", 0))
     occupied.listen()
@@ -52,7 +53,7 @@ with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as logs:
                 break
             time.sleep(0.05)
         assert address is not None, "server never reported its bound address"
-        for path, expected, status in [("/healthz", 200, "alive"), ("/readyz", 503, "not_ready")]:
+        for path, expected, status in [("/healthz", 200, "alive"), ("/readyz", 503, "not_ready"), ("/statusz", 200, "disabled")]:
             try:
                 response = opener.open("http://" + address + path, timeout=2)
             except urllib.error.HTTPError as error:
@@ -62,7 +63,7 @@ with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as logs:
                 assert json.load(response)["status"] == status
         process.send_signal(signal.SIGTERM)
         assert process.wait(timeout=5) == 0, "SIGTERM did not exit cleanly"
-        print("PASS: built CLI version, JSON fatal errors/nonzero exits, ephemeral HTTP health/readiness and SIGTERM shutdown")
+        print("PASS: built CLI version, JSON fatal errors/nonzero exits, ephemeral HTTP health/readiness/status and SIGTERM shutdown")
     finally:
         if process.poll() is None:
             process.kill()

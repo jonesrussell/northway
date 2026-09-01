@@ -1,5 +1,7 @@
 -- name: CreateTenant :exec
 INSERT INTO tenants(id,created_at) VALUES(?,?);
+-- name: TenantExists :one
+SELECT count(*) FROM tenants WHERE id=?;
 -- name: CreateSource :exec
 INSERT INTO sources(tenant_id,id,url,title) VALUES(?,?,?,?);
 -- name: CreateFeed :exec

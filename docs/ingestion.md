@@ -1,6 +1,6 @@
 # Bounded feed ingestion
 
-Implemented for #12: one explicit feed-document acquisition, metadata parsing, tenant-scoped SQLite ingestion, conditional validators and persistent admission/recovery. No source has been activated by this implementation. Catalogue files are not runtime configuration. There is no crawling, article-page traversal, image/enclosure fetching, provider call, scheduling timer or feed HTTP endpoint.
+Implemented for #12 and #53: one bounded feed-document acquisition, metadata parsing, tenant-scoped SQLite ingestion, conditional validators, persistent admission/recovery and an explicitly enabled in-process publisher scheduler. No source is activated merely by this implementation. Catalogue files are not runtime configuration. There is no crawling, article-page traversal, image/enclosure fetching, provider call or feed HTTP endpoint.
 
 ## Operator boundary and execution
 
@@ -8,7 +8,11 @@ Implemented for #12: one explicit feed-document acquisition, metadata parsing, t
 
 The hash-pinned [local personal-news profile](real-news-pilot.md) now has an explicit operator provisioning command. Lower-level source provisioning remains an internal local-operator seam, matching existing corpus provisioning. `ConfigurePoll` takes an exact existing source URL, explicit approved/enabled flags, minimum interval and response allowance. Neither existing `sources.enabled` nor an approved planning manifest enables collection: a separate poll-policy row must be provisioned. No public caller or API key can configure or claim collection. Selection and activation decisions must be recorded in reviewed catalogue records before the operator enables a policy. `personal-local-v1` cites both records; broader rights and coverage work in #46 remains open. This PR invokes provisioning only on synthetic temporary databases in tests.
 
-The service and store interfaces can be wired into the future in-process scheduler without a second SQLite owner. Opening storage, starting `serve`, requesting a panel or querying a cache does not invoke the collector. Scheduling and deployment wiring remain separate work.
+`northway serve --poll-tenant UUID` (or `NORTHWAY_POLL_TENANT`) runs the same `RunOnce` path inside the serving process. An empty poll tenant disables background collection. The configured UUID must be canonical and storage must be configured; the scheduler cannot create a tenant, source or policy. Opening storage, starting `serve` without that option, requesting a panel or querying a cache does not invoke the collector.
+
+The loop makes one claim and one publisher request at a time. The database remains authoritative for enabled/approved policy, next eligibility, global cursor, active lease, daily attempt/byte admission and publisher holds. A successful or settled failed poll advances to another due source after one second; idle and crash-recovery checks wait 30 seconds, while exhausted budgets or corpus admission wait five minutes. These are database-check intervals, not acquisition retries. A missed interval yields at most one new claim for that source because claiming advances `next_at` from the current time. Unknown scheduler/storage failures stop the configured service rather than silently leaving collection dead. Shutdown cancels and settles the active collector before SQLite closes.
+
+`GET /statusz` reports only `disabled`, `idle`, `polling` or `degraded`; it exposes no tenant, source, URL or error. Fixed-category structured logs record outcome, HTTP status, item count and bytes without publisher bodies, validators, credentials or private paths. Deployment and actual-device scheduling remain separate reviewed work.
 
 ## Transport and parsing
 

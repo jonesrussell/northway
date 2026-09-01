@@ -106,3 +106,19 @@ func TestDatabaseConfigurationAndMigrationFlags(t *testing.T) {
 		}
 	}
 }
+
+func TestPollingConfigurationIsExplicitAndTenantScoped(t *testing.T) {
+	const tenant = "00000000-0000-4000-8000-000000000001"
+	config, err := ParseConfig(nil, environment(map[string]string{"NORTHWAY_DATABASE_PATH": "northway.sqlite", "NORTHWAY_POLL_TENANT": tenant}), io.Discard)
+	if err != nil || string(config.PollTenant) != tenant {
+		t.Fatalf("poll config: %+v %v", config, err)
+	}
+	for _, args := range [][]string{
+		{"--poll-tenant=" + tenant},
+		{"--database=northway.sqlite", "--poll-tenant=not-a-tenant"},
+	} {
+		if _, err := ParseConfig(args, environment(nil), io.Discard); err == nil {
+			t.Fatalf("accepted invalid polling config: %v", args)
+		}
+	}
+}
