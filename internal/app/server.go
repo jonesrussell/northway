@@ -25,7 +25,7 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return err
 	}
 	var checkReady func(context.Context) error
-	collectionStatus := func() string { return "disabled" }
+	collectionStatus := func(context.Context) string { return "disabled" }
 	var publisher *schedule.Publisher
 	api := httpapi.NewAPI(nil, nil, nil)
 	if config.DatabasePath != "" {
@@ -58,8 +58,11 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 			if err != nil {
 				return fmt.Errorf("verify publisher polling tenant: %w", err)
 			}
-			publisher = schedule.NewPublisher(ingest.New(store, fetch.New()), principal, logger)
-			collectionStatus = publisher.Status
+			maintain := func(maintenanceCtx context.Context) error {
+				return maintainStorage(maintenanceCtx, store, principal, logger)
+			}
+			publisher = schedule.NewPublisher(ingest.New(store, fetch.New()), principal, logger, maintain)
+			collectionStatus = collectionState(publisher.Status, func(healthCtx context.Context) (bool, error) { return store.PollHealthy(healthCtx, principal) })
 		}
 	}
 	var lc net.ListenConfig
@@ -81,6 +84,50 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		return serve(ctx, listener, config, handler, logger)
 	}
 	return runServices(ctx, listener, config, handler, logger, publisher)
+}
+
+type maintenanceStore interface {
+	RecoverQueries(context.Context, identity.Principal) (int, error)
+	Maintain(context.Context, identity.Principal) (sqlite.MaintenanceReport, error)
+}
+
+func maintainStorage(ctx context.Context, store maintenanceStore, principal identity.Principal, logger *slog.Logger) error {
+	recovered, err := store.RecoverQueries(ctx, principal)
+	if err != nil {
+		return err
+	}
+	report, err := store.Maintain(ctx, principal)
+	message := "storage maintenance complete"
+	if err != nil {
+		message = "storage maintenance failed"
+	}
+	logger.Info(message, "recovered_queries", recovered, "query_work", report.QueryWork, "snapshots", report.Snapshots, "article_versions", report.ArticleVersions, "articles", report.Articles, "poll_attempts", report.PollAttempts, "unreconciled", report.Unreconciled, "wal_busy", report.WALBusy)
+	if report.Unreconciled != 0 {
+		logger.Warn("storage maintenance has unreconciled usage", "outcome", "operator_attention", "count", report.Unreconciled)
+	}
+	if report.WALBusy {
+		logger.Warn("storage checkpoint deferred", "outcome", "reader_busy")
+	}
+	if report.QueryWork == 1000 || report.Snapshots == 1000 || report.ArticleVersions == 1000 || report.Articles == 1000 || report.PollAttempts == 1000 {
+		logger.Warn("storage retention batch saturated", "outcome", "retention_backlog")
+	}
+	return err
+}
+
+func collectionState(status func() string, healthy func(context.Context) (bool, error)) func(context.Context) string {
+	return func(ctx context.Context) string {
+		state := status()
+		if state == "degraded" {
+			return state
+		}
+		healthCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+		defer cancel()
+		ok, err := healthy(healthCtx)
+		if err != nil || !ok {
+			return "degraded"
+		}
+		return state
+	}
 }
 
 type backgroundService interface {

@@ -14,10 +14,12 @@ import (
 )
 
 const (
-	idleWait     = 30 * time.Second
-	settledWait  = time.Second
-	recoveryWait = 30 * time.Second
-	budgetWait   = 5 * time.Minute
+	idleWait            = 30 * time.Second
+	settledWait         = time.Second
+	recoveryWait        = 30 * time.Second
+	budgetWait          = 5 * time.Minute
+	maintenanceInterval = time.Hour
+	maintenanceTimeout  = 30 * time.Second
 )
 
 type pollRunner interface {
@@ -46,15 +48,18 @@ func (s State) String() string {
 // Publisher runs the existing one-request ingestion transaction serially.
 // Poll policy, leases, budgets and next-eligible times remain database-owned.
 type Publisher struct {
-	runner    pollRunner
-	principal identity.Principal
-	logger    *slog.Logger
-	state     atomic.Uint32
-	wait      func(context.Context, time.Duration) bool
+	runner          pollRunner
+	principal       identity.Principal
+	logger          *slog.Logger
+	state           atomic.Uint32
+	wait            func(context.Context, time.Duration) bool
+	maintain        func(context.Context) error
+	now             func() time.Time
+	lastMaintenance time.Time
 }
 
-func NewPublisher(runner pollRunner, principal identity.Principal, logger *slog.Logger) *Publisher {
-	p := &Publisher{runner: runner, principal: principal, logger: logger, wait: waitContext}
+func NewPublisher(runner pollRunner, principal identity.Principal, logger *slog.Logger, maintain func(context.Context) error) *Publisher {
+	p := &Publisher{runner: runner, principal: principal, logger: logger, wait: waitContext, maintain: maintain, now: time.Now}
 	p.state.Store(uint32(StateIdle))
 	return p
 }
@@ -64,8 +69,30 @@ func (p *Publisher) Status() string { return State(p.state.Load()).String() }
 // Run owns one serial loop. It never enables sources, retries a fetch, or
 // derives future work from missed intervals; ClaimPoll decides what is due.
 func (p *Publisher) Run(ctx context.Context) error {
-	degraded := false
+	pollDegraded, maintenanceDegraded := false, false
 	for ctx.Err() == nil {
+		if p.maintain != nil && (p.lastMaintenance.IsZero() || p.now().Sub(p.lastMaintenance) >= maintenanceInterval) {
+			maintenanceCtx, cancel := context.WithTimeout(ctx, maintenanceTimeout)
+			err := p.maintain(maintenanceCtx)
+			cancel()
+			if ctx.Err() != nil {
+				p.state.Store(uint32(StateIdle))
+				return nil
+			}
+			if err != nil {
+				maintenanceDegraded = true
+				p.lastMaintenance = p.now()
+				p.state.Store(uint32(StateDegraded))
+				outcome := "maintenance_failed"
+				if errors.Is(err, context.DeadlineExceeded) {
+					outcome = "maintenance_timeout"
+				}
+				p.logger.Warn("publisher maintenance deferred", "outcome", outcome)
+			} else {
+				maintenanceDegraded = false
+				p.lastMaintenance = p.now()
+			}
+		}
 		p.state.Store(uint32(StatePolling))
 		result, err := p.runner.RunOnce(ctx, p.principal)
 		if ctx.Err() != nil {
@@ -76,27 +103,30 @@ func (p *Publisher) Run(ctx context.Context) error {
 		state, delay, reason := StateIdle, settledWait, "complete"
 		switch {
 		case err == nil:
-			degraded = false
+			pollDegraded = false
+			if maintenanceDegraded {
+				state = StateDegraded
+			}
 			p.logger.Info("publisher poll settled", "outcome", reason, "http_status", result.Status, "items", len(result.Items), "bytes", result.Bytes)
 		case errors.Is(err, ingest.ErrIdle):
 			delay, reason = idleWait, "idle"
-			if degraded {
+			if pollDegraded || maintenanceDegraded {
 				state = StateDegraded
 			}
 		case errors.Is(err, ingest.ErrBusy):
-			degraded, state, delay, reason = true, StateDegraded, recoveryWait, "busy"
+			pollDegraded, state, delay, reason = true, StateDegraded, recoveryWait, "busy"
 		case errors.Is(err, ingest.ErrBudget):
-			degraded, state, delay, reason = true, StateDegraded, budgetWait, "budget_exhausted"
+			pollDegraded, state, delay, reason = true, StateDegraded, budgetWait, "budget_exhausted"
 		case errors.Is(err, ingest.ErrCorpusFull):
-			degraded, state, delay, reason = true, StateDegraded, budgetWait, "corpus_full"
+			pollDegraded, state, delay, reason = true, StateDegraded, budgetWait, "corpus_full"
 		case errors.Is(err, ingest.ErrFetch):
-			degraded, state, delay, reason = true, StateDegraded, settledWait, "fetch_failed"
+			pollDegraded, state, delay, reason = true, StateDegraded, settledWait, "fetch_failed"
 		case errors.Is(err, ingest.ErrLease):
-			degraded, state, delay, reason = true, StateDegraded, recoveryWait, "lease_expired"
+			pollDegraded, state, delay, reason = true, StateDegraded, recoveryWait, "lease_expired"
 		case errors.Is(err, ingest.ErrInvalid):
-			degraded, state, delay, reason = true, StateDegraded, recoveryWait, "result_rejected"
+			pollDegraded, state, delay, reason = true, StateDegraded, recoveryWait, "result_rejected"
 		case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
-			degraded, state, delay, reason = true, StateDegraded, recoveryWait, "operation_interrupted"
+			pollDegraded, state, delay, reason = true, StateDegraded, recoveryWait, "operation_interrupted"
 		default:
 			p.state.Store(uint32(StateDegraded))
 			return fmt.Errorf("publisher scheduler: %w", err)

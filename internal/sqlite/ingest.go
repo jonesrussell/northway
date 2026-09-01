@@ -140,6 +140,9 @@ func (s *Store) ClaimPoll(ctx context.Context, p identity.Principal) (ingest.Cla
 		return q.AdvancePollCursor(ctx, sqlc.AdvancePollCursorParams{TenantID: string(tenant), SourceID: claim.SourceID})
 	})
 	if err != nil {
+		if errors.Is(err, ErrStoragePressure) {
+			return ingest.Claim{}, ingest.ErrCorpusFull
+		}
 		return ingest.Claim{}, err
 	}
 	if outcome != nil {
@@ -195,7 +198,7 @@ func (s *Store) FinishPoll(ctx context.Context, p identity.Principal, id string,
 	if !validResult(r) {
 		return ingest.ErrInvalid
 	}
-	return s.write(ctx, func(q *sqlc.Queries) error {
+	err = s.write(ctx, func(q *sqlc.Queries) error {
 		now := s.queryTime()
 		if !validTimestamp(now) {
 			return ingest.ErrInvalid
@@ -260,6 +263,10 @@ func (s *Store) FinishPoll(ctx context.Context, p identity.Principal, id string,
 		}
 		return q.MarkPollSuccess(ctx, sqlc.MarkPollSuccessParams{LastSuccess: sql.NullInt64{Int64: now.UnixMicro(), Valid: true}, LastStatus: int64(r.Status), Etag: r.ETag, Modified: r.LastModified, HoldUntil: next, TenantID: string(tenant), SourceID: w.SourceID})
 	})
+	if errors.Is(err, ErrStoragePressure) {
+		return ingest.ErrCorpusFull
+	}
+	return err
 }
 
 func putFeedItem(ctx context.Context, q *sqlc.Queries, tenant, source string, v ingest.Item, now time.Time) error {

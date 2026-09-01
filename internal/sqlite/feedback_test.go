@@ -136,7 +136,7 @@ func TestFeedbackInvalidUnavailableMembershipAndRollback(t *testing.T) {
 		t.Fatal("revoked replay accepted")
 	}
 	must(t, s.SetSourceEnabled(t.Context(), p, rid(101), true))
-	s.clock = func() time.Time { return queryEpoch.Add(25 * time.Hour) }
+	s.clock = func() time.Time { return queryEpoch.Add(queryRetention + time.Hour) }
 	if !errors.Is(s.RecordFeedback(t.Context(), p, e), ErrNotFound) {
 		t.Fatal("expired snapshot feedback accepted")
 	}

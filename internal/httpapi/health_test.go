@@ -74,7 +74,7 @@ func TestCollectionStatusIsBoundedAndRedacted(t *testing.T) {
 			if tt.supplied == "" {
 				handler = NewHandler(nil, nil)
 			} else {
-				handler = NewHandler(nil, func() string { return tt.supplied })
+				handler = NewHandler(nil, func(context.Context) string { return tt.supplied })
 			}
 			response := httptest.NewRecorder()
 			handler.ServeHTTP(response, httptest.NewRequest("GET", "/statusz", nil))

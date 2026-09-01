@@ -137,6 +137,60 @@ func TestRunAcceptsProvisionedPollingTenant(t *testing.T) {
 	}
 }
 
+type maintenanceFixture struct {
+	recovered   int
+	report      sqlite.MaintenanceReport
+	recoverErr  error
+	maintainErr error
+	calls       []string
+}
+
+func (f *maintenanceFixture) RecoverQueries(context.Context, identity.Principal) (int, error) {
+	f.calls = append(f.calls, "recover")
+	return f.recovered, f.recoverErr
+}
+
+func (f *maintenanceFixture) Maintain(context.Context, identity.Principal) (sqlite.MaintenanceReport, error) {
+	f.calls = append(f.calls, "maintain")
+	return f.report, f.maintainErr
+}
+
+func TestMaintenanceWarningsDoNotHaltPublisherWork(t *testing.T) {
+	principal, err := identity.Operator("00000000-0000-4000-8000-000000000001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture := &maintenanceFixture{recovered: 2, report: sqlite.MaintenanceReport{Unreconciled: 1, WALBusy: true}}
+	if err := maintainStorage(t.Context(), fixture, principal, discardLogger()); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(fixture.calls, ",") != "recover,maintain" {
+		t.Fatalf("calls=%v", fixture.calls)
+	}
+	want := errors.New("maintenance failed")
+	fixture = &maintenanceFixture{maintainErr: want}
+	if err := maintainStorage(t.Context(), fixture, principal, discardLogger()); !errors.Is(err, want) {
+		t.Fatalf("maintenance error=%v", err)
+	}
+}
+
+func TestCollectionStateCombinesSchedulerAndPersistedHealth(t *testing.T) {
+	calls := 0
+	health := func(context.Context) (bool, error) { calls++; return true, nil }
+	if got := collectionState(func() string { return "degraded" }, health)(t.Context()); got != "degraded" || calls != 0 {
+		t.Fatalf("scheduler state=%s health calls=%d", got, calls)
+	}
+	if got := collectionState(func() string { return "idle" }, health)(t.Context()); got != "idle" || calls != 1 {
+		t.Fatalf("healthy state=%s health calls=%d", got, calls)
+	}
+	if got := collectionState(func() string { return "idle" }, func(context.Context) (bool, error) { return false, nil })(t.Context()); got != "degraded" {
+		t.Fatalf("unhealthy state=%s", got)
+	}
+	if got := collectionState(func() string { return "polling" }, func(context.Context) (bool, error) { return false, errors.New("storage") })(t.Context()); got != "degraded" {
+		t.Fatalf("failed health state=%s", got)
+	}
+}
+
 func TestGracefulShutdownDrainsAnActiveRequest(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

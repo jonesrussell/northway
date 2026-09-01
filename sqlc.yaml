@@ -8,6 +8,7 @@ sql:
       - db/migrations/00005_ingestion.sql
       - db/migrations/00006_retrieval.sql
       - db/migrations/00007_feedback.sql
+      - db/migrations/00008_retention_indexes.sql
     queries: db/queries
     gen:
       go:

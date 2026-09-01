@@ -16,7 +16,7 @@ mkdir -m 0700 -p ./backups
 ./bin/northway serve --listen=127.0.0.1:8080
 ```
 
-GET /healthz returns 200 with status alive. GET /readyz returns 200 with status ready when configured storage is usable, otherwise 503 with status not_ready. GET /statusz reports the bounded collection state: disabled, idle, polling or degraded. These check process/storage capability and collection operation, not source freshness or feed completeness. All return uncached JSON and no dependency, tenant or source details. With storage configured, the three product routes in [the API contract](api.md) use persisted scoped-key authentication. Without storage they fail closed; source availability is not implied. Health probes are operational, not tenant APIs; no private data is exposed. There is no public listener by default, and no production deployment is authorized by running these commands. --database / NORTHWAY_DATABASE_PATH opts into an existing migrated SQLite file; an empty value leaves storage disabled.
+GET /healthz returns 200 with status alive. GET /readyz returns 200 with status ready when configured storage is usable, otherwise 503 with status not_ready. GET /statusz reports only disabled, idle, polling or degraded. When polling is enabled, it combines the in-memory loop with persisted per-source freshness, fixed failure state and lease health; it does not expose the affected tenant, source, URL or error. Feed completeness remains in authenticated query coverage. All probes return uncached JSON. With storage configured, the three product routes in [the API contract](api.md) use persisted scoped-key authentication.
 
 Background publisher polling is opt-in:
 
@@ -24,7 +24,7 @@ Background publisher polling is opt-in:
 northway serve --database ./northway.sqlite --poll-tenant 00000000-0000-4000-8000-000000000001
 ```
 
-The equivalent environment setting is `NORTHWAY_POLL_TENANT`. It accepts one already provisioned tenant and uses only approved, enabled poll policies stored by the operator profile. It does not activate a source. Leave it empty for API-only operation.
+The equivalent environment setting is `NORTHWAY_POLL_TENANT`. It accepts one already provisioned tenant and uses only approved, enabled poll policies stored by the operator profile. It does not activate a source. The same background owner recovers expired query claims and runs bounded retention at startup and then hourly before publisher work. A cleanup error keeps `/statusz` degraded until a later hourly success but does not starve publisher polling; timeout and failure are distinct fixed log outcomes. A busy checkpoint, saturated batch or preserved unreconciled charge emits a bounded operator warning without exposing content. Leave the setting empty only for bounded API development: an API-only sustained-traffic mode has no maintenance schedule in this pilot and is not release-ready.
 
 Configuration precedence is defaults → explicitly present environment → flags. Empty/zero values are validated, not silently replaced. NORTHWAY_LISTEN_ADDR accepts a literal IP:port, default 127.0.0.1:8080; IPv6 must be bracketed. Port zero is allowed for local tests. NORTHWAY_SHUTDOWN_TIMEOUT defaults to 10s and accepts 1s–1m. NORTHWAY_LOG_LEVEL accepts debug/info/warn/error. The matching flags are --listen, --shutdown-timeout and --log-level. No .env file is loaded automatically.
 

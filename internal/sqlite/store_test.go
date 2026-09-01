@@ -208,6 +208,13 @@ func TestSearchBoundsAndMembership(t *testing.T) {
 
 func TestPragmasOnEveryConnectionAndReplacement(t *testing.T) {
 	s, _ := fresh(t)
+	var pageSize, maxPages, checkpointPages int64
+	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA page_size").Scan(&pageSize))
+	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA max_page_count").Scan(&maxPages))
+	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA wal_autocheckpoint").Scan(&checkpointPages))
+	if pageSize != storagePageSize || maxPages != storageMaxPages || checkpointPages != walAutoCheckpointPages {
+		t.Fatalf("writer bounds page_size=%d max_pages=%d checkpoint_pages=%d", pageSize, maxPages, checkpointPages)
+	}
 	for _, pool := range []*sql.DB{s.writer, s.readers} {
 		count := pool.Stats().MaxOpenConnections
 		for round := 0; round < 2; round++ {
@@ -221,6 +228,15 @@ func TestPragmasOnEveryConnectionAndReplacement(t *testing.T) {
 					must(t, c.QueryRowContext(t.Context(), "PRAGMA "+pragma).Scan(&got))
 					if got != want {
 						t.Fatalf("%s=%d", pragma, got)
+					}
+				}
+				if pool == s.writer {
+					for pragma, want := range map[string]int64{"max_page_count": storageMaxPages, "wal_autocheckpoint": walAutoCheckpointPages} {
+						var got int64
+						must(t, c.QueryRowContext(t.Context(), "PRAGMA "+pragma).Scan(&got))
+						if got != want {
+							t.Fatalf("replacement %s=%d, want %d", pragma, got, want)
+						}
 					}
 				}
 				if pool == s.readers {
@@ -281,6 +297,12 @@ func TestWriteSerializationCancellationAndExternalLock(t *testing.T) {
 	}
 	must(t, tx.Rollback())
 	must(t, s.PutArticle(t.Context(), operator(tenantA), item()))
+	var replacementMax, replacementCheckpoint int64
+	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA max_page_count").Scan(&replacementMax))
+	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA wal_autocheckpoint").Scan(&replacementCheckpoint))
+	if replacementMax != storageMaxPages || replacementCheckpoint != walAutoCheckpointPages {
+		t.Fatalf("canceled writer replacement lost limits: max=%d checkpoint=%d", replacementMax, replacementCheckpoint)
+	}
 	// Saturated read pool also respects the caller's deadline.
 	c1, err := s.readers.Conn(t.Context())
 	must(t, err)
@@ -295,8 +317,30 @@ func TestWriteSerializationCancellationAndExternalLock(t *testing.T) {
 	}
 }
 
+func TestReadyDoesNotWaitForWriter(t *testing.T) {
+	s, _ := fresh(t)
+	entered, release := make(chan struct{}), make(chan struct{})
+	done := make(chan error, 1)
+	go func() {
+		done <- s.writeOperational(t.Context(), func(*sqlc.Queries) error {
+			close(entered)
+			<-release
+			return nil
+		})
+	}()
+	<-entered
+	ctx, cancel := context.WithTimeout(t.Context(), 250*time.Millisecond)
+	defer cancel()
+	if err := s.Ready(ctx); err != nil {
+		t.Fatalf("readiness contended with writer: %v", err)
+	}
+	close(release)
+	must(t, <-done)
+}
+
 func TestSQLiteFullRollsBackCorpusVersionAndFTS(t *testing.T) {
 	s, _ := fresh(t)
+	s.reservePages = 0
 	seed(t, s, tenantA)
 	a := item()
 	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
@@ -328,7 +372,7 @@ func TestSQLiteFullRollsBackCorpusVersionAndFTS(t *testing.T) {
 }
 
 func TestUpgradeRebuildRestartAndExclusiveOwnership(t *testing.T) {
-	for _, version := range []int64{1, 2, 3, 4, 5, 6} {
+	for _, version := range []int64{1, 2, 3, 4, 5, 6, 7} {
 		t.Run(fmt.Sprintf("schema-%d", version), func(t *testing.T) { testUpgradeRebuildRestart(t, version) })
 	}
 }

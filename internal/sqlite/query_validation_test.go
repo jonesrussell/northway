@@ -114,14 +114,14 @@ func TestQueryCacheExpiryRetentionAndPreferenceRevision(t *testing.T) {
 		t.Fatal("expired cache used")
 	}
 	must(t, s.FailQuery(t.Context(), p, miss.WorkID))
-	s.clock = func() time.Time { return queryEpoch.Add(24*time.Hour + 5*time.Minute) }
+	s.clock = func() time.Time { return queryEpoch.Add(queryRetention + 5*time.Minute) }
 	if claim(t, s, p, "retention-cache-key").Snapshot.ID != snap.ID {
 		t.Fatal("cache replay did not extend retention")
 	}
 	if _, err := s.BeginQuery(t.Context(), p, "retention-origin-key", request(), policy()); !errors.Is(err, query.ErrUnavailable) {
 		t.Fatal("expired key restarted", err)
 	}
-	s.clock = func() time.Time { return queryEpoch.Add(24*time.Hour + 10*time.Minute) }
+	s.clock = func() time.Time { return queryEpoch.Add(queryRetention + 10*time.Minute) }
 	if _, err := s.GetSnapshot(t.Context(), p, snap.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatal("snapshot read beyond retention", err)
 	}

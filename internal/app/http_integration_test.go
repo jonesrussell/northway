@@ -196,6 +196,9 @@ func TestHTTPContracts(t *testing.T) {
 	expectProblem(t, status, b, h, 503, "unavailable", false)
 	// Snapshot evidence survives corpus removal; current source rights still win.
 	check(t, f.s.DeleteArticle(t.Context(), f.one, corpusID))
+	if _, err := f.s.GetSnapshot(t.Context(), f.one, original.SnapshotID); err != nil {
+		t.Fatalf("direct snapshot after corpus removal: %v", err)
+	}
 	status, b, _ = f.request(t, "GET", "/v1/snapshots/"+original.SnapshotID, "", f.key, "", nil)
 	if !reflect.DeepEqual(httpSnapshot(t, status, b).Items, original.Items) {
 		t.Fatal("GET re-read corpus")

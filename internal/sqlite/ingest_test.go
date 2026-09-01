@@ -321,6 +321,7 @@ func TestCancellationStillSettlesConservativeBytes(t *testing.T) {
 
 func TestPollDiskFullKeepsReservationAndValidators(t *testing.T) {
 	s, _, _ := pollSetup(t)
+	s.reservePages = 0
 	p := operator(tenantA)
 	claim, err := s.ClaimPoll(t.Context(), p)
 	must(t, err)

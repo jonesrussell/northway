@@ -1,6 +1,6 @@
 # Data, transactions and background work
 
-Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. Status: SQLite corpus schema, migrations and connection lifecycle are implemented in #10; scoped keys and principal authorization are implemented in #11; durable query claims/cache/holds are implemented in #14 (see [query coordination](../query-transactions.md)); bounded ingestion is implemented in #12 and its explicit in-process publisher schedule in #53 (see [ingestion](../ingestion.md)); deterministic internal retrieval is implemented in #13 (see [retrieval](../retrieval.md)); authenticated product API and reversible feedback are implemented in #16; backup/retention remain later slices. See [storage implementation](../storage.md).
+Applies to NW-002, NW-003, NW-007, NW-009 and NW-010. SQLite storage, scoped identity, durable query coordination, bounded ingestion and its explicit publisher schedule, deterministic retrieval, authenticated HTTP/feedback, coherent backup, and personal-pilot retention are implemented. See [storage implementation](../storage.md). Automated off-device backup expiry, customer deletion/export and provider reconciliation remain later product work.
 
 ## SQLite invariants
 

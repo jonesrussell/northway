@@ -143,7 +143,7 @@ func TestPublisherSchedulerUsesLiveSQLiteOwnerAndPersistedDueState(t *testing.T)
 
 	ctx, cancel := context.WithCancel(t.Context())
 	feed := blockingFeed{entered: make(chan struct{}), release: make(chan struct{}), once: new(sync.Once)}
-	publisher := schedule.NewPublisher(ingest.New(store, feed), principal, discardLogger())
+	publisher := schedule.NewPublisher(ingest.New(store, feed), principal, discardLogger(), nil)
 	done := make(chan error, 1)
 	go func() { done <- publisher.Run(ctx) }()
 	select {

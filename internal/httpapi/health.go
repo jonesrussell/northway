@@ -9,11 +9,11 @@ import (
 
 // NewHandler exposes process health and fail-closed dependency readiness.
 // A missing check is not readiness. Dependency errors never reach the caller.
-func NewHandler(checkReady func(context.Context) error, collectionStatus func() string) http.Handler {
+func NewHandler(checkReady func(context.Context) error, collectionStatus func(context.Context) string) http.Handler {
 	mux := http.NewServeMux()
 	status := collectionStatus
 	if status == nil {
-		status = func() string { return "disabled" }
+		status = func(context.Context) string { return "disabled" }
 	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusOK, "alive")
@@ -32,7 +32,7 @@ func NewHandler(checkReady func(context.Context) error, collectionStatus func() 
 		respond(w, http.StatusOK, "ready")
 	})
 	mux.HandleFunc("GET /statusz", func(w http.ResponseWriter, r *http.Request) {
-		value := status()
+		value := status(r.Context())
 		switch value {
 		case "disabled", "idle", "polling", "degraded":
 		default:

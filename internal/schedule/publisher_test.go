@@ -71,7 +71,7 @@ func (r *overlapRunner) RunOnce(context.Context, identity.Principal) (ingest.Res
 func TestPublisherDoesNotStartAnotherPollBeforeSettlement(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	runner := &overlapRunner{entered: make(chan int, 2), release: make(chan struct{}), cancel: cancel}
-	p := NewPublisher(runner, schedulerPrincipal(t), testLogger())
+	p := NewPublisher(runner, schedulerPrincipal(t), testLogger(), nil)
 	p.wait = func(context.Context, time.Duration) bool { return true }
 	done := make(chan error, 1)
 	go func() { done <- p.Run(ctx) }()
@@ -113,7 +113,7 @@ func TestPublisherUsesBoundedOutcomeWaits(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			runner := &scriptedRunner{steps: []runnerStep{{err: tt.err}}}
-			p := NewPublisher(runner, schedulerPrincipal(t), testLogger())
+			p := NewPublisher(runner, schedulerPrincipal(t), testLogger(), nil)
 			var got time.Duration
 			var state string
 			p.wait = func(_ context.Context, delay time.Duration) bool {
@@ -133,7 +133,7 @@ func TestPublisherUsesBoundedOutcomeWaits(t *testing.T) {
 func TestPublisherRetainsDegradedStateUntilASettledSuccess(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	runner := &scriptedRunner{steps: []runnerStep{{err: ingest.ErrFetch}, {err: ingest.ErrIdle}, {}}, cancel: cancel}
-	p := NewPublisher(runner, schedulerPrincipal(t), testLogger())
+	p := NewPublisher(runner, schedulerPrincipal(t), testLogger(), nil)
 	var states []string
 	p.wait = func(context.Context, time.Duration) bool {
 		states = append(states, p.Status())
@@ -148,7 +148,7 @@ func TestPublisherRetainsDegradedStateUntilASettledSuccess(t *testing.T) {
 }
 
 func TestPublisherReturnsUnknownFailure(t *testing.T) {
-	p := NewPublisher(&scriptedRunner{steps: []runnerStep{{err: errors.New("storage")}}}, schedulerPrincipal(t), testLogger())
+	p := NewPublisher(&scriptedRunner{steps: []runnerStep{{err: errors.New("storage")}}}, schedulerPrincipal(t), testLogger(), nil)
 	if err := p.Run(t.Context()); err == nil || p.Status() != "degraded" {
 		t.Fatalf("error=%v status=%s", err, p.Status())
 	}
@@ -165,7 +165,7 @@ func (r cancelRunner) RunOnce(ctx context.Context, _ identity.Principal) (ingest
 func TestPublisherCancellationDrainsCurrentRun(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	entered := make(chan struct{})
-	p := NewPublisher(cancelRunner{entered}, schedulerPrincipal(t), testLogger())
+	p := NewPublisher(cancelRunner{entered}, schedulerPrincipal(t), testLogger(), nil)
 	done := make(chan error, 1)
 	go func() { done <- p.Run(ctx) }()
 	<-entered
@@ -177,5 +177,48 @@ func TestPublisherCancellationDrainsCurrentRun(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("scheduler did not stop")
+	}
+}
+
+func TestPublisherPollsWhileMaintenanceIsDegradedAndRetriesHourly(t *testing.T) {
+	runner := &scriptedRunner{steps: []runnerStep{{err: ingest.ErrIdle}, {err: ingest.ErrIdle}}}
+	calls := 0
+	p := NewPublisher(runner, schedulerPrincipal(t), testLogger(), func(context.Context) error {
+		calls++
+		if calls == 1 {
+			return errors.New("fixture")
+		}
+		return nil
+	})
+	now := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	p.now = func() time.Time { return now }
+	var states []string
+	p.wait = func(context.Context, time.Duration) bool {
+		states = append(states, p.Status())
+		now = now.Add(maintenanceInterval)
+		return len(states) == 1
+	}
+	if err := p.Run(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 || runner.calls != 2 || len(states) != 2 || states[0] != "degraded" || states[1] != "idle" {
+		t.Fatalf("maintenance calls=%d poll calls=%d states=%v", calls, runner.calls, states)
+	}
+}
+
+func TestPublisherRunsMaintenanceOncePerInterval(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	runner := &scriptedRunner{steps: []runnerStep{{}, {}}, cancel: cancel}
+	calls := 0
+	p := NewPublisher(runner, schedulerPrincipal(t), testLogger(), func(context.Context) error {
+		calls++
+		return nil
+	})
+	p.wait = func(context.Context, time.Duration) bool { return true }
+	if err := p.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 || runner.calls != 2 {
+		t.Fatalf("maintenance calls=%d poll calls=%d", calls, runner.calls)
 	}
 }
