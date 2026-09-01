@@ -62,7 +62,7 @@ func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) erro
 }
 
 const createTenant = `-- name: CreateTenant :exec
-INSERT INTO tenants(id,created_at) VALUES(?,?)
+INSERT INTO tenants(id,created_at) VALUES(?,?) ON CONFLICT(id) DO NOTHING
 `
 
 type CreateTenantParams struct {

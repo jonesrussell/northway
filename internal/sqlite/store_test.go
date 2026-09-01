@@ -61,6 +61,35 @@ func search(t *testing.T, s *Store, tenant identity.TenantID, term string) []art
 	return rows
 }
 
+func TestCreateTenantIsIdempotentAndPreservesState(t *testing.T) {
+	s, _ := fresh(t)
+	seed(t, s, tenantA)
+	must(t, s.PutArticle(t.Context(), operator(tenantA), item()))
+	type state struct{ createdAt, corpusRevision, entitlementRevision int64 }
+	read := func() (state, int64) {
+		t.Helper()
+		var got state
+		must(t, s.readers.QueryRowContext(t.Context(), `
+			SELECT created_at, corpus_revision, entitlement_revision FROM tenants WHERE id=?`, tenantA).
+			Scan(&got.createdAt, &got.corpusRevision, &got.entitlementRevision))
+		var count int64
+		must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM tenants WHERE id=?", tenantA).Scan(&count))
+		return got, count
+	}
+	before, beforeCount := read()
+	if beforeCount != 1 {
+		t.Fatalf("initial tenant count = %d, want 1", beforeCount)
+	}
+	must(t, s.CreateTenant(t.Context(), tenantA))
+	after, count := read()
+	if after != before || count != 1 {
+		t.Fatalf("repeated tenant creation changed state: before=%+v after=%+v count=%d", before, after, count)
+	}
+	if _, err := s.GetArticle(t.Context(), operator(tenantA), itemID); err != nil {
+		t.Fatalf("repeated tenant creation removed tenant data: %v", err)
+	}
+}
+
 func TestTenantConstraintsAndFTSLifecycle(t *testing.T) {
 	s, _ := fresh(t)
 	seed(t, s, tenantA)
