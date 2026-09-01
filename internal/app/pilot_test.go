@@ -28,3 +28,14 @@ func TestReadPilotManifestPinsReviewedRevision(t *testing.T) {
 		t.Fatal("tampered reviewed manifest accepted")
 	}
 }
+
+func TestReviewedPilotPolicyMatchesPinnedV1(t *testing.T) {
+	const hash = "80f8d68e0825b6006e9769589a8d6c974f6d3be98a153f5121c02b30a4a04005"
+	policy, ok := reviewedPilotProfiles[hash]
+	if !ok {
+		t.Fatal("reviewed v1 profile is not pinned")
+	}
+	if policy.Profile != "personal-local-v1" || policy.Sources != 5 || policy.Feeds != 5 || policy.Excluded != 5 {
+		t.Fatalf("unexpected v1 policy: %#v", policy)
+	}
+}

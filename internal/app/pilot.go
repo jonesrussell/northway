@@ -16,12 +16,32 @@ import (
 	"github.com/jonesrussell/northway/internal/sqlite"
 )
 
-const personalLocalV1SHA256 = "80f8d68e0825b6006e9769589a8d6c974f6d3be98a153f5121c02b30a4a04005"
+type reviewedPilotProfile struct {
+	SchemaVersion    int
+	Profile          string
+	ApprovalRecord   string
+	ActivationRecord string
+	Sources          int
+	Feeds            int
+	Excluded         int
+}
+
+var reviewedPilotProfiles = map[string]reviewedPilotProfile{
+	"80f8d68e0825b6006e9769589a8d6c974f6d3be98a153f5121c02b30a4a04005": {
+		SchemaVersion:    1,
+		Profile:          "personal-local-v1",
+		ApprovalRecord:   "docs/source-approval-2026-08-31.md",
+		ActivationRecord: "docs/source-activation-2026-08-31.md",
+		Sources:          5,
+		Feeds:            5,
+		Excluded:         5,
+	},
+}
 
 const pilotHelp = `Usage: northway pilot provision --database PATH --tenant UUID --manifest PATH
 Atomically provision the exact reviewed personal-news profile. Stop serve first.
-The manifest must be a local regular file, version 1, explicitly enabled for personal
-metadata use, and must keep provider/commercial use false. It cannot contain secrets.
+The manifest must be a local regular file with an exact reviewed revision, explicitly
+enabled for personal metadata use, and must keep provider/commercial use false. It cannot contain secrets.
 This creates saved feeds and enables bounded feed-document polling; it never starts a timer.
 `
 
@@ -131,8 +151,12 @@ func readPilotManifest(path string) (pilotManifest, error) {
 		return v, errors.New("pilot manifest changed while opening")
 	}
 	data, err := io.ReadAll(io.LimitReader(f, 64*1024+1))
-	if err != nil || len(data) > 64*1024 || fmt.Sprintf("%x", sha256.Sum256(data)) != personalLocalV1SHA256 {
-		return v, errors.New("pilot manifest is not the reviewed personal-local-v1 revision")
+	if err != nil || len(data) > 64*1024 {
+		return v, errors.New("pilot manifest is not an exact reviewed personal-local revision")
+	}
+	policy, ok := reviewedPilotProfiles[fmt.Sprintf("%x", sha256.Sum256(data))]
+	if !ok {
+		return v, errors.New("pilot manifest is not an exact reviewed personal-local revision")
 	}
 	d := json.NewDecoder(bytes.NewReader(data))
 	d.DisallowUnknownFields()
@@ -142,11 +166,11 @@ func readPilotManifest(path string) (pilotManifest, error) {
 	if d.Decode(&struct{}{}) != io.EOF {
 		return v, errors.New("pilot manifest must contain one JSON value")
 	}
-	if v.SchemaVersion != 1 || v.Profile != "personal-local-v1" || !v.Enabled || v.UseScope != "personal_metadata_feed_aggregation" || v.ProviderExportAllowed || v.CommercialUseApproved || v.ApprovalRecord != "docs/source-approval-2026-08-31.md" || v.ActivationRecord != "docs/source-activation-2026-08-31.md" || len(v.Excluded) != 5 {
+	if v.SchemaVersion != policy.SchemaVersion || v.Profile != policy.Profile || !v.Enabled || v.UseScope != "personal_metadata_feed_aggregation" || v.ProviderExportAllowed || v.CommercialUseApproved || v.ApprovalRecord != policy.ApprovalRecord || v.ActivationRecord != policy.ActivationRecord || len(v.Excluded) != policy.Excluded {
 		return v, errors.New("pilot manifest does not carry the reviewed personal-use decision")
 	}
-	if len(v.Sources) != 5 || len(v.Feeds) != 5 {
-		return v, fmt.Errorf("pilot profile requires 5 active sources and 5 saved feeds")
+	if len(v.Sources) != policy.Sources || len(v.Feeds) != policy.Feeds {
+		return v, fmt.Errorf("pilot profile requires %d active sources and %d saved feeds", policy.Sources, policy.Feeds)
 	}
 	return v, nil
 }
