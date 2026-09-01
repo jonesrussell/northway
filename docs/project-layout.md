@@ -35,6 +35,7 @@ docs/
 evals/                    # permitted labelled fixtures and evaluation config
 tests/integration/        # real file-backed SQLite, HTTP and isolation checks
 scripts/                  # reproducible checks; no hidden deploy side effects
+prototype/                # loopback-only browser UX reference; not the Go/Pi runtime
 .github/                  # CI, dependency updates, issue and PR templates
 ```
 

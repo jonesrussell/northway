@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A lightweight personal news reader powered by Northway.">
+    <title>Northway feeds</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="masthead">
+        <h1>Northway feeds</h1>
+      </header>
+
+      <main>
+        <section class="reader" aria-labelledby="briefing-heading">
+          <div class="feed-bar">
+            <div class="feed-tabs" role="group" aria-label="News feed">
+              <button class="feed-tab is-active" type="button" aria-pressed="true" data-feed="mixed">Mixed</button>
+              <button class="feed-tab" type="button" aria-pressed="false" data-feed="development">Development</button>
+              <button class="feed-tab" type="button" aria-pressed="false" data-feed="entertainment">Entertainment</button>
+              <button class="feed-tab" type="button" aria-pressed="false" data-feed="canada">Canada</button>
+              <button class="feed-tab" type="button" aria-pressed="false" data-feed="world">World</button>
+            </div>
+            <button class="refresh" type="button" id="refresh-button">
+              <span aria-hidden="true">↻</span> Refresh
+            </button>
+          </div>
+
+          <div class="briefing-head">
+            <div>
+              <p class="section-label">Feed</p>
+              <h2 id="briefing-heading">Mixed</h2>
+            </div>
+            <div class="briefing-meta" id="briefing-meta">Retrieving your news…</div>
+          </div>
+
+          <p class="sr-only" id="announce-text" role="status"></p>
+          <div class="status-card" id="status-card">
+            <span class="loader" aria-hidden="true"></span>
+            <span id="status-text">Asking Northway for a fresh snapshot…</span>
+          </div>
+
+          <ol class="story-list" id="story-list" aria-busy="true"></ol>
+
+          <aside class="coverage" id="coverage" hidden>
+            <div>
+              <p class="section-label">Coverage note</p>
+              <p id="coverage-text"></p>
+            </div>
+            <span class="coverage-status" id="coverage-status"></span>
+          </aside>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
