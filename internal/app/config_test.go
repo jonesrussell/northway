@@ -65,7 +65,7 @@ func TestConfigurationPrecedenceAndValidation(t *testing.T) {
 }
 
 func TestCLIHelpVersionAndUnsupportedWork(t *testing.T) {
-	for _, args := range [][]string{{"--help"}, {"serve", "--help"}, {"migrate", "--help"}, {"version"}} {
+	for _, args := range [][]string{{"--help"}, {"serve", "--help"}, {"migrate", "--help"}, {"backup", "--help"}, {"healthcheck", "--help"}, {"version"}} {
 		var out bytes.Buffer
 		if err := Execute(context.Background(), args, environment(nil), &out, io.Discard); err != nil {
 			t.Fatal(err)
@@ -83,7 +83,7 @@ func TestCLIHelpVersionAndUnsupportedWork(t *testing.T) {
 			}
 		}
 	}
-	for _, args := range [][]string{nil, {"ingest"}, {"migrate"}, {"version", "extra"}, {"help", "extra"}, {"serve", "--bad"}} {
+	for _, args := range [][]string{nil, {"ingest"}, {"migrate"}, {"backup"}, {"healthcheck", "extra"}, {"version", "extra"}, {"help", "extra"}, {"serve", "--bad"}} {
 		if err := Execute(context.Background(), args, environment(nil), io.Discard, io.Discard); err == nil {
 			t.Fatalf("unimplemented/invalid command succeeded: %v", args)
 		}
@@ -103,6 +103,25 @@ func TestDatabaseConfigurationAndMigrationFlags(t *testing.T) {
 		_, err := ParseMigrationPath(args, environment(nil), io.Discard)
 		if err == nil || strings.Contains(err.Error(), "private") {
 			t.Fatalf("invalid migration flags: %v", err)
+		}
+	}
+}
+
+func TestBackupConfigurationIsExplicit(t *testing.T) {
+	database, output, err := ParseBackupPaths([]string{"--output=copy.sqlite"}, environment(map[string]string{"NORTHWAY_DATABASE_PATH": "source.sqlite"}), io.Discard)
+	if err != nil || database != "source.sqlite" || output != "copy.sqlite" {
+		t.Fatalf("backup paths: %q %q %v", database, output, err)
+	}
+	for _, args := range [][]string{
+		nil,
+		{"--database=source.sqlite"},
+		{"--output=copy.sqlite"},
+		{"--database=source.sqlite", "--output=copy.sqlite", "extra"},
+		{"--database=source.sqlite", "--output=copy.sqlite", "--unknown=private"},
+	} {
+		_, _, err := ParseBackupPaths(args, environment(nil), io.Discard)
+		if err == nil || strings.Contains(err.Error(), "private") {
+			t.Fatalf("invalid backup flags: %v", err)
 		}
 	}
 }

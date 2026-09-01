@@ -9,6 +9,9 @@ make build
 ./bin/northway version
 ./bin/northway migrate --database ./data/northway.sqlite
 ./bin/northway serve --database ./data/northway.sqlite
+# With serve stopped, prepare a private destination and create a new snapshot.
+mkdir -m 0700 -p ./backups
+./bin/northway backup --database ./data/northway.sqlite --output ./backups/northway.sqlite
 # Or health only, with readiness unavailable:
 ./bin/northway serve --listen=127.0.0.1:8080
 ```
@@ -52,9 +55,9 @@ docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
   -p 127.0.0.1:8080:8080 northway:local
 ```
 
-`make container-smoke IMAGE=northway:local` tests the explicitly named local image on ephemeral loopback ports, non-root/read-only with dropped capabilities and a 128 MiB limit. It checks health-only behavior, then migration, storage readiness and restart using a disposable named volume; it removes only its own test resources. The limit is a smoke-test condition, not a measured pilot budget.
+`make container-smoke IMAGE=northway:local` tests the explicitly named local image on ephemeral loopback ports, non-root/read-only with dropped capabilities and a 128 MiB limit. It checks health-only behavior, then migration, the executable readiness probe, storage readiness, restart, offline snapshot creation and migration-compatible reopening using a disposable named volume; it removes only its own test resources. The limit is a smoke-test condition, not a measured pilot budget.
 
-The image uses a digest-pinned Go builder and a scratch runtime, runs as UID/GID 65532, and contains no shell, PHP, crawler, local model or separate database server. Container listen defaults to 0.0.0.0:8080; host port publication remains explicit. /data/northway is private and owned by 65532; mount storage at /data and use /data/northway/northway.sqlite. Production storage mounting and migration orchestration remain in waaseyaa-infra. No implicit volume is created by the image. The CA trust bundle is copied from the same digest-pinned builder for verified outbound HTTPS; no publisher certificates or private trust roots are added.
+The image uses a digest-pinned Go builder and a scratch runtime, runs as UID/GID 65532, and contains no shell, PHP, crawler, local model or separate database server. `northway healthcheck` performs one two-second, no-redirect request to the fixed container-local `http://127.0.0.1:8080/readyz` endpoint and accepts only the exact bounded ready response. It is intended only for the documented storage-backed container on port 8080; health-only mode deliberately remains not ready, and a custom listen port requires a different orchestrator probe. Container listen defaults to 0.0.0.0:8080; host port publication remains explicit. /data/northway is private and owned by 65532; mount storage at /data and use /data/northway/northway.sqlite. Production storage mounting and migration orchestration remain in waaseyaa-infra. No implicit volume is created by the image. The CA trust bundle is copied from the same digest-pinned builder for verified outbound HTTPS; no publisher certificates or private trust roots are added.
 
 make arm64 produces bin/northway-linux-arm64 using CGO_ENABLED=0. Artifact architecture inspection proves the build target, not Pi execution, workload capacity or power-loss recovery. Native ARM testing belongs to the infra/device acceptance gate. CPU architecture does not change the service's container/deployment ownership.
 

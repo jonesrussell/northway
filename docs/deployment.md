@@ -8,7 +8,7 @@ Northway owns the Go application, SQL migrations, application/container contract
 
 Target one non-root linux/arm64 service with a persistent SQLite directory. Cross-compilation proves artifact construction; actual-device checks must prove execution, capacity and recovery. Confirm available shared-host headroom before choosing hard limits. No new domain, ingress, live provider credentials or separate database server is required to start local development.
 
-The database backup path must support a Go container. Use a Northway backup command or a deliberately isolated compatible helper; do not install another application runtime solely to reuse a helper. Preserve WAL coherence, exclusive migration behavior and restore verification. App-image rollback cannot automatically undo a destructive database migration.
+The database backup path supports the Go container through `northway backup`. The deployment owner briefly stops serve, runs the command against the exclusively owned writable source, stores the validated snapshot off-device, then restarts. The offline connection may checkpoint the source WAL only after the snapshot has been durably published. Do not install another application runtime solely to reuse a helper or copy the live database/WAL files. Restore verification copies a snapshot to a separate path/device, runs the current migration command, opens it with the current binary and exercises a tenant query. App-image rollback cannot automatically undo a destructive database migration.
 
 ## Next implementation order
 

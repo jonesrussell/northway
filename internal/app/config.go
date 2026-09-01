@@ -120,3 +120,25 @@ func ParseMigrationPath(args []string, lookup func(string) (string, bool), outpu
 	}
 	return path, nil
 }
+
+func ParseBackupPaths(args []string, lookup func(string) (string, bool), output io.Writer) (string, string, error) {
+	database, _ := lookup("NORTHWAY_DATABASE_PATH")
+	var destination string
+	fs := flag.NewFlagSet("backup", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.StringVar(&database, "database", database, "offline SQLite source file")
+	fs.StringVar(&destination, "output", "", "new coherent SQLite snapshot file")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			if _, writeErr := io.WriteString(output, "Usage: northway backup --database PATH --output PATH\nUses NORTHWAY_DATABASE_PATH when --database is absent. Stop serve before backup. Output must not exist.\n"); writeErr != nil {
+				return "", "", writeErr
+			}
+			return "", "", flag.ErrHelp
+		}
+		return "", "", errors.New("invalid backup flags; use 'northway backup --help'")
+	}
+	if fs.NArg() != 0 || database == "" || destination == "" {
+		return "", "", errors.New("backup requires database and output paths and no positional arguments")
+	}
+	return database, destination, nil
+}

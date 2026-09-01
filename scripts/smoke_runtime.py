@@ -25,6 +25,8 @@ def expect_failure(args, message):
 
 expect_failure(["serve", "--listen=127.0.0.1:0", "--shutdown-timeout=0s", "--log-level=info"], "shutdown timeout must be between")
 expect_failure(["serve", "--listen=127.0.0.1:0", "--poll-tenant=00000000-0000-4000-8000-000000000001"], "poll tenant requires configured storage")
+expect_failure(["backup"], "backup requires database and output paths")
+expect_failure(["healthcheck", "extra"], "healthcheck takes no arguments")
 with socket.socket() as occupied:
     occupied.bind(("127.0.0.1", 0))
     occupied.listen()

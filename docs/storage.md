@@ -8,20 +8,33 @@ Issue #10 implements a tenant-scoped corpus store, not the authenticated feed se
 make build
 ./bin/northway migrate --database ./data/northway.sqlite
 ./bin/northway serve --database ./data/northway.sqlite
+# Stop serve first; prepare a private directory and use a new destination.
+mkdir -m 0700 -p ./backups
+./bin/northway backup --database ./data/northway.sqlite --output ./backups/northway.sqlite
 ```
 
 NORTHWAY_DATABASE_PATH is the environment alternative; flags override it. Migrate creates a missing private directory/file (0700/0600), applies embedded migrations under a two-minute command deadline, and checks SQLite, foreign-key and FTS integrity. Existing directories/files must already be private; the application does not silently chmod operator-owned paths. Database and immediate parent symlinks are rejected. Keep ancestor directories under operator control on local storage. Network filesystems and untrusted local users are outside this design.
 
-Serve requires an existing, migrated database and never migrates implicitly. The process holds a nonblocking advisory flock on the database inode; other Northway serve/migrate processes fail until it exits. This is an additional safeguard, not protection against an external SQLite client or someone with file access. Stop the service before migration through waaseyaa-infra. Migrations are forward-only; take a coherent backup before upgrade and use expand/migrate/contract for destructive changes. No automatic down/rollback command is provided.
+Serve requires an existing, migrated database and never migrates implicitly. The process holds a nonblocking advisory flock on the database inode; other Northway serve/migrate processes fail until it exits. This is an additional safeguard, not protection against an external SQLite client or someone with file access. Stop the service before migration through waaseyaa-infra. Migrations are forward-only; take a coherent backup before upgrade and use expand/migrate/contract for destructive changes. No automatic down/rollback command is provided. The backup command takes the same exclusive ownership lock, so it refuses while serve or migrate owns the source. It validates the source, uses SQLite `VACUUM INTO` to include committed WAL state, validates the copy, fsyncs it and atomically publishes a mode-0600 file without replacing an existing destination. The output directory must already be private (0700). The CLI applies a fixed two-minute deadline to the complete validation and copy operation; expiry returns `context deadline exceeded` and publishes nothing. Supported older schemas are accepted so the new binary can take a pre-upgrade snapshot; a schema newer than the binary is refused explicitly. Failed or canceled work publishes no snapshot. Because the source is opened read-write, closing the offline backup connection can checkpoint and remove its WAL after the durable snapshot is published; the source directory must therefore remain writable. A SIGKILL or power loss can leave an unpublished `.northway-backup-*` staging file for the operator to inspect and remove.
 
 With no database configured, the health-only runtime still starts and readiness is 503. With storage configured, startup checks the file, schema, WAL/FTS5 capability and pragmas; readiness is 200 only while storage checks succeed. This means **storage readiness**, not a working contextual feed. Dependency errors remain redacted from HTTP responses. Schema versions newer than the binary fail closed. SQLite version and compile options are logged at startup without content or private query data.
+
+To verify a restore, copy a snapshot rather than consuming the retained backup, keep the destination directory/file private, then run migration before serve. `VACUUM INTO` emits a coherent database that may use delete journal mode; migration deliberately restores the required WAL mode and verifies the current schema:
+
+```sh
+mkdir -m 0700 -p ./restore
+cp --no-clobber ./backups/northway.sqlite ./restore/northway.sqlite
+chmod 0600 ./restore/northway.sqlite
+./bin/northway migrate --database ./restore/northway.sqlite
+./bin/northway serve --database ./restore/northway.sqlite
+```
 
 ## Connection and transaction contract
 
 - One writer connection, two query-only read connections. All connections, including replacements, get foreign_keys=ON, busy_timeout=50ms, synchronous=FULL and a 2 MiB page-cache target through driver DSN options. WAL persists in the database.
 - A context-aware write gate serializes writers. Transactions use BEGIN IMMEDIATE before reads or changes. There is no application lock-retry loop: lock errors propagate after SQLite's bounded busy wait. Cancellation during a busy wait may take up to that short wait plus scheduling overhead.
 - Store methods expose feature types, not raw handles, sqlc rows or caller-defined transaction callbacks. Close follows HTTP request draining. SQL errors roll back article, version and FTS changes together.
-- Read requests can cancel while waiting for the bounded pool. Long readers, WAL growth, checkpoint monitoring, retention and coherent off-device backups still require the operations work package; do not copy a live database without its WAL.
+- Read requests can cancel while waiting for the bounded pool. Long readers, WAL growth, checkpoint monitoring, retention and off-device scheduling still require the operations work package; do not copy a live database without its WAL. The portable offline backup primitive is implemented, but recoverability is established only after copying a snapshot to a separate path/device, running the current migration command, opening it with the current binary and exercising real tenant queries.
 
 ## Initial schema and scope
 
@@ -51,7 +64,7 @@ Tests demonstrate missing/wrong tenant rejection, composite constraints, FTS and
 
 The image includes /data/northway owned by UID/GID 65532 with mode 0700; it declares no implicit VOLUME. Mount durable storage at /data and use --database=/data/northway/northway.sqlite. The private child directory avoids relying on Docker preserving a volume root's permissions. For a host bind mount, infra must prepare that child with the same owner/mode. Retain a read-only root filesystem and run migrate as the same UID against the volume before serve. No production compose/routing/secrets are introduced here.
 
-make container-smoke first verifies health-only behavior, then creates a uniquely named disposable Docker volume, migrates it non-root, runs storage-backed readiness and restarts the same container. It removes only its own test resources. The 128 MiB smoke limit is an empty-corpus test condition, not a measured production capacity budget. Native ARM/Pi runtime testing and coherent backup/restore remain required before deployment.
+make container-smoke first verifies health-only behavior, then creates a uniquely named disposable Docker volume, migrates it non-root, runs the executable readiness probe, restarts the same container, creates an offline coherent snapshot and runs the migration command against that snapshot. It removes only its own test resources. The 128 MiB smoke limit is an empty-corpus test condition, not a measured production capacity budget. Native ARM/Pi runtime testing and an off-device backup/restore drill remain required before deployment.
 
 ## Dependency refinement
 
