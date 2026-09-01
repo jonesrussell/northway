@@ -66,7 +66,7 @@ func (s *Store) BeginQuery(ctx context.Context, principal identity.Principal, ke
 	var claim query.Claim
 	err = s.write(ctx, func(q *sqlc.Queries) error {
 		now := s.queryTime()
-		if !validTimestamp(now) || !validTimestamp(now.Add(25*time.Hour)) {
+		if !validTimestamp(now) || !validTimestamp(now.Add(queryRetention+time.Hour)) {
 			return query.ErrUnavailable
 		}
 		scope, err := queryScope(ctx, q, string(tenant), request.FeedID)
@@ -99,7 +99,7 @@ func (s *Store) BeginQuery(ctx context.Context, principal identity.Principal, ke
 		if !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
-		retain := now.Add(24 * time.Hour).UnixMicro()
+		retain := now.Add(queryRetention).UnixMicro()
 		w := sqlc.CreateQueryWorkParams{TenantID: string(tenant), ID: queryID(), KeyHash: keyHash[:], RequestHash: digest[:], FeedID: request.FeedID, FeedRevision: scope.Revision, CorpusRevision: scope.CorpusRevision, EntitlementRevision: scope.EntitlementRevision, RankerVersion: policy.RankerVersion, ItemLimit: int64(request.Limit), SinceAt: max(0, now.Add(-time.Duration(request.MaxAgeHours)*time.Hour).UnixMicro()), CreatedAt: now.UnixMicro(), LeaseUntil: now.Add(policy.Lease).UnixMicro(), RetainUntil: retain, CacheTtl: policy.CacheTTL.Microseconds(), WorkState: "pending", SpendState: "reserved"}
 		cached, err := q.FindQueryCache(ctx, sqlc.FindQueryCacheParams{TenantID: w.TenantID, FeedID: w.FeedID, RequestHash: w.RequestHash, FeedRevision: w.FeedRevision, CorpusRevision: w.CorpusRevision, EntitlementRevision: w.EntitlementRevision, RankerVersion: w.RankerVersion, ExpiresAt: now.UnixMicro()})
 		if err == nil {
@@ -388,13 +388,16 @@ func (s *Store) GetSnapshot(ctx context.Context, principal identity.Principal, i
 	if err != nil {
 		return query.Snapshot{}, err
 	}
-	var snapshot query.Snapshot
-	err = s.write(ctx, func(q *sqlc.Queries) error {
-		var err error
-		snapshot, err = loadSnapshot(ctx, q, string(tenant), id, s.queryTime())
-		return err
-	})
+	tx, err := s.readers.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
+		return query.Snapshot{}, err
+	}
+	defer tx.Rollback()
+	snapshot, err := loadSnapshot(ctx, sqlc.New(tx), string(tenant), id, s.queryTime())
+	if err != nil {
+		return query.Snapshot{}, err
+	}
+	if err := tx.Commit(); err != nil {
 		return query.Snapshot{}, err
 	}
 	return snapshot, nil
@@ -432,15 +435,15 @@ func (s *Store) FailQuery(ctx context.Context, principal identity.Principal, id 
 }
 
 // RecoverQueries processes at most 100 expired claims, fences stale workers and
-// preserves uncertain holds. The future scheduler/operator must call it; opening
-// a database never starts jobs. Idempotency tombstones are not deleted here.
+// preserves uncertain holds. The scheduler calls separate bounded maintenance;
+// opening a database never starts jobs.
 func (s *Store) RecoverQueries(ctx context.Context, principal identity.Principal) (int, error) {
 	tenant, err := principal.RequireOperator()
 	if err != nil {
 		return 0, err
 	}
 	count := 0
-	err = s.write(ctx, func(q *sqlc.Queries) error {
+	err = s.writeOperational(ctx, func(q *sqlc.Queries) error {
 		rows, err := q.ExpiredQueryWork(ctx, sqlc.ExpiredQueryWorkParams{TenantID: string(tenant), LeaseUntil: s.queryTime().UnixMicro()})
 		if err != nil {
 			return err
@@ -466,7 +469,7 @@ func (s *Store) ReconcileQuery(ctx context.Context, principal identity.Principal
 	if err != nil {
 		return err
 	}
-	return s.write(ctx, func(q *sqlc.Queries) error {
+	return s.writeOperational(ctx, func(q *sqlc.Queries) error {
 		w, err := queryWork(ctx, q, string(tenant), id)
 		if err != nil {
 			return err

@@ -399,6 +399,7 @@ func TestQueryAtomicRollbackCancellationAndFailedCompletion(t *testing.T) {
 
 func TestQueryFullRollbackPreservesReservation(t *testing.T) {
 	s, _, p, sel := queryFixture(t)
+	s.reservePages = 0
 	// An explanation spanning several pages forces an actual engine SQLITE_FULL.
 	sel.Explanation = strings.Repeat("𐀀", 1000)
 	c := claim(t, s, p, "disk-full-query-key")

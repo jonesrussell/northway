@@ -22,8 +22,15 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const schemaVersion = 7
+const schemaVersion = 8
 const busyMilliseconds = 50
+const storagePageSize int64 = 4096
+const storageLimitBytes int64 = 256 << 20
+const storageMaxPages = storageLimitBytes / storagePageSize
+const storageReservePages int64 = (16 << 20) / storagePageSize
+const walAutoCheckpointPages = 256
+
+var ErrStoragePressure = errors.New("storage reserve reached")
 
 // Store is a single-process SQLite owner. Close only after all users have stopped.
 // No database handles or transaction callbacks escape this package.
@@ -34,6 +41,7 @@ type Store struct {
 	closeOnce       sync.Once
 	closeErr        error
 	clock           func() time.Time // test clock; immutable while the store is in use
+	reservePages    int64
 }
 
 func lockFile(path string, create bool) (*os.File, string, error) {
@@ -91,6 +99,8 @@ func openPool(path string, readOnly bool) (*sql.DB, error) {
 		q.Add("_pragma", "query_only(1)")
 	} else {
 		q.Set("_txlock", "immediate")
+		q.Add("_pragma", fmt.Sprintf("wal_autocheckpoint(%d)", walAutoCheckpointPages))
+		q.Add("_pragma", fmt.Sprintf("max_page_count(%d)", storageMaxPages))
 	}
 	u.RawQuery = q.Encode()
 	db, err := sql.Open("sqlite", u.String())
@@ -144,6 +154,9 @@ func Migrate(ctx context.Context, path string) error {
 	if journal != "wal" {
 		return errors.New("WAL mode unavailable")
 	}
+	if err := enforceStorageLimit(ctx, db); err != nil {
+		return err
+	}
 	migrations, err := fs.Sub(assets.Migrations, "migrations")
 	if err != nil {
 		return err
@@ -186,10 +199,13 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Store{file: file, writeGate: make(chan struct{}, 1)}
+	s := &Store{file: file, writeGate: make(chan struct{}, 1), reservePages: storageReservePages}
 	s.writer, err = openPool(abs, false)
 	if err == nil {
 		err = s.writer.PingContext(ctx)
+	}
+	if err == nil {
+		err = enforceStorageLimit(ctx, s.writer)
 	}
 	if err == nil {
 		s.readers, err = openPool(abs, true)
@@ -227,6 +243,7 @@ func (s *Store) Ready(ctx context.Context) error {
 	}
 	defer conn.Close()
 	var foreignKeys, busy, synchronous, fts, version int
+	var pageSize int64
 	var journal string
 	for _, probe := range []struct {
 		sql  string
@@ -236,12 +253,13 @@ func (s *Store) Ready(ctx context.Context) error {
 		{"PRAGMA synchronous", &synchronous}, {"PRAGMA journal_mode", &journal},
 		{"SELECT sqlite_compileoption_used('ENABLE_FTS5')", &fts},
 		{"SELECT max(version_id) FROM goose_db_version WHERE is_applied=1", &version},
+		{"PRAGMA page_size", &pageSize},
 	} {
 		if err := conn.QueryRowContext(ctx, probe.sql).Scan(probe.dest); err != nil {
 			return err
 		}
 	}
-	if foreignKeys != 1 || busy != busyMilliseconds || synchronous != 2 || journal != "wal" || fts != 1 || version != schemaVersion {
+	if foreignKeys != 1 || busy != busyMilliseconds || synchronous != 2 || journal != "wal" || fts != 1 || version != schemaVersion || pageSize != storagePageSize {
 		return errors.New("storage settings or schema do not match this binary; run migrate before serve")
 	}
 	rows, err := conn.QueryContext(ctx, `SELECT rowid FROM article_fts WHERE article_fts MATCH '"northway readiness"' LIMIT 1`)
@@ -252,16 +270,59 @@ func (s *Store) Ready(ctx context.Context) error {
 	return errors.Join(rows.Err(), rows.Close())
 }
 
+func enforceStorageLimit(ctx context.Context, db *sql.DB) error {
+	var pageSize, pageCount int64
+	if err := db.QueryRowContext(ctx, "PRAGMA page_size").Scan(&pageSize); err != nil {
+		return err
+	}
+	if pageSize != storagePageSize {
+		return errors.New("SQLite page size is incompatible with storage limit")
+	}
+	if err := db.QueryRowContext(ctx, "PRAGMA page_count").Scan(&pageCount); err != nil {
+		return err
+	}
+	if pageCount > storageMaxPages {
+		return errors.New("database already exceeds the configured storage limit")
+	}
+	var applied int64
+	if err := db.QueryRowContext(ctx, fmt.Sprintf("PRAGMA max_page_count=%d", storageMaxPages)).Scan(&applied); err != nil {
+		return err
+	}
+	if applied != storageMaxPages {
+		return errors.New("SQLite storage limit was not applied")
+	}
+	return nil
+}
+
 // write serializes writers before BEGIN IMMEDIATE; waiting callers can cancel.
 // The driver's bounded busy handler deals with other SQLite clients without an
 // application retry loop. Any failure rolls back both corpus and FTS changes.
 func (s *Store) write(ctx context.Context, fn func(*sqlc.Queries) error) error {
+	return s.writeWithReserve(ctx, true, fn)
+}
+
+func (s *Store) writeOperational(ctx context.Context, fn func(*sqlc.Queries) error) error {
+	return s.writeWithReserve(ctx, false, fn)
+}
+
+func (s *Store) writeWithReserve(ctx context.Context, enforceReserve bool, fn func(*sqlc.Queries) error) error {
 	select {
 	case s.writeGate <- struct{}{}:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 	defer func() { <-s.writeGate }()
+	if enforceReserve && s.reservePages > 0 {
+		var pageCount, freePages, maxPages int64
+		for statement, destination := range map[string]*int64{"PRAGMA page_count": &pageCount, "PRAGMA freelist_count": &freePages, "PRAGMA max_page_count": &maxPages} {
+			if err := s.writer.QueryRowContext(ctx, statement).Scan(destination); err != nil {
+				return err
+			}
+		}
+		if maxPages-pageCount+freePages < s.reservePages {
+			return ErrStoragePressure
+		}
+	}
 	tx, err := s.writer.BeginTx(ctx, nil)
 	if err != nil {
 		if ctx.Err() != nil {
