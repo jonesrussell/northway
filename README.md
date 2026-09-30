@@ -1,12 +1,14 @@
-# Northway
+# NorthCloud
 
-**Contextual news for AI agents.** Choose a personal feed or provide approved project context; receive a small, relevant selection with source links, freshness information and explanations supported by available evidence.
+**Contextual, source-backed news for people and their agent clients, at northcloud.one.**
 
-Claudriel is the first client. Northway is an independent service, not a Claudriel subsystem. Its eventual product is an agent-facing SaaS API.
+This repository, currently named `jonesrussell/northway`, owns the Go service foundation. The [current launch roadmap](docs/launch-roadmap.md) targets an independent customer product on Intersnipe infrastructure following GoFormX's control-plane/API model. Claudriel is an optional client. Retire the Pi Northway deployment only after preserved-data migration, target acceptance and an agreed rollback window.
 
-> Status: the local real-news path works end to end. A hash-pinned operator profile provisions five saved feeds and five publisher RSS feeds into SQLite; bounded polling has ingested real metadata, and authenticated deterministic queries return source-linked snapshots. The server can run that same bounded collector serially for one explicitly configured tenant; polling remains disabled by default and no Pi deployment is installed. A coherent offline backup command and scratch-compatible local readiness probe are available for the deployment owner. First Nations coverage remains blocked by source access/permission, and AI-provider export and commercial redistribution remain disabled.
+Status: the Go/SQLite personal-news path is implemented and a private Pi pilot was deployed, then paused by the owner on September 1. Customer accounts/control plane, online provisioning, multi-tenant polling, rate/quota enforcement and customer release gates remain work. No public NorthCloud launch is claimed. The [roadmap baseline](docs/launch-roadmap.md#evidence-baseline-not-current-production-verification) distinguishes code from dated deployment evidence.
 
-## First useful experience
+Start with the [launch plan](docs/launch-roadmap.md), [shared Go auth adoption](docs/shared-go-auth.md), and [deployment ownership](docs/deployment.md). Product branding does not rename the module/binary or retire the older North Cloud pipeline.
+
+## Existing personal-feed experience and product foundation
 
 Choose Development (including PHP), Entertainment, Canada, First Nations or World, or an explicitly selected mixed digest. Personal feeds work without repository context. The PHP sources are the technical bootstrap, not the product boundary. See [the broader personal-feed design and candidates](docs/personal-feeds.md).
 
@@ -23,7 +25,7 @@ Claudriel submits a saved feed identifier and a minimal explicit intent; technic
 - Collect once, retrieve cheaply, and apply AI to a bounded shortlist. Cache by tenant, feed revision, corpus revision, context, and ranking version.
 - Reuse selected North Cloud capabilities with provenance and tests. Do not import its deployment topology.
 - Keep project files, secrets, and whole conversations out of requests. Treat retrieved content as untrusted data.
-- Raspberry Pi first: approved publisher feeds and optional scheduled external AI search, no home crawling or local AI model. See the content-source policy for external acquisition modes.
+- Intersnipe product target; the Pi is a preservation/migration source. Keep approved publisher acquisition, no home crawling or local AI model. Customer source rights require separate review.
 - No Elasticsearch, message broker, browser farm, vector database, Kubernetes, or dedicated ML sidecars in the initial deployment.
 
 ## Start here

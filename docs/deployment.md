@@ -1,20 +1,24 @@
-# Deployment ownership and next implementation
+# Deployment ownership and cutover
 
-Status: integration plan, not a deployed service. The owner identified waaseyaa-infra as the existing Pi deployment repository. That repository is private; host inventory, routing, credentials and operational details stay there. Making Northway public does not publish its deployment configuration or authorize public API ingress.
+Updated 2026-09-30. The [NorthCloud launch roadmap](launch-roadmap.md) owns current scope and gates. NorthCloud at northcloud.one targets Intersnipe infrastructure as an independent customer product. The existing Pi deployment is a migration source, not the launch target. This document authorizes no operational action.
 
-## Repository responsibilities
+## Ownership
 
-Northway owns the Go application, SQL migrations, application/container contract, health/readiness behavior, tests and portable backup interfaces. waaseyaa-infra owns the environment-specific service definition, persistent storage, resource enforcement, secret custody, proxy/network configuration, monitoring, backup integration and reviewed deployment procedure. Do not add a competing production deploy workflow to this repository.
+The Go repository owns application behavior, tenant/resource authorization, migrations, health, portable coherent backup and the canonical API. A proposed separate customer control plane owns human accounts, sessions and workspace memberships; it calls the Go API and never accesses the Go database directly. Claudriel is an optional client.
 
-Target one non-root linux/arm64 service with a persistent SQLite directory. Cross-compilation proves artifact construction; actual-device checks must prove execution, capacity and recovery. Confirm available shared-host headroom before choosing hard limits. No new domain, ingress, live provider credentials or separate database server is required to start local development.
+`jonesrussell/intersnipe-infra` owns environment-specific service definitions, volumes, resource limits, secret custody, ingress/TLS, monitoring and backup scheduling. Keep private infrastructure details there. `jonesrussell/waaseyaa-infra` retains ownership of Pi freeze/retirement. Do not add a competing production workflow to the application repository.
 
-The database backup path supports the Go container through `northway backup`. The deployment owner briefly stops serve, runs the command against the exclusively owned writable source, stores the validated snapshot off-device, then restarts. The offline connection may checkpoint the source WAL only after the snapshot has been durably published. Do not install another application runtime solely to reuse a helper or copy the live database/WAL files. Restore verification copies a snapshot to a separate path/device, runs the current migration command, opens it with the current binary and exercises a tenant query. App-image rollback cannot automatically undo a destructive database migration.
+## Release requirements
 
-## Next implementation order
+- Reconcile main `377d00696d6597b646e4e48a80ab948a05f3f361` with recorded Pi `2035fac064b97b49196c5682aa000f675a56bf8f`; verify current state before action. Preserve the existing pilot tenant and evidence pending explicit disposition.
+- Select and qualify the actual host, architecture, resource/port budget and legacy domain dependencies. GoFormX's deployment and historical capacity readings do not prove spare resources or authorize NorthCloud changes.
+- Prepare exact source/image/schema/profile provenance, dedicated service/network/storage/secrets and a reviewed routing/certificate plan. Build from tracked sources off the shared production host.
+- Prove customer authorization, quotas, source permissions and account recovery before public activation. Do not expose the local unauthenticated prototype proxy.
+- Prove coherent offsite backups, account-to-tenant mapping recovery and compatible migration/rollback. SQLite backup uses the application-owned interface with exclusive ownership, not a raw live volume copy. Account data and recovery keys need separately protected custody.
+- Review a concrete staged deployment package and receive applicable authorization before service, DNS, certificate, credential or paid-provider changes. After new writes, preserve them during rollback or forward repair; reverting an image does not reverse schema changes.
 
-1. [#8 Go foundation](https://github.com/jonesrussell/northway/issues/8): one module, configuration, graceful shutdown, health/readiness, meaningful checks and reproducible ARM build. Dependency additions must be verified when installed.
-2. [#9 sources and device constraints](https://github.com/jonesrussell/northway/issues/9): select the initial corpus and confirm documented versus live hardware capacity through the deployment owner.
-3. [#10 SQLite](https://github.com/jonesrussell/northway/issues/10), then the linked identity/ingestion/retrieval work: persist a source item and return an authenticated, evidence-backed deterministic result. AI discovery is a separate bounded extension.
-4. [#36 infrastructure integration](https://github.com/jonesrussell/northway/issues/36): prepare and validate a focused infra PR once runtime/storage/HTTP contracts exist. [#20](https://github.com/jonesrussell/northway/issues/20) proves actual-device resource and recovery behavior before the pilot.
+## Pi retirement
 
-The first useful vertical slice is a selected feed item persisted in SQLite and returned through an authenticated contextual query. Keep acquisition fixtures/local tests independent of live provider spending and production access. No service promotion, host inspection, secret read or deployment is part of this planning update.
+Follow the [migration and retirement checklist](launch-roadmap.md#pi-migration-and-retirement): inventory Northway dependencies, restore-test preservation, fence Pi writers/polling, transfer and validate, switch clients, observe the agreed rollback window, then approve scoped removal and data disposition. Keep other Pi services and the legacy North Cloud pipeline outside this retirement scope.
+
+Historical actual-device evidence remains in [#20](https://github.com/jonesrussell/northway/issues/20), integration in [#19](https://github.com/jonesrussell/northway/issues/19), source holds in [#46](https://github.com/jonesrussell/northway/issues/46), and the owner-requested pilot pause in [#21](https://github.com/jonesrussell/northway/issues/21). These records do not establish current host health or a successful Intersnipe deployment.

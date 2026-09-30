@@ -4,7 +4,7 @@ Northway uses a portable, spec-driven repository harness. It is not a new agent 
 
 ## Sources of truth
 
-1. User-authorized scope and decisions.
+1. User-authorized scope and decisions, recorded in the current docs/launch-roadmap.md; earlier Pi-first phase order is historical.
 2. Stable requirement IDs in docs/specs/requirements.md; ADRs explain architecture choices.
 3. api/schemas and checked examples define the draft transport shape; docs/api.md defines semantics.
 4. Feature specs and Go package/dependency decisions constrain implementation.
@@ -15,7 +15,7 @@ AGENTS.md is the short entry point. Feature issues link only the necessary specs
 
 ## Work cycle
 
-Select one Ready issue with prerequisites satisfied. Read its requirements/specs, inspect current code and status, and create a focused branch. Record an implementation plan, allowed scope, affected invariants and verification commands in the PR. Implement a small vertical slice, run relevant checks, inspect the diff, and attach evidence. A reviewer verifies the original acceptance criteria and failure cases. After acceptance, merge through normal repository controls, update the Project and close only completed scope.
+Select one Ready issue with prerequisites satisfied. Read its requirements/specs, inspect current code and status, and create a focused branch. Record an implementation plan, allowed scope, affected invariants and verification commands in version-controlled documentation or a bounded task record. Implement a small vertical slice, run relevant checks, inspect the diff, and attach evidence. A reviewer verifies the original acceptance criteria and failure cases. For the owner-authorized roadmap work, record local checks and review, then commit/merge and push directly without a PR or GitHub Actions dependency. Preserve repository protections and workflows; do not bypass blocked pushes. Update external task state only within authorized scope and close only demonstrated completed work.
 
 If a requirement is wrong or incomplete, update the spec/ADR and issue openly; do not weaken tests or rewrite acceptance criteria silently to make an implementation pass. When blocked, record the actual dependency and leave work resumable. Never mark a future phase complete because scaffolding exists.
 
@@ -37,7 +37,7 @@ Branch protections and CI configuration should enforce what the repository plan 
 
 ## Handoff record
 
-Each PR or issue progress update includes: issue/branch/commit, what changed, relevant requirement IDs, tests actually run with results, known gaps, migration/rollback concerns and exact next step. Keep resumable state in version control/GitHub rather than relying on one conversation. Do not commit credentials or raw user context as agent memory.
+Each commit handoff or authorized issue progress update includes: issue/branch/commit, what changed, relevant requirement IDs, tests actually run with results, known gaps, migration/rollback concerns and exact next step. Keep resumable state in version control/GitHub rather than relying on one conversation. Do not commit credentials or raw user context as agent memory.
 
 Separate implementation from evaluation for tenant isolation, billing, unsafe fetch and release changes; a review may be human or explicitly commissioned independent agent review, but the author cannot treat a self-written approval as independent evidence. This document does not automatically authorize spawning agents, external messaging, merges or deployments.
 

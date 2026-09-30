@@ -1,8 +1,10 @@
 # Delivery index
 
+Current direction: [NorthCloud launch roadmap](../launch-roadmap.md) and [shared Go auth adoption](../shared-go-auth.md). The phase listings below are the historical Pi-first issue map, retained for traceability. Their status prose and prerequisite order are not current launch evidence. Reconcile bounded implementation tasks with the new roadmap; no historical issue is closed or repurposed by this update.
+
 [Project](https://github.com/users/jonesrussell/projects/11) · [Milestones](https://github.com/jonesrussell/northway/milestones)
 
-Issues own scope and acceptance criteria; native sub-issues and blocked-by relationships record dependencies. This index is navigation, not a second status tracker. Phases have no invented delivery dates.
+The current roadmap owns product direction and sequencing; bounded issues own implementation scope and evidence once reconciled. Native sub-issues and blocked-by relationships preserve historical dependencies. This index is navigation, not a second status tracker. Phases have no invented delivery dates.
 
 ## Views
 
