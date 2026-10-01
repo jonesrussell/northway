@@ -16,9 +16,10 @@ INSERT INTO customer_key_expiry(key_id,expires_at) VALUES(?,?);
 -- name: CustomerKeyExpiry :one
 SELECT expires_at FROM customer_key_expiry WHERE key_id=?;
 -- name: ListCustomerKeys :many
-SELECT k.id,k.scopes,k.created_at,k.last_used_at,k.revoked_at,e.expires_at
+SELECT k.id,k.scopes,k.created_at,k.last_used_at,k.revoked_at,e.expires_at,
+(k.revoked_at IS NULL AND e.expires_at>sqlc.arg(now)) AS active
 FROM api_keys k JOIN customer_key_expiry e ON e.key_id=k.id
-WHERE k.tenant_id=? ORDER BY k.created_at DESC,k.id LIMIT 100;
+WHERE k.tenant_id=sqlc.arg(tenant_id) ORDER BY active DESC,k.created_at DESC,k.id LIMIT 100;
 -- name: ListCustomerFeeds :many
 SELECT id,title FROM feeds WHERE tenant_id=? AND enabled=1 ORDER BY id LIMIT 100;
 -- name: CleanRequestBudgets :exec

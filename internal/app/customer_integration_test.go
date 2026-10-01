@@ -170,3 +170,68 @@ func TestCustomerProfileAndOperatorIsolation(t *testing.T) {
 		t.Fatal("operator treated as customer assertion")
 	}
 }
+
+func TestCustomerOldActiveKeyRemainsVisible(t *testing.T) {
+	f := beta(t)
+	a := string(tenantOne)
+	v, err := identity.NewAssertionVerifier("https://northcloud.one", "northcloud-api", map[string]ed25519.PublicKey{"test": f.key.Public().(ed25519.PublicKey)}, f.s)
+	check(t, err)
+	p, err := v.Verify(t.Context(), f.sign(a, "test", nil), "test", time.Now().UTC())
+	check(t, err)
+	check(t, f.s.EnsureWorkspace(t.Context(), p))
+	old, _, err := f.s.IssueCustomerKey(t.Context(), p, identity.FeedsRead)
+	check(t, err)
+	for i := 0; i < 105; i++ {
+		k, _, err := f.s.IssueCustomerKey(t.Context(), p, identity.FeedsRead)
+		check(t, err)
+		check(t, f.s.RevokeCustomerKey(t.Context(), p, k.ID))
+	}
+	w := f.call(a, "GET", "/v1/keys", "")
+	status(t, w, 200)
+	if !strings.Contains(w.Body.String(), old.ID) {
+		t.Fatal("older active key hidden by inactive history")
+	}
+	status(t, f.call(a, "DELETE", "/v1/keys/"+old.ID, ""), 204)
+}
+
+func TestCustomerConcurrentDistinctProvisioning(t *testing.T) {
+	f := beta(t)
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Go(func() {
+			w := f.call(string(tenantOne), "PUT", "/v1/workspace", "")
+			if w.Code != 200 {
+				t.Errorf("provision %d: %s", w.Code, w.Body.String())
+			}
+		})
+	}
+	wg.Wait()
+	status(t, f.call(string(tenantOne), "POST", "/v1/keys", `{"scopes":"feeds:read"}`), 201)
+}
+
+func TestCustomerHTTPBudgetSharedByAssertionsAndKeys(t *testing.T) {
+	f := beta(t)
+	a := string(tenantOne)
+	v, err := identity.NewAssertionVerifier("https://northcloud.one", "northcloud-api", map[string]ed25519.PublicKey{"test": f.key.Public().(ed25519.PublicKey)}, f.s)
+	check(t, err)
+	p, err := v.Verify(t.Context(), f.sign(a, "test", nil), "test", time.Now().UTC())
+	check(t, err)
+	check(t, f.s.EnsureWorkspace(t.Context(), p))
+	_, secret, err := f.s.IssueCustomerKey(t.Context(), p, identity.FeedsRead)
+	check(t, err)
+	// Precharge both boundary minutes to make the HTTP assertion robust to a
+	// minute rollover during the short test, without sleeping or clock changes.
+	now := time.Now().UTC()
+	for _, when := range []time.Time{now, now.Add(time.Minute)} {
+		for i := 0; i < 60; i++ {
+			ok, err := f.s.TakeRequestBudget(t.Context(), p, when)
+			check(t, err)
+			if !ok {
+				t.Fatal("early budget failure")
+			}
+		}
+	}
+	status(t, f.call(a, "GET", "/v1/feeds", ""), 429)
+	status(t, f.request("GET", "/v1/feeds", "", secret.Reveal()), 429)
+	status(t, f.call(string(tenantTwo), "PUT", "/v1/workspace", ""), 200)
+}

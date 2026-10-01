@@ -112,7 +112,7 @@ func (s *Store) ListCustomerKeys(ctx context.Context, p identity.Principal) ([]i
 	if err := requireWorkspace(ctx, q, tenant); err != nil {
 		return nil, err
 	}
-	rows, err := q.ListCustomerKeys(ctx, string(tenant))
+	rows, err := q.ListCustomerKeys(ctx, sqlc.ListCustomerKeysParams{TenantID: string(tenant), Now: time.Now().UTC().UnixMicro()})
 	if err != nil {
 		return nil, err
 	}

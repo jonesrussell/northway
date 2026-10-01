@@ -164,10 +164,16 @@ func (q *Queries) ListCustomerFeeds(ctx context.Context, tenantID string) ([]Lis
 }
 
 const listCustomerKeys = `-- name: ListCustomerKeys :many
-SELECT k.id,k.scopes,k.created_at,k.last_used_at,k.revoked_at,e.expires_at
+SELECT k.id,k.scopes,k.created_at,k.last_used_at,k.revoked_at,e.expires_at,
+(k.revoked_at IS NULL AND e.expires_at>?1) AS active
 FROM api_keys k JOIN customer_key_expiry e ON e.key_id=k.id
-WHERE k.tenant_id=? ORDER BY k.created_at DESC,k.id LIMIT 100
+WHERE k.tenant_id=?2 ORDER BY active DESC,k.created_at DESC,k.id LIMIT 100
 `
+
+type ListCustomerKeysParams struct {
+	Now      int64
+	TenantID string
+}
 
 type ListCustomerKeysRow struct {
 	ID         string
@@ -176,10 +182,11 @@ type ListCustomerKeysRow struct {
 	LastUsedAt sql.NullInt64
 	RevokedAt  sql.NullInt64
 	ExpiresAt  int64
+	Active     interface{}
 }
 
-func (q *Queries) ListCustomerKeys(ctx context.Context, tenantID string) ([]ListCustomerKeysRow, error) {
-	rows, err := q.db.QueryContext(ctx, listCustomerKeys, tenantID)
+func (q *Queries) ListCustomerKeys(ctx context.Context, arg ListCustomerKeysParams) ([]ListCustomerKeysRow, error) {
+	rows, err := q.db.QueryContext(ctx, listCustomerKeys, arg.Now, arg.TenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +201,7 @@ func (q *Queries) ListCustomerKeys(ctx context.Context, tenantID string) ([]List
 			&i.LastUsedAt,
 			&i.RevokedAt,
 			&i.ExpiresAt,
+			&i.Active,
 		); err != nil {
 			return nil, err
 		}
