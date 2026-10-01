@@ -54,6 +54,58 @@ func (q *Queries) AdvancePollCursor(ctx context.Context, arg AdvancePollCursorPa
 	return err
 }
 
+const catalogueSources = `-- name: CatalogueSources :many
+SELECT s.id,s.url,s.title,s.enabled AS source_enabled,coalesce(p.approved,0) AS approved,coalesce(p.enabled,0) AS poll_enabled,coalesce(p.mode,'') AS mode,coalesce(p.interval_us,0) AS interval_us,coalesce(p.max_bytes,0) AS max_bytes,coalesce(p.next_at,0) AS next_at
+FROM sources s LEFT JOIN poll_sources p ON p.tenant_id=s.tenant_id AND p.source_id=s.id WHERE s.tenant_id=? ORDER BY s.id
+`
+
+type CatalogueSourcesRow struct {
+	ID            string
+	Url           string
+	Title         string
+	SourceEnabled int64
+	Approved      int64
+	PollEnabled   int64
+	Mode          string
+	IntervalUs    int64
+	MaxBytes      int64
+	NextAt        int64
+}
+
+func (q *Queries) CatalogueSources(ctx context.Context, tenantID string) ([]CatalogueSourcesRow, error) {
+	rows, err := q.db.QueryContext(ctx, catalogueSources, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CatalogueSourcesRow{}
+	for rows.Next() {
+		var i CatalogueSourcesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.Title,
+			&i.SourceEnabled,
+			&i.Approved,
+			&i.PollEnabled,
+			&i.Mode,
+			&i.IntervalUs,
+			&i.MaxBytes,
+			&i.NextAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const configurePoll = `-- name: ConfigurePoll :exec
 INSERT INTO poll_sources(tenant_id,source_id,approved_url,approved,enabled,interval_us,max_bytes,next_at)
 VALUES(?1,?2,?3,?4,?5,?6,?7,?8) ON CONFLICT(tenant_id,source_id) DO UPDATE SET
@@ -272,6 +324,23 @@ func (q *Queries) OtherPollSources(ctx context.Context, arg OtherPollSourcesPara
 	return count, err
 }
 
+const otherSourceURL = `-- name: OtherSourceURL :one
+SELECT count(*) FROM sources WHERE tenant_id=?1 AND url=?2 AND id!=?3
+`
+
+type OtherSourceURLParams struct {
+	TenantID string
+	Url      string
+	ID       string
+}
+
+func (q *Queries) OtherSourceURL(ctx context.Context, arg OtherSourceURLParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, otherSourceURL, arg.TenantID, arg.Url, arg.ID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const pendingPoll = `-- name: PendingPoll :one
 SELECT a.source_id,a.reserved_bytes,a.lease_until,ps.etag,ps.modified,ps.mode,ps.preview_allowed,ps.robots_until,ps.approved_url
 FROM poll_attempts a JOIN poll_sources ps ON ps.tenant_id=a.tenant_id AND ps.source_id=a.source_id AND ps.claim_id=a.id
@@ -314,7 +383,7 @@ func (q *Queries) PendingPoll(ctx context.Context, arg PendingPollParams) (Pendi
 }
 
 const pilotPollConfig = `-- name: PilotPollConfig :one
-SELECT approved_url,approved,enabled,interval_us,max_bytes FROM poll_sources WHERE tenant_id=?1 AND source_id=?2
+SELECT approved_url,approved,enabled,interval_us,max_bytes,mode FROM poll_sources WHERE tenant_id=?1 AND source_id=?2
 `
 
 type PilotPollConfigParams struct {
@@ -328,6 +397,7 @@ type PilotPollConfigRow struct {
 	Enabled     int64
 	IntervalUs  int64
 	MaxBytes    int64
+	Mode        string
 }
 
 func (q *Queries) PilotPollConfig(ctx context.Context, arg PilotPollConfigParams) (PilotPollConfigRow, error) {
@@ -339,6 +409,7 @@ func (q *Queries) PilotPollConfig(ctx context.Context, arg PilotPollConfigParams
 		&i.Enabled,
 		&i.IntervalUs,
 		&i.MaxBytes,
+		&i.Mode,
 	)
 	return i, err
 }

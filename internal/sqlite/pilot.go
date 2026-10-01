@@ -20,6 +20,9 @@ type PilotSource struct {
 	FeedIDs        []string
 	Interval       time.Duration
 	MaxBytes       int64
+	Disabled       bool
+	Activate       bool // Explicit operator-reviewed transition from disabled policy only.
+	InitialDelay   time.Duration
 }
 type PilotFeed struct {
 	ID, Title    string
@@ -45,6 +48,7 @@ func (s *Store) provisionProfile(ctx context.Context, tenant identity.TenantID, 
 		return ingest.ErrInvalid
 	}
 	feedSet, sourceSet := map[string]bool{}, map[string]bool{}
+	sourceURLs := map[string]bool{}
 	for _, f := range feeds {
 		if len(f.Categories) == 0 || identity.ValidateID(f.ID) != nil || !text(f.Title, 512, false) || feedSet[f.ID] || (feed.Preferences{Categories: f.Categories, Sources: []feed.SourceRule{{SourceID: "00000000-0000-4000-8000-000000000000", PublisherGroup: "validation", Categories: f.Categories[:1]}}, Exclude: []string{}, UseContext: f.UseContext, PublisherCap: f.PublisherCap}).Validate() != nil {
 			return ingest.ErrInvalid
@@ -52,13 +56,14 @@ func (s *Store) provisionProfile(ctx context.Context, tenant identity.TenantID, 
 		feedSet[f.ID] = true
 	}
 	for _, v := range sources {
-		if identity.ValidateID(v.ID) != nil || sourceSet[v.ID] || !pollURL(v.URL) || !text(v.Title, 512, false) || v.Interval < time.Hour || v.Interval > 7*24*time.Hour || v.MaxBytes < 1024 || v.MaxBytes > ingest.MaxResponseBytes || len(v.FeedIDs) == 0 {
+		if identity.ValidateID(v.ID) != nil || sourceSet[v.ID] || sourceURLs[v.URL] || !pollURL(v.URL) || !text(v.Title, 512, false) || v.Interval < time.Hour || v.Interval > 7*24*time.Hour || v.MaxBytes < 1024 || v.MaxBytes > ingest.MaxResponseBytes || v.InitialDelay < 0 || v.InitialDelay >= v.Interval || (v.Disabled && v.Activate) || len(v.FeedIDs) == 0 {
 			return ingest.ErrInvalid
 		}
 		if !text(v.PublisherGroup, 64, false) || len(v.Categories) != 1 || !feed.Category(v.Categories[0]) {
 			return ingest.ErrInvalid
 		}
 		sourceSet[v.ID] = true
+		sourceURLs[v.URL] = true
 		seen := map[string]bool{}
 		for _, id := range v.FeedIDs {
 			if !feedSet[id] || seen[id] {
@@ -124,6 +129,13 @@ func (s *Store) provisionProfile(ctx context.Context, tenant identity.TenantID, 
 		}
 		missingPolls := int64(0)
 		for _, v := range sources {
+			duplicates, err := q.OtherSourceURL(ctx, sqlc.OtherSourceURLParams{TenantID: string(tenant), Url: v.URL, ID: v.ID})
+			if err != nil {
+				return err
+			}
+			if duplicates != 0 {
+				return ErrPilotConflict
+			}
 			poll, err := q.PilotPollConfig(ctx, sqlc.PilotPollConfigParams{TenantID: string(tenant), SourceID: v.ID})
 			if errors.Is(err, sql.ErrNoRows) {
 				missingPolls++
@@ -132,7 +144,7 @@ func (s *Store) provisionProfile(ctx context.Context, tenant identity.TenantID, 
 			if err != nil {
 				return err
 			}
-			if poll.ApprovedUrl != v.URL || poll.Approved != 1 || poll.Enabled != 1 || poll.IntervalUs != v.Interval.Microseconds() || poll.MaxBytes != v.MaxBytes {
+			if poll.Mode != "feed" || poll.ApprovedUrl != v.URL || (!matchesProfilePolicy(poll.Approved, poll.Enabled, v)) || poll.IntervalUs != v.Interval.Microseconds() || poll.MaxBytes != v.MaxBytes {
 				return ErrPilotConflict
 			}
 		}
@@ -157,12 +169,16 @@ func (s *Store) provisionProfile(ctx context.Context, tenant identity.TenantID, 
 			}
 			poll, err := q.PilotPollConfig(ctx, sqlc.PilotPollConfigParams{TenantID: string(tenant), SourceID: v.ID})
 			if errors.Is(err, sql.ErrNoRows) {
-				if err = q.ConfigurePoll(ctx, sqlc.ConfigurePollParams{TenantID: string(tenant), SourceID: v.ID, ApprovedUrl: v.URL, Approved: 1, Enabled: 1, IntervalUs: v.Interval.Microseconds(), MaxBytes: v.MaxBytes, NextAt: now.UnixMicro()}); err != nil {
+				if err = q.ConfigurePoll(ctx, sqlc.ConfigurePollParams{TenantID: string(tenant), SourceID: v.ID, ApprovedUrl: v.URL, Approved: profileEnabled(v), Enabled: profileEnabled(v), IntervalUs: v.Interval.Microseconds(), MaxBytes: v.MaxBytes, NextAt: now.Add(v.InitialDelay).UnixMicro()}); err != nil {
 					return err
 				}
 			} else if err != nil {
 				return err
-			} else if poll.ApprovedUrl != v.URL || poll.Approved != 1 || poll.Enabled != 1 || poll.IntervalUs != v.Interval.Microseconds() || poll.MaxBytes != v.MaxBytes {
+			} else if poll.Mode == "feed" && v.Activate && poll.Approved == 0 && poll.Enabled == 0 && poll.ApprovedUrl == v.URL && poll.IntervalUs == v.Interval.Microseconds() && poll.MaxBytes == v.MaxBytes {
+				if err = q.ConfigurePoll(ctx, sqlc.ConfigurePollParams{TenantID: string(tenant), SourceID: v.ID, ApprovedUrl: v.URL, Approved: 1, Enabled: 1, IntervalUs: v.Interval.Microseconds(), MaxBytes: v.MaxBytes, NextAt: now.Add(v.InitialDelay).UnixMicro()}); err != nil {
+					return err
+				}
+			} else if poll.Mode != "feed" || poll.ApprovedUrl != v.URL || (!matchesProfilePolicy(poll.Approved, poll.Enabled, v)) || poll.IntervalUs != v.Interval.Microseconds() || poll.MaxBytes != v.MaxBytes {
 				return ErrPilotConflict
 			}
 		}
@@ -202,4 +218,15 @@ func (s *Store) provisionProfile(ctx context.Context, tenant identity.TenantID, 
 		}
 		return nil
 	})
+}
+
+func profileEnabled(v PilotSource) int64 {
+	if v.Disabled {
+		return 0
+	}
+	return 1
+}
+func matchesProfilePolicy(approved, enabled int64, v PilotSource) bool {
+	want := profileEnabled(v)
+	return (approved == want && enabled == want) || (v.Activate && approved == 0 && enabled == 0)
 }

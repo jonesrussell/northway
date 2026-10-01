@@ -25,6 +25,8 @@ type Config struct {
 	AssertionAudience string
 	AssertionKeys     string // Public verification material only, never private seeds.
 	CustomerCatalogue string
+	CuratedManifest   string
+	CuratedSHA256     string
 	CollectionAPI     bool
 }
 
@@ -79,14 +81,22 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	config.AssertionAudience = env("NORTHCLOUD_ASSERTION_AUDIENCE", "")
 	config.AssertionKeys = env("NORTHCLOUD_ASSERTION_KEYS", "")
 	config.CustomerCatalogue = env("NORTHCLOUD_CATALOGUE", "")
+	config.CuratedManifest = env("NORTHCLOUD_CURATED_MANIFEST", "")
+	config.CuratedSHA256 = env("NORTHCLOUD_CURATED_SHA256", "")
 	return config, config.Validate()
 }
 
 func (c Config) Validate() error {
+	if c.CustomerCatalogue == "curated-v1" && (c.CuratedManifest == "" || len(c.CuratedSHA256) != 64) {
+		return errors.New("curated catalogue requires exact operator register and digest")
+	}
+	if c.CustomerCatalogue != "curated-v1" && (c.CuratedManifest != "" || c.CuratedSHA256 != "") {
+		return errors.New("curated register requires curated-v1 mode")
+	}
 	if c.CollectionAPI && c.DatabasePath == "" {
 		return errors.New("collection API requires migrated storage")
 	}
-	if c.CustomerCatalogue != "" && (c.CustomerCatalogue != "developer-v1" || c.AssertionKeys == "" || c.PollTenant != "") {
+	if c.CustomerCatalogue != "" && ((c.CustomerCatalogue != "developer-v1" && c.CustomerCatalogue != "curated-v1") || c.AssertionKeys == "" || c.PollTenant != "") {
 		return errors.New("customer catalogue requires assertion keys and exclusive customer polling mode")
 	}
 	if _, err := c.verificationKeys(); err != nil {

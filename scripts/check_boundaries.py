@@ -4,12 +4,13 @@ import subprocess
 import sys
 
 MODULE = "github.com/jonesrussell/northway"
-FEATURES = {"identity", "source", "article", "feed", "ingest", "query", "ranking", "feedback", "usage", "schedule"}
+FEATURES = {"identity", "source", "article", "feed", "ingest", "query", "ranking", "feedback", "usage", "schedule", "catalogue"}
 ALLOWED = {
     "db": set(),
     "app": FEATURES | {"httpapi", "sqlite", "fetch", "providers"},
     "httpapi": FEATURES,
     "identity": set(),
+    "catalogue": set(),
     "source": {"identity"},
     "article": {"identity", "source"},
     "feed": {"identity", "source", "article"},

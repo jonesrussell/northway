@@ -2,7 +2,7 @@
 SELECT count(*) FROM poll_sources;
 
 -- name: PilotPollConfig :one
-SELECT approved_url,approved,enabled,interval_us,max_bytes FROM poll_sources WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.arg(source_id);
+SELECT approved_url,approved,enabled,interval_us,max_bytes,mode FROM poll_sources WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.arg(source_id);
 
 -- name: PollSourceURL :one
 SELECT url FROM sources WHERE tenant_id=sqlc.arg(tenant_id) AND id=sqlc.arg(source_id);
@@ -88,3 +88,10 @@ SELECT id FROM articles WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.a
 UPDATE poll_sources SET next_at=max(CAST(sqlc.arg(next_at) AS INTEGER),coalesce(last_attempt+interval_us,0)),
 last_error=CASE WHEN claim_id IS NOT NULL THEN 'reset' ELSE last_error END,claim_id=NULL
 WHERE tenant_id=sqlc.arg(tenant_id) AND source_id=sqlc.arg(source_id);
+
+-- name: OtherSourceURL :one
+SELECT count(*) FROM sources WHERE tenant_id=sqlc.arg(tenant_id) AND url=sqlc.arg(url) AND id!=sqlc.arg(id);
+
+-- name: CatalogueSources :many
+SELECT s.id,s.url,s.title,s.enabled AS source_enabled,coalesce(p.approved,0) AS approved,coalesce(p.enabled,0) AS poll_enabled,coalesce(p.mode,'') AS mode,coalesce(p.interval_us,0) AS interval_us,coalesce(p.max_bytes,0) AS max_bytes,coalesce(p.next_at,0) AS next_at
+FROM sources s LEFT JOIN poll_sources p ON p.tenant_id=s.tenant_id AND p.source_id=s.id WHERE s.tenant_id=? ORDER BY s.id;

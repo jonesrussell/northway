@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jonesrussell/northway/internal/catalogue"
 	"github.com/jonesrussell/northway/internal/feedback"
 	"github.com/jonesrussell/northway/internal/fetch"
 	"github.com/jonesrussell/northway/internal/httpapi"
@@ -57,8 +58,17 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 				return err
 			}
 			var catalogue func(context.Context, identity.Principal) error
-			if config.CustomerCatalogue == "developer-v1" {
+			if config.CustomerCatalogue != "" {
 				catalogue = store.ProvisionCustomerCatalogue
+				if config.CustomerCatalogue == "curated-v1" {
+					b, e := catalogueRegister(config)
+					if e != nil {
+						return e
+					}
+					catalogue = func(ctx context.Context, p identity.Principal) error {
+						return store.ProvisionCustomerCuratedCatalogue(ctx, p, b)
+					}
+				}
 				publisher = &customerPublisher{store: store, runner: ingest.New(store, fetch.New()), logger: logger}
 				collectionStatus = collectionState(publisher.Status, func(healthCtx context.Context) (bool, error) {
 					tenants, err := store.CustomerTenants(healthCtx)
@@ -240,4 +250,12 @@ func serve(ctx context.Context, listener net.Listener, config Config, handler ht
 		logger.Info("server stopped")
 		return nil
 	}
+}
+
+func catalogueRegister(c Config) (catalogue.Manifest, error) {
+	b, e := catalogue.Read(c.CuratedManifest)
+	if e != nil {
+		return catalogue.Manifest{}, e
+	}
+	return catalogue.Parse(b, c.CuratedSHA256)
 }
