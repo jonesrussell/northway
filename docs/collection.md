@@ -98,7 +98,8 @@ retired shared-secret MCP service. Existing RequireManagement, RequireOperator
 and external feed scopes are unchanged. No remote issuance endpoint, operational
 grant, or deployment enablement is included. The durable grant store contains
 only SHA-256 digests of randomly generated 256-bit secrets; authentication checks
-expiry/revocation on every request and during last-used settlement. Grants are
+expiry/revocation on every request, during last-used settlement, and inside the
+serialized seed mutation transaction. Grants are
 tenant-bound, at most 24 hours, individually revocable, and capped at 100 records
 per tenant (including historical records). Tenant suspension/deletion and the
 shared 60 authenticated requests/minute budget apply to the adapter. Deletion

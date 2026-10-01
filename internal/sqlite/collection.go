@@ -164,6 +164,21 @@ func (s *Store) AddCollectionSeed(ctx context.Context, p identity.Principal, v i
 		return ingest.ErrInvalid
 	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
+		// Serialized with revocation: stale request principals cannot mutate after
+		// an expiry/revocation already committed. Local operators remain distinct.
+		if _, operatorErr := p.RequireOperator(); operatorErr != nil {
+			grant, grantErr := q.LookupAgentGrant(ctx, p.KeyID())
+			now := time.Now().UTC().UnixMicro()
+			if errors.Is(grantErr, sql.ErrNoRows) {
+				return identity.ErrUnauthorized
+			}
+			if grantErr != nil {
+				return grantErr
+			}
+			if grant.TenantID != string(tenant) || grant.RevokedAt.Valid || grant.CreatedAt > now || grant.ExpiresAt <= now || identity.CollectionScopes(grant.Scopes)&identity.CollectionSeed == 0 {
+				return identity.ErrUnauthorized
+			}
+		}
 		old, e := q.PollSourceURL(ctx, sqlc.PollSourceURLParams{TenantID: string(tenant), SourceID: v.ID})
 		if e == nil {
 			mode, e := q.CollectionSeedMode(ctx, sqlc.CollectionSeedModeParams{TenantID: string(tenant), SourceID: v.ID})
