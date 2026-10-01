@@ -42,11 +42,16 @@ func TestCollectionAgentAdapterSeedScopeTenantAndRevocation(t *testing.T) {
 		if code != 200 {
 			t.Fatal(code, string(b))
 		}
-		var r struct{ Enabled, Approved bool }
+		var r map[string]any
 		check(t, json.Unmarshal(b, &r))
-		if r.Enabled || r.Approved {
+		if r["acquisition_changed"] != false {
 			t.Fatal("seed enabled")
 		}
+	}
+	owned, e := f.s.CollectionStatus(t.Context(), f.one)
+	check(t, e)
+	if owned.Enabled != 0 || owned.Seeds != 1 {
+		t.Fatal("admission enabled collection", owned)
 	}
 	code, b, _ := collectionRequest(f, t, "GET", "/v1/collection/status", "", other, "", nil)
 	if code != 200 {

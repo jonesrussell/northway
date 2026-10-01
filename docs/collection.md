@@ -108,7 +108,9 @@ also erases grant records.
 Product operation contract for the platform manifest:
 - collection.seed: POST /v1/collection/seeds; scope collection:seed;
   input {id: UUID, url: exact HTTPS URL, title: string}; result
-  {id, approved:false, enabled:false}. Retry same ID/URL is safe; different
+  {id, acquisition_changed:false}. New seeds are disabled/unapproved;
+  retrying an existing seed preserves its current operator policy. Retry same
+  ID/URL is safe; different
   tenant selection, enablement fields and changed source URLs are rejected.
 - collection.status: GET /v1/collection/status; scope collection:status;
   no input; result {seeds,enabled,items,revisions}, tenant scoped.

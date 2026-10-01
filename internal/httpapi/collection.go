@@ -86,7 +86,7 @@ func WithCollectionAPI(fallback http.Handler, auth Authenticator, store Collecti
 			serviceProblem(w, e)
 			return
 		}
-		customerJSON(w, 200, map[string]any{"id": seed.ID, "approved": false, "enabled": false})
+		customerJSON(w, 200, map[string]any{"id": seed.ID, "acquisition_changed": false})
 	}))
 	mux.Handle("GET /v1/collection/status", require(identity.CollectionStatus, func(w http.ResponseWriter, r *http.Request, p identity.Principal) {
 		if !empty(r) || r.URL.RawQuery != "" {
