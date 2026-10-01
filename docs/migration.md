@@ -61,3 +61,19 @@ The [roadmap](roadmap.md) defines retirement prerequisites. A new repository or 
 - Cutover: none. Sources stay disabled; no scheduler, publisher acquisition, provider export, production migration or deployment was run. #46 source permissions/access and #20/#36 device/recovery remain open.
 - Rollback: forward-only migration 5; older binaries refuse the newer schema. Restore a coherent pre-migration backup or apply a forward fix. No North Cloud consumer is moved by this import.
 - Status: implementation imported; activation/cutover not performed. Acceptance is recorded in the #12 PR and CI evidence.
+
+## 2026-10-01: bounded creator observation slice
+
+Current consumers: NorthCloud controlled collection fixture and FETDER evergreen
+creator page. Concepts selectively adapted from jonesrussell/north-cloud at
+51b877de7dab311c981dcdb4d38dfdca9965aeb1:
+crawler/internal/fetcher/extractor.go (OG metadata),
+crawler/internal/domain/frontier.go (explicit origin/due/lease state),
+crawler/internal/frontier/normalize.go (identity considerations, not its aggressive
+URL rewriting). Owner authorized selective reuse of first-party concepts.
+No whole source package or predecessor service dependency imported; existing
+third-party notices remain authoritative, x/net's maintained tokenizer was already
+locked and its BSD notice is retained. URL-derived stable identity, versioned
+observations, SQLite replay and existing transport/budgets replace body hashes,
+PostgreSQL frontier SQL and ES/Redis outputs. No predecessor server is involved.
+See [collection contract](collection.md) and focused collection/parser tests.

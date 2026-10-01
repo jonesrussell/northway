@@ -106,7 +106,7 @@ func CustomerSupport(ctx context.Context, path string, tenant identity.TenantID,
 		if err := q.PreserveErasedAcquisitionUsage(ctx, string(tenant)); err != nil {
 			return err
 		}
-		for _, remove := range []func(context.Context, string) error{q.DeleteCustomerKeyExpiries, q.DeleteCustomerKeys, q.DeleteCustomerFeedback, q.DeleteCustomerWork, q.DeleteCustomerSnapshots, q.DeleteCustomerPollAttempts, q.DeleteCustomerPollSources, q.DeleteCustomerPollCursors, q.DeleteCustomerFeedSources, q.DeleteCustomerFeeds, q.DeleteCustomerArticles, q.DeleteCustomerSources, q.DeleteCustomerBudgets, q.DeleteCustomerRequests, q.DeleteCustomerMarker} {
+		for _, remove := range []func(context.Context, string) error{q.DeleteCustomerKeyExpiries, q.DeleteCustomerKeys, q.DeleteCustomerFeedback, q.DeleteCustomerWork, q.DeleteCustomerSnapshots, q.DeleteCustomerPollAttempts, q.DeleteCustomerPollSources, q.DeleteCustomerPollCursors, q.DeleteCustomerFeedSources, q.DeleteCustomerFeeds, q.DeleteCustomerArticles, q.DeleteCollectionEvents, q.DeleteCollectionItems, q.DeleteCustomerSources, q.DeleteCustomerBudgets, q.DeleteCustomerRequests, q.DeleteCustomerMarker} {
 			if err := remove(ctx, string(tenant)); err != nil {
 				return err
 			}

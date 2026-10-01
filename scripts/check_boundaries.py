@@ -27,6 +27,7 @@ EXTERNAL = {
     "github.com/pressly/goose/v3": {"sqlite"},
     "modernc.org/sqlite": {"sqlite"},
     "github.com/mmcdole/gofeed": {"fetch"},
+    "golang.org/x/net": {"fetch"},
     "github.com/anthropics/anthropic-sdk-go": {"providers"},
     "golang.org/x/sync": {"app", "ingest", "query", "schedule"},
     "golang.org/x/time": {"fetch", "ingest", "httpapi"},

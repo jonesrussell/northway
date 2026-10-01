@@ -32,7 +32,7 @@ func (s *Store) ConfigurePoll(ctx context.Context, p identity.Principal, v inges
 	if err != nil {
 		return err
 	}
-	if !pollURL(v.URL) || v.Interval < time.Hour || v.Interval > 7*24*time.Hour || v.MaxBytes < 1024 || v.MaxBytes > ingest.MaxResponseBytes || v.Enabled && !v.Approved {
+	if (v.Mode != "" && v.Mode != "feed" && v.Mode != "html") || (v.Mode == "html" && (!v.RobotsUntil.After(s.queryTime()) || v.RobotsUntil.After(s.queryTime().Add(24*time.Hour)))) || !pollURL(v.URL) || v.Interval < time.Hour || v.Interval > 7*24*time.Hour || v.MaxBytes < 1024 || v.MaxBytes > ingest.MaxResponseBytes || v.Enabled && !v.Approved {
 		return ingest.ErrInvalid
 	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
@@ -64,11 +64,29 @@ func (s *Store) ConfigurePoll(ctx context.Context, p identity.Principal, v inges
 		if v.Enabled {
 			enabled = 1
 		}
-		return q.ConfigurePoll(ctx, sqlc.ConfigurePollParams{TenantID: string(tenant), SourceID: v.SourceID, ApprovedUrl: v.URL, Approved: approved, Enabled: enabled, IntervalUs: v.Interval.Microseconds(), MaxBytes: v.MaxBytes, NextAt: now.UnixMicro()})
+		err = q.ConfigurePoll(ctx, sqlc.ConfigurePollParams{TenantID: string(tenant), SourceID: v.SourceID, ApprovedUrl: v.URL, Approved: approved, Enabled: enabled, IntervalUs: v.Interval.Microseconds(), MaxBytes: v.MaxBytes, NextAt: now.UnixMicro()})
+		if err != nil {
+			return err
+		}
+		if v.Mode == "html" {
+			var preview int64
+			if v.PreviewAllowed {
+				preview = 1
+			}
+			return q.SetCollectionMode(ctx, sqlc.SetCollectionModeParams{TenantID: string(tenant), SourceID: v.SourceID, PreviewAllowed: preview, RobotsUntil: v.RobotsUntil.UnixMicro()})
+		}
+		return nil
 	})
 }
 
 func (s *Store) ClaimPoll(ctx context.Context, p identity.Principal) (ingest.Claim, error) {
+	return s.claimPoll(ctx, p, "feed")
+}
+
+func (s *Store) ClaimCollection(ctx context.Context, p identity.Principal) (ingest.Claim, error) {
+	return s.claimPoll(ctx, p, "html")
+}
+func (s *Store) claimPoll(ctx context.Context, p identity.Principal, mode string) (ingest.Claim, error) {
 	tenant, err := p.RequireOperator()
 	if err != nil {
 		return ingest.Claim{}, err
@@ -107,7 +125,7 @@ func (s *Store) ClaimPoll(ctx context.Context, p identity.Principal) (ingest.Cla
 		// Only due, approved, enabled sources enter this bounded cyclic selection.
 		// Held/not-due sources are skipped without pinning the cursor. Budget failure
 		// leaves the next due source first, regardless of whether bytes or attempts ran out.
-		due, err := q.NextPollSources(ctx, sqlc.NextPollSourcesParams{TenantID: string(tenant), NowAt: at})
+		due, err := q.NextPollSources(ctx, sqlc.NextPollSourcesParams{TenantID: string(tenant), NowAt: at, Mode: mode})
 		if err != nil {
 			return err
 		}
@@ -115,6 +133,25 @@ func (s *Store) ClaimPoll(ctx context.Context, p identity.Principal) (ingest.Cla
 			outcome = ingest.ErrIdle
 			return nil
 		}
+		eligible := due[:0]
+		for _, v := range due {
+			if mode == "html" {
+				u, _ := url.Parse(v.ApprovedUrl)
+				hold, e := q.CollectionHostDue(ctx, u.Hostname())
+				if e != nil {
+					return e
+				}
+				if hold > at || v.RobotsUntil <= at {
+					continue
+				}
+			}
+			eligible = append(eligible, v)
+		}
+		if len(eligible) == 0 {
+			outcome = ingest.ErrIdle
+			return nil
+		}
+		due = eligible
 		selected := due[0]
 		for _, v := range due {
 			if v.SourceID > cursor {
@@ -133,12 +170,18 @@ func (s *Store) ClaimPoll(ctx context.Context, p identity.Principal) (ingest.Cla
 			outcome = ingest.ErrBudget
 			return nil
 		}
-		claim = ingest.Claim{ID: queryID(), SourceID: selected.SourceID, URL: selected.ApprovedUrl, ETag: selected.Etag, LastModified: selected.Modified, MaxBytes: selected.MaxBytes, Until: now.Add(ingest.LeaseDuration)}
+		claim = ingest.Claim{ID: queryID(), SourceID: selected.SourceID, URL: selected.ApprovedUrl, ETag: selected.Etag, LastModified: selected.Modified, MaxBytes: selected.MaxBytes, Until: now.Add(ingest.LeaseDuration), Mode: selected.Mode, PreviewAllowed: selected.PreviewAllowed == 1, RobotsUntil: time.UnixMicro(selected.RobotsUntil)}
 		if err := q.InsertPollAttempt(ctx, sqlc.InsertPollAttemptParams{ID: claim.ID, TenantID: string(tenant), SourceID: claim.SourceID, StartedAt: at, LeaseUntil: claim.Until.UnixMicro(), ChargedAt: at, ChargedBytes: claim.MaxBytes, ReservedBytes: claim.MaxBytes}); err != nil {
 			return err
 		}
 		if err := q.MarkPollStarted(ctx, sqlc.MarkPollStartedParams{ClaimID: sql.NullString{String: claim.ID, Valid: true}, LastAttempt: sql.NullInt64{Int64: at, Valid: true}, NextAt: at + selected.IntervalUs, TenantID: string(tenant), SourceID: claim.SourceID}); err != nil {
 			return err
+		}
+		if mode == "html" {
+			u, _ := url.Parse(selected.ApprovedUrl)
+			if e := q.HoldCollectionHost(ctx, sqlc.HoldCollectionHostParams{Host: u.Hostname(), NextAt: at + int64(10*time.Second/time.Microsecond)}); e != nil {
+				return e
+			}
 		}
 		return q.AdvancePollCursor(ctx, sqlc.AdvancePollCursorParams{TenantID: string(tenant), SourceID: claim.SourceID})
 	})
@@ -158,7 +201,7 @@ func validHeader(v string) bool {
 	return len(v) <= 1024 && text(v, 1024, true) && !strings.ContainsAny(v, "\r\n")
 }
 func validResult(r ingest.Result) bool {
-	if r.Bytes < 0 || r.Bytes > ingest.MaxResponseBytes || len(r.Items) > ingest.MaxItems || !validHeader(r.ETag) || !validHeader(r.LastModified) || (!r.NotBefore.IsZero() && !validTimestamp(r.NotBefore)) {
+	if r.Bytes < 0 || r.Bytes > ingest.MaxResponseBytes || len(r.Items) > ingest.MaxItems || len(r.Observations) > 100 || !validHeader(r.ETag) || !validHeader(r.LastModified) || (!r.NotBefore.IsZero() && !validTimestamp(r.NotBefore)) {
 		return false
 	}
 	switch r.Failure {
@@ -170,9 +213,9 @@ func validResult(r ingest.Result) bool {
 		return false
 	}
 	if r.Failure != "" {
-		return len(r.Items) == 0
+		return len(r.Items) == 0 && len(r.Observations) == 0
 	}
-	if r.Status != 200 && r.Status != 304 || r.Status == 304 && (len(r.Items) != 0 || r.Bytes != 0) {
+	if r.Status != 200 && r.Status != 304 && r.Status != 404 && r.Status != 410 || r.Status == 304 && (len(r.Items) != 0 || len(r.Observations) != 0 || r.Bytes != 0) {
 		return false
 	}
 	seen := map[string]bool{}
@@ -222,7 +265,17 @@ func (s *Store) FinishPoll(ctx context.Context, p identity.Principal, id string,
 		if r.Failure == "" && r.Status == 304 && w.Etag == "" && w.Modified == "" {
 			return ingest.ErrInvalid
 		}
-		if r.Failure == "" && r.Status == 200 {
+		if w.Mode == "html" && r.Failure == "" {
+			if len(r.Items) != 0 {
+				return ingest.ErrInvalid
+			}
+			if err := putCollection(ctx, q, string(tenant), w.SourceID, w.ApprovedUrl, w.PreviewAllowed == 1, r, now); err != nil {
+				return err
+			}
+		} else if w.Mode == "feed" && (len(r.Observations) != 0 || r.Failure == "" && r.Status != 200 && r.Status != 304) {
+			return ingest.ErrInvalid
+		}
+		if w.Mode == "feed" && r.Failure == "" && r.Status == 200 {
 			for _, v := range r.Items {
 				if err := putFeedItem(ctx, q, string(tenant), w.SourceID, v, now); err != nil {
 					return err

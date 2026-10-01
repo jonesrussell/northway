@@ -15,7 +15,7 @@ INSERT INTO poll_sources(tenant_id,source_id,approved_url,approved,enabled,inter
 VALUES(sqlc.arg(tenant_id),sqlc.arg(source_id),sqlc.arg(approved_url),sqlc.arg(approved),sqlc.arg(enabled),sqlc.arg(interval_us),sqlc.arg(max_bytes),sqlc.arg(next_at)) ON CONFLICT(tenant_id,source_id) DO UPDATE SET
 approved_url=excluded.approved_url,approved=excluded.approved,enabled=excluded.enabled,
 interval_us=excluded.interval_us,max_bytes=excluded.max_bytes,
-next_at=max(poll_sources.next_at,excluded.next_at),etag='',modified='',claim_id=NULL;
+next_at=max(poll_sources.next_at,excluded.next_at),etag='',modified='',claim_id=NULL,mode='feed',preview_allowed=0,robots_until=0;
 
 -- name: AbandonPollSources :exec
 UPDATE poll_sources SET claim_id=NULL,last_error='abandoned'
@@ -34,9 +34,9 @@ SELECT count(*) FROM poll_attempts WHERE state='pending';
 SELECT source_id FROM poll_cursors WHERE tenant_id=sqlc.arg(tenant_id);
 
 -- name: NextPollSources :many
-SELECT ps.source_id,ps.approved_url,ps.etag,ps.modified,ps.max_bytes,ps.interval_us
+SELECT ps.source_id,ps.approved_url,ps.etag,ps.modified,ps.max_bytes,ps.interval_us,ps.mode,ps.preview_allowed,ps.robots_until
 FROM poll_sources ps JOIN sources s ON s.tenant_id=ps.tenant_id AND s.id=ps.source_id
-WHERE ps.tenant_id=sqlc.arg(tenant_id) AND ps.enabled=1 AND ps.approved=1 AND s.enabled=1 AND s.url=ps.approved_url AND ps.next_at<=sqlc.arg(now_at)
+WHERE ps.tenant_id=sqlc.arg(tenant_id) AND ps.enabled=1 AND ps.approved=1 AND ps.mode=sqlc.arg(mode) AND s.enabled=1 AND s.url=ps.approved_url AND ps.next_at<=sqlc.arg(now_at)
 ORDER BY ps.source_id LIMIT 100;
 
 -- name: PollWindow :one
@@ -53,7 +53,7 @@ UPDATE poll_sources SET claim_id=sqlc.arg(claim_id),last_attempt=sqlc.arg(last_a
 INSERT INTO poll_cursors(tenant_id,source_id) VALUES(sqlc.arg(tenant_id),sqlc.arg(source_id)) ON CONFLICT(tenant_id) DO UPDATE SET source_id=excluded.source_id;
 
 -- name: PendingPoll :one
-SELECT a.source_id,a.reserved_bytes,a.lease_until,ps.etag,ps.modified
+SELECT a.source_id,a.reserved_bytes,a.lease_until,ps.etag,ps.modified,ps.mode,ps.preview_allowed,ps.robots_until,ps.approved_url
 FROM poll_attempts a JOIN poll_sources ps ON ps.tenant_id=a.tenant_id AND ps.source_id=a.source_id AND ps.claim_id=a.id
 JOIN sources s ON s.tenant_id=ps.tenant_id AND s.id=ps.source_id
 WHERE a.tenant_id=sqlc.arg(tenant_id) AND a.id=sqlc.arg(id) AND a.state='pending' AND ps.enabled=1 AND ps.approved=1 AND s.enabled=1 AND s.url=ps.approved_url;

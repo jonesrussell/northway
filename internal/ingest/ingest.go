@@ -38,6 +38,9 @@ type Policy struct {
 	SourceID          string
 	URL               string
 	Approved, Enabled bool
+	Mode              string
+	PreviewAllowed    bool
+	RobotsUntil       time.Time
 	Interval          time.Duration
 	MaxBytes          int64
 }
@@ -46,6 +49,9 @@ type Claim struct {
 	ID, SourceID, URL, ETag, LastModified string
 	MaxBytes                              int64
 	Until                                 time.Time
+	Mode                                  string
+	PreviewAllowed                        bool
+	RobotsUntil                           time.Time
 }
 
 // Item contains no publisher body, excerpt, enclosure or remotely chosen source.
@@ -60,6 +66,7 @@ type Result struct {
 	NotBefore          time.Time
 	Bytes              int64
 	Items              []Item
+	Observations       []Observation
 	Failure            string // fixed category only; never raw publisher/transport errors
 }
 

@@ -54,6 +54,29 @@ type Budget struct {
 	HeldMicros  int64
 }
 
+type CollectionEvent struct {
+	Sequence int64
+	TenantID string
+	SourceID string
+	ItemID   string
+	Revision int64
+	Payload  string
+}
+
+type CollectionHost struct {
+	Host   string
+	NextAt int64
+}
+
+type CollectionItem struct {
+	TenantID    string
+	SourceID    string
+	ID          string
+	Revision    int64
+	Fingerprint string
+	Payload     string
+}
+
 type CustomerKeyExpiry struct {
 	KeyID     string
 	ExpiresAt int64
@@ -114,21 +137,24 @@ type PollCursor struct {
 }
 
 type PollSource struct {
-	TenantID    string
-	SourceID    string
-	ApprovedUrl string
-	Approved    int64
-	Enabled     int64
-	IntervalUs  int64
-	MaxBytes    int64
-	NextAt      int64
-	Etag        string
-	Modified    string
-	LastSuccess sql.NullInt64
-	LastAttempt sql.NullInt64
-	LastStatus  int64
-	LastError   string
-	ClaimID     sql.NullString
+	TenantID       string
+	SourceID       string
+	ApprovedUrl    string
+	Approved       int64
+	Enabled        int64
+	IntervalUs     int64
+	MaxBytes       int64
+	NextAt         int64
+	Etag           string
+	Modified       string
+	LastSuccess    sql.NullInt64
+	LastAttempt    sql.NullInt64
+	LastStatus     int64
+	LastError      string
+	ClaimID        sql.NullString
+	Mode           string
+	PreviewAllowed int64
+	RobotsUntil    int64
 }
 
 type QuerySnapshot struct {

@@ -59,7 +59,7 @@ INSERT INTO poll_sources(tenant_id,source_id,approved_url,approved,enabled,inter
 VALUES(?1,?2,?3,?4,?5,?6,?7,?8) ON CONFLICT(tenant_id,source_id) DO UPDATE SET
 approved_url=excluded.approved_url,approved=excluded.approved,enabled=excluded.enabled,
 interval_us=excluded.interval_us,max_bytes=excluded.max_bytes,
-next_at=max(poll_sources.next_at,excluded.next_at),etag='',modified='',claim_id=NULL
+next_at=max(poll_sources.next_at,excluded.next_at),etag='',modified='',claim_id=NULL,mode='feed',preview_allowed=0,robots_until=0
 `
 
 type ConfigurePollParams struct {
@@ -199,28 +199,32 @@ func (q *Queries) MarkPollSuccess(ctx context.Context, arg MarkPollSuccessParams
 }
 
 const nextPollSources = `-- name: NextPollSources :many
-SELECT ps.source_id,ps.approved_url,ps.etag,ps.modified,ps.max_bytes,ps.interval_us
+SELECT ps.source_id,ps.approved_url,ps.etag,ps.modified,ps.max_bytes,ps.interval_us,ps.mode,ps.preview_allowed,ps.robots_until
 FROM poll_sources ps JOIN sources s ON s.tenant_id=ps.tenant_id AND s.id=ps.source_id
-WHERE ps.tenant_id=?1 AND ps.enabled=1 AND ps.approved=1 AND s.enabled=1 AND s.url=ps.approved_url AND ps.next_at<=?2
+WHERE ps.tenant_id=?1 AND ps.enabled=1 AND ps.approved=1 AND ps.mode=?2 AND s.enabled=1 AND s.url=ps.approved_url AND ps.next_at<=?3
 ORDER BY ps.source_id LIMIT 100
 `
 
 type NextPollSourcesParams struct {
 	TenantID string
+	Mode     string
 	NowAt    int64
 }
 
 type NextPollSourcesRow struct {
-	SourceID    string
-	ApprovedUrl string
-	Etag        string
-	Modified    string
-	MaxBytes    int64
-	IntervalUs  int64
+	SourceID       string
+	ApprovedUrl    string
+	Etag           string
+	Modified       string
+	MaxBytes       int64
+	IntervalUs     int64
+	Mode           string
+	PreviewAllowed int64
+	RobotsUntil    int64
 }
 
 func (q *Queries) NextPollSources(ctx context.Context, arg NextPollSourcesParams) ([]NextPollSourcesRow, error) {
-	rows, err := q.db.QueryContext(ctx, nextPollSources, arg.TenantID, arg.NowAt)
+	rows, err := q.db.QueryContext(ctx, nextPollSources, arg.TenantID, arg.Mode, arg.NowAt)
 	if err != nil {
 		return nil, err
 	}
@@ -235,6 +239,9 @@ func (q *Queries) NextPollSources(ctx context.Context, arg NextPollSourcesParams
 			&i.Modified,
 			&i.MaxBytes,
 			&i.IntervalUs,
+			&i.Mode,
+			&i.PreviewAllowed,
+			&i.RobotsUntil,
 		); err != nil {
 			return nil, err
 		}
@@ -266,7 +273,7 @@ func (q *Queries) OtherPollSources(ctx context.Context, arg OtherPollSourcesPara
 }
 
 const pendingPoll = `-- name: PendingPoll :one
-SELECT a.source_id,a.reserved_bytes,a.lease_until,ps.etag,ps.modified
+SELECT a.source_id,a.reserved_bytes,a.lease_until,ps.etag,ps.modified,ps.mode,ps.preview_allowed,ps.robots_until,ps.approved_url
 FROM poll_attempts a JOIN poll_sources ps ON ps.tenant_id=a.tenant_id AND ps.source_id=a.source_id AND ps.claim_id=a.id
 JOIN sources s ON s.tenant_id=ps.tenant_id AND s.id=ps.source_id
 WHERE a.tenant_id=?1 AND a.id=?2 AND a.state='pending' AND ps.enabled=1 AND ps.approved=1 AND s.enabled=1 AND s.url=ps.approved_url
@@ -278,11 +285,15 @@ type PendingPollParams struct {
 }
 
 type PendingPollRow struct {
-	SourceID      string
-	ReservedBytes int64
-	LeaseUntil    int64
-	Etag          string
-	Modified      string
+	SourceID       string
+	ReservedBytes  int64
+	LeaseUntil     int64
+	Etag           string
+	Modified       string
+	Mode           string
+	PreviewAllowed int64
+	RobotsUntil    int64
+	ApprovedUrl    string
 }
 
 func (q *Queries) PendingPoll(ctx context.Context, arg PendingPollParams) (PendingPollRow, error) {
@@ -294,6 +305,10 @@ func (q *Queries) PendingPoll(ctx context.Context, arg PendingPollParams) (Pendi
 		&i.LeaseUntil,
 		&i.Etag,
 		&i.Modified,
+		&i.Mode,
+		&i.PreviewAllowed,
+		&i.RobotsUntil,
+		&i.ApprovedUrl,
 	)
 	return i, err
 }

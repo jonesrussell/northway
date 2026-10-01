@@ -11,6 +11,7 @@ sql:
       - db/migrations/00008_retention_indexes.sql
       - db/migrations/00009_customer_boundary.sql
       - db/migrations/00010_customer_lifecycle.sql
+      - db/migrations/00011_collection.sql
     queries: db/queries
     gen:
       go:

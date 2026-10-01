@@ -90,6 +90,8 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		}
 		logger := slog.New(slog.NewJSONHandler(stderr, &slog.HandlerOptions{Level: config.LogLevel}))
 		return Run(ctx, config, logger)
+	case "collection":
+		return executeCollection(ctx, args[1:], stdout)
 	case "ingest":
 		return executeIngest(ctx, args[1:], lookup, stdout)
 	case "pilot":

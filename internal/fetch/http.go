@@ -147,23 +147,35 @@ func notBefore(h http.Header, now time.Time) time.Time {
 }
 
 func (c *Client) Fetch(ctx context.Context, claim ingest.Claim) ingest.Result {
+	r, data := c.fetchDocument(ctx, claim, "application/atom+xml, application/rss+xml, application/xml, text/xml")
+	if r.Failure == "" && r.Status == 200 {
+		items, e := Parse(ctx, data)
+		if e != nil {
+			r.Failure = "parse"
+		} else {
+			r.Items = items
+		}
+	}
+	return r
+}
+func (c *Client) fetchDocument(ctx context.Context, claim ingest.Claim, accept string) (ingest.Result, []byte) {
 	result := ingest.Result{Failure: "transport"}
 	if ctx.Err() != nil || claim.MaxBytes < 1 || claim.MaxBytes > ingest.MaxResponseBytes {
-		return result
+		return result, nil
 	}
 	u, err := SourceURL(claim.URL)
 	if err != nil {
-		return result
+		return result, nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, ingest.FetchTimeout)
 	defer cancel()
 	ips, err := c.resolver.LookupNetIP(ctx, "ip", u.Hostname())
 	if err != nil || len(ips) == 0 {
-		return result
+		return result, nil
 	}
 	for _, ip := range ips {
 		if !publicIP(ip) {
-			return result
+			return result, nil
 		}
 	}
 	// One pinned address, one attempt, no proxy, redirects, connection reuse or
@@ -179,10 +191,10 @@ func (c *Client) Fetch(ctx context.Context, claim ingest.Claim) ingest.Result {
 	client := &http.Client{Transport: tr, Timeout: ingest.FetchTimeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
 	if err != nil {
-		return result
+		return result, nil
 	}
 	req.Header.Set("User-Agent", "Northway/0.1 (+https://github.com/jonesrussell/northway)")
-	req.Header.Set("Accept", "application/atom+xml, application/rss+xml, application/xml, text/xml")
+	req.Header.Set("Accept", accept)
 	req.Header.Set("Accept-Encoding", "identity")
 	if v := header(claim.ETag); v != "" {
 		req.Header.Set("If-None-Match", v)
@@ -192,27 +204,42 @@ func (c *Client) Fetch(ctx context.Context, claim ingest.Claim) ingest.Result {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return result
+		return result, nil
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == 304 && header(claim.ETag) == "" && header(claim.LastModified) == "" {
-		return ingest.Result{Status: 304, Failure: "http"}
+	if accept == "text/html" && resp.StatusCode == 200 && !strings.HasPrefix(strings.ToLower(resp.Header.Get("Content-Type")), "text/html") {
+		return ingest.Result{Status: 200, Failure: "parse"}, nil
 	}
-	return readResponse(ctx, resp, claim.MaxBytes, time.Now().UTC())
+	if resp.StatusCode == 304 && header(claim.ETag) == "" && header(claim.LastModified) == "" {
+		return ingest.Result{Status: 304, Failure: "http"}, nil
+	}
+	return readDocument(ctx, resp, claim.MaxBytes, time.Now().UTC())
 }
 
 func readResponse(ctx context.Context, resp *http.Response, limit int64, now time.Time) ingest.Result {
+	r, data := readDocument(ctx, resp, limit, now)
+	if r.Failure == "" && r.Status == 200 {
+		items, e := Parse(ctx, data)
+		if e != nil {
+			r.Failure = "parse"
+		} else {
+			r.Items = items
+		}
+	}
+	return r
+}
+func readDocument(ctx context.Context, resp *http.Response, limit int64, now time.Time) (ingest.Result, []byte) {
 	result := ingest.Result{Status: resp.StatusCode, ETag: header(resp.Header.Get("ETag")), LastModified: header(resp.Header.Get("Last-Modified")), NotBefore: notBefore(resp.Header, now)}
 	if resp.StatusCode == http.StatusNotModified {
-		return result
+		return result, nil
 	}
 	if resp.StatusCode != http.StatusOK {
 		result.Failure = "http"
-		return result
+		return result, nil
 	}
 	if enc := resp.Header.Get("Content-Encoding"); enc != "" && !strings.EqualFold(enc, "identity") {
 		result.Failure = "encoding"
-		return result
+		return result, nil
 	}
 	// No decompression means the wire-body and decoded bounds coincide. Read no
 	// more than the reservation; a response exactly at the cap is rejected because
@@ -221,21 +248,15 @@ func readResponse(ctx context.Context, resp *http.Response, limit int64, now tim
 	result.Bytes = int64(len(data))
 	if err != nil || result.Bytes >= limit || resp.ContentLength > limit {
 		result.Failure = "body"
-		return result
+		return result, nil
 	}
 	for _, part := range strings.Split(strings.Join(resp.Header.Values("Cache-Control"), ","), ",") {
 		if strings.EqualFold(strings.TrimSpace(part), "no-store") {
 			result.Failure = "no_store"
-			return result
+			return result, nil
 		}
 	}
-	items, err := Parse(ctx, data)
-	if err != nil {
-		result.Failure = "parse"
-		return result
-	}
-	result.Items = items
-	return result
+	return result, data
 }
 
 var _ ingest.Fetcher = (*Client)(nil)
