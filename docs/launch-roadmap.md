@@ -2,6 +2,8 @@
 
 Updated 2026-10-01. Status: owner-directed product plan, not implementation or deployment approval.
 
+The [collection and discovery sprint roadmap](collection-roadmap.md) records current deployed/inactive/planned capabilities, topic-agnostic feed coverage, bounded crawl activation, agent management and the PostgreSQL decision. Its current capability evidence and owner no-backups instruction supersede older proposals below; historical launch gates are not instructions to create backups now.
+
 ## Decisions and scope
 
 The product is **NorthCloud**, at **northcloud.one**: contextual, source-backed news feeds for people and their agent clients. The existing `jonesrussell/northway` repository supplies its Go foundation. Repository/module/binary renaming is separate work; existing identifiers remain valid until a reviewed compatibility change.
