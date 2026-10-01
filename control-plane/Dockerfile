@@ -31,5 +31,5 @@ FROM nginx:1.29.4-alpine@sha256:4870c12cd2ca986de501a804b4f506ad3875a0b1874940ba
 ARG REVISION=unknown
 LABEL org.opencontainers.image.source="https://github.com/jonesrussell/northway" org.opencontainers.image.revision="$REVISION"
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY public/app.css public/app.js /usr/share/nginx/html/
+COPY public/app.css public/app.js public/home.css /usr/share/nginx/html/
 EXPOSE 8081
