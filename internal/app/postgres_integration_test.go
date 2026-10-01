@@ -1,7 +1,9 @@
 package app_test
 
 import (
+	"bytes"
 	"encoding/json"
+	"github.com/jonesrussell/northway/internal/app"
 	"github.com/jonesrussell/northway/internal/feed"
 	"github.com/jonesrussell/northway/internal/feedback"
 	"github.com/jonesrussell/northway/internal/httpapi"
@@ -86,8 +88,11 @@ func TestPostgresPopulatedMigrationAPIParity(t *testing.T) {
 	}
 	check(t, src.Close())
 	check(t, sqlite.Migrate(t.Context(), "postgres:"+file))
-	counts, e := sqlite.ImportPostgres(t.Context(), path, file)
+	var receipt bytes.Buffer
+	e = app.Execute(t.Context(), []string{"postgres", "import", "--source", path, "--database", "postgres:" + file}, os.LookupEnv, &receipt, &receipt)
 	check(t, e)
+	var counts map[string]int64
+	check(t, json.Unmarshal(receipt.Bytes(), &counts))
 	if counts["tenants"] != 2 || counts["articles"] != 2 || counts["api_keys"] != 2 || counts["query_snapshots"] != 1 || counts["collection_items"] != 1 || counts["collection_events"] != 1 || counts["agent_grants"] != 1 {
 		t.Fatal("populated counts", counts)
 	}
