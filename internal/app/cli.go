@@ -26,7 +26,7 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		if len(args) != 1 {
 			return errors.New("help takes no arguments")
 		}
-		_, err := io.WriteString(stdout, "Usage: northway <serve|migrate|backup|healthcheck|tenant|key|ingest|pilot|version>\nUse northway serve --help, northway migrate --help, northway backup --help or northway key --help for configuration.\nIngestion is bounded; unattended polling requires an explicit serve --poll-tenant UUID.\n")
+		_, err := io.WriteString(stdout, "Usage: northway <serve|migrate|backup|healthcheck|tenant|key|agent-grant|collection|ingest|pilot|version>\nUse northway serve --help, northway migrate --help, northway backup --help or northway key --help for configuration.\nIngestion is bounded; unattended polling requires an explicit serve --poll-tenant UUID.\n")
 		return err
 	case "version":
 		if len(args) != 1 {
@@ -90,6 +90,10 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		}
 		logger := slog.New(slog.NewJSONHandler(stderr, &slog.HandlerOptions{Level: config.LogLevel}))
 		return Run(ctx, config, logger)
+	case "management":
+		return executeManagement(ctx, args[1:], stdout)
+	case "agent-grant":
+		return executeAgentGrant(ctx, args[1:], stdout)
 	case "collection":
 		return executeCollection(ctx, args[1:], stdout)
 	case "ingest":

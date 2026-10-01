@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/jonesrussell/northway/internal/identity"
 	"github.com/jonesrussell/northway/internal/sqlite/sqlc"
-	"strings"
 	"time"
 )
 
@@ -16,7 +15,7 @@ func (s *Store) CreateAgentGrant(ctx context.Context, p identity.Principal, g id
 		return e
 	}
 	now := time.Now().UTC()
-	if g.TenantID != tenant || !identity.ValidKeyID(g.ID) || !g.Scopes.Valid() || g.Digest == [32]byte{} || g.RevokedAt != nil || !validTimestamp(g.CreatedAt) || !g.ExpiresAt.After(now) || g.CreatedAt.After(now) || g.ExpiresAt.Sub(g.CreatedAt) > 24*time.Hour || g.ExpiresAt.Before(g.CreatedAt) || strings.TrimSpace(g.Label) == "" || len(g.Label) > 128 {
+	if g.TenantID != tenant || !identity.ValidKeyID(g.ID) || !g.Scopes.Valid() || g.Digest == [32]byte{} || g.RevokedAt != nil || !validTimestamp(g.CreatedAt) || !g.ExpiresAt.After(now) || g.CreatedAt.After(now) || g.ExpiresAt.Sub(g.CreatedAt) > 24*time.Hour || g.ExpiresAt.Before(g.CreatedAt) || !identity.ValidAgentLabel(g.Label) {
 		return identity.ErrForbidden
 	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
@@ -82,4 +81,30 @@ func (s *Store) RevokeAgentGrant(ctx context.Context, p identity.Principal, id s
 		}
 		return nil
 	})
+}
+
+func (s *Store) AgentGrantIssueReady(ctx context.Context, p identity.Principal) error {
+	tenant, e := p.RequireOperator()
+	if e != nil {
+		return e
+	}
+	if e = s.RequireTenant(ctx, p); e != nil {
+		return e
+	}
+	q := sqlc.New(s.readers)
+	state, e := q.CustomerWorkspaceState(ctx, string(tenant))
+	if e == nil && state != "active" {
+		return identity.ErrForbidden
+	}
+	if e != nil && !errors.Is(e, sql.ErrNoRows) {
+		return e
+	}
+	count, e := q.AgentGrantCount(ctx, string(tenant))
+	if e != nil {
+		return e
+	}
+	if count >= 100 {
+		return identity.ErrForbidden
+	}
+	return nil
 }

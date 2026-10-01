@@ -1,0 +1,193 @@
+[
+  {
+    "id": "collection.grant.create",
+    "state": "supported",
+    "contract": {
+      "capability": "creator_collection",
+      "binding": {
+        "transport": "cli",
+        "name": "northway agent-grant create"
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "database": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+          },
+          "scopes": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "ttl": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "database",
+          "tenant",
+          "scopes",
+          "label",
+          "ttl",
+          "output"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "complete",
+              "validated"
+            ]
+          },
+          "operation": {
+            "const": "collection.grant.create"
+          },
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "operation",
+          "tenant_id",
+          "scopes",
+          "label",
+          "dry_run"
+        ],
+        "additionalProperties": false
+      },
+      "required_scopes": [
+        "local:operator"
+      ],
+      "tenant_scope": "required",
+      "effects": [
+        "provision"
+      ],
+      "idempotency": "none",
+      "concurrency": "none",
+      "dry_run": "supported",
+      "audit": "durable",
+      "approval": "not_required",
+      "verification": [
+        "northway.agent-grant.lifecycle",
+        "northway.agent-grant.private-output"
+      ]
+    }
+  },
+  {
+    "id": "collection.grant.revoke",
+    "state": "supported",
+    "contract": {
+      "capability": "creator_collection",
+      "binding": {
+        "transport": "cli",
+        "name": "northway agent-grant revoke"
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "database": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "database",
+          "tenant",
+          "grant_id"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "complete",
+              "validated"
+            ]
+          },
+          "operation": {
+            "const": "collection.grant.revoke"
+          },
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "dry_run": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "operation",
+          "tenant_id",
+          "grant_id",
+          "dry_run"
+        ],
+        "additionalProperties": false
+      },
+      "required_scopes": [
+        "local:operator"
+      ],
+      "tenant_scope": "required",
+      "effects": [
+        "revoke"
+      ],
+      "idempotency": "natural",
+      "concurrency": "none",
+      "dry_run": "supported",
+      "audit": "durable",
+      "approval": "not_required",
+      "verification": [
+        "northway.agent-grant.lifecycle"
+      ]
+    }
+  }
+]

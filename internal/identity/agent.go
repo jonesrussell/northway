@@ -48,7 +48,7 @@ func GenerateAgentGrant(p Principal, scopes CollectionScopes, label string, now,
 	if e != nil {
 		return AgentGrant{}, Secret{}, e
 	}
-	if !scopes.Valid() || strings.TrimSpace(label) == "" || len(label) > 128 || !expires.After(now) || expires.Sub(now) > 24*time.Hour {
+	if !scopes.Valid() || !ValidAgentLabel(label) || !expires.After(now) || expires.Sub(now) > 24*time.Hour {
 		return AgentGrant{}, Secret{}, ErrForbidden
 	}
 	var id [16]byte
@@ -100,4 +100,53 @@ func (s *AgentService) Authenticate(ctx context.Context, raw string) (Principal,
 		return Principal{}, ErrUnauthorized
 	}
 	return Principal{tenant: g.TenantID, keyID: id, collection: g.Scopes}, nil
+}
+
+func ValidAgentLabel(label string) bool {
+	if strings.TrimSpace(label) == "" || len(label) > 128 {
+		return false
+	}
+	for _, c := range label {
+		if c < 32 || c == 127 {
+			return false
+		}
+	}
+	return true
+}
+func ParseCollectionScopes(value string) (CollectionScopes, error) {
+	var scopes CollectionScopes
+	for _, name := range strings.Split(value, ",") {
+		var scope CollectionScopes
+		switch name {
+		case "collection:seed":
+			scope = CollectionSeed
+		case "collection:status":
+			scope = CollectionStatus
+		case "collection:observations:read":
+			scope = CollectionObservationsRead
+		default:
+			return 0, ErrForbidden
+		}
+		if scopes&scope != 0 {
+			return 0, ErrForbidden
+		}
+		scopes |= scope
+	}
+	return scopes, nil
+}
+func (s CollectionScopes) Names() string {
+	if !s.Valid() {
+		return ""
+	}
+	var names []string
+	if s&CollectionSeed != 0 {
+		names = append(names, "collection:seed")
+	}
+	if s&CollectionStatus != 0 {
+		names = append(names, "collection:status")
+	}
+	if s&CollectionObservationsRead != 0 {
+		names = append(names, "collection:observations:read")
+	}
+	return strings.Join(names, ",")
 }

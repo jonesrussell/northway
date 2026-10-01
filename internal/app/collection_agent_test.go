@@ -121,6 +121,9 @@ func TestCollectionAgentObservationReplayAndNoAcquisitionAuthority(t *testing.T)
 	}
 	var batch ingest.Batch
 	check(t, json.Unmarshal(b, &batch))
+	if batch.TenantID != string(tenantOne) {
+		t.Fatal("tenant envelope missing", batch)
+	}
 	if len(batch.Events) != 1 {
 		t.Fatal(batch)
 	}

@@ -66,8 +66,16 @@ func WithCollectionAPI(fallback http.Handler, auth Authenticator, store Collecti
 			next(w, r, p)
 		})
 	}
+	register := func(id string, next func(http.ResponseWriter, *http.Request, identity.Principal)) {
+		binding, name := collectionBinding(id)
+		scope, e := identity.ParseCollectionScopes(name)
+		if e != nil {
+			panic("invalid collection scope")
+		}
+		mux.Handle(binding, require(scope, next))
+	}
 	empty := func(r *http.Request) bool { return r.ContentLength == 0 && len(r.TransferEncoding) == 0 }
-	mux.Handle("POST /v1/collection/seeds", require(identity.CollectionSeed, func(w http.ResponseWriter, r *http.Request, p identity.Principal) {
+	register("collection.seed", func(w http.ResponseWriter, r *http.Request, p identity.Principal) {
 		if r.URL.RawQuery != "" {
 			serviceProblem(w, query.ErrInvalid)
 			return
@@ -87,8 +95,8 @@ func WithCollectionAPI(fallback http.Handler, auth Authenticator, store Collecti
 			return
 		}
 		customerJSON(w, 200, map[string]any{"id": seed.ID, "acquisition_changed": false})
-	}))
-	mux.Handle("GET /v1/collection/status", require(identity.CollectionStatus, func(w http.ResponseWriter, r *http.Request, p identity.Principal) {
+	})
+	register("collection.status", func(w http.ResponseWriter, r *http.Request, p identity.Principal) {
 		if !empty(r) || r.URL.RawQuery != "" {
 			serviceProblem(w, query.ErrInvalid)
 			return
@@ -99,8 +107,8 @@ func WithCollectionAPI(fallback http.Handler, auth Authenticator, store Collecti
 			return
 		}
 		customerJSON(w, 200, status)
-	}))
-	mux.Handle("GET /v1/collection/observations", require(identity.CollectionObservationsRead, func(w http.ResponseWriter, r *http.Request, p identity.Principal) {
+	})
+	register("collection.observations", func(w http.ResponseWriter, r *http.Request, p identity.Principal) {
 		q, parseErr := url.ParseQuery(r.URL.RawQuery)
 		values := q["after"]
 		if parseErr != nil || !empty(r) || len(q) != 1 || len(values) != 1 {
@@ -117,8 +125,9 @@ func WithCollectionAPI(fallback http.Handler, auth Authenticator, store Collecti
 			serviceProblem(w, e)
 			return
 		}
+		batch.TenantID = string(p.TenantID())
 		customerJSON(w, 200, batch)
-	}))
+	})
 	mux.Handle("/v1/collection/", require(identity.CollectionStatus, invalidMethod))
 	mux.Handle("/", fallback)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

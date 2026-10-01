@@ -1,0 +1,307 @@
+[
+  {
+    "id": "collection.seed",
+    "state": "supported",
+    "contract": {
+      "capability": "creator_collection",
+      "binding": {
+        "transport": "api",
+        "name": "POST /v1/collection/seeds"
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+          },
+          "acquisition_changed": {
+            "const": false
+          }
+        },
+        "required": [
+          "id",
+          "acquisition_changed"
+        ],
+        "additionalProperties": false
+      },
+      "required_scopes": [
+        "collection:seed"
+      ],
+      "tenant_scope": "required",
+      "effects": [
+        "create"
+      ],
+      "idempotency": "natural",
+      "concurrency": "none",
+      "dry_run": "unsupported",
+      "audit": "none",
+      "approval": "not_required",
+      "verification": [
+        "northway.collection-agent.seed-tenant-revocation"
+      ]
+    }
+  },
+  {
+    "id": "collection.status",
+    "state": "supported",
+    "contract": {
+      "capability": "creator_collection",
+      "binding": {
+        "transport": "api",
+        "name": "GET /v1/collection/status"
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "seeds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "enabled": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "revisions": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "seeds",
+          "enabled",
+          "items",
+          "revisions"
+        ],
+        "additionalProperties": false
+      },
+      "required_scopes": [
+        "collection:status"
+      ],
+      "tenant_scope": "required",
+      "effects": [
+        "read"
+      ],
+      "idempotency": "natural",
+      "concurrency": "none",
+      "dry_run": "not_applicable",
+      "audit": "none",
+      "approval": "not_required",
+      "verification": [
+        "northway.collection-agent.seed-tenant-revocation"
+      ]
+    }
+  },
+  {
+    "id": "collection.observations",
+    "state": "supported",
+    "contract": {
+      "capability": "creator_collection",
+      "binding": {
+        "transport": "api",
+        "name": "GET /v1/collection/observations"
+      },
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "after"
+        ],
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "version": {
+            "const": 1
+          },
+          "tenant_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+          },
+          "after": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "next": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "events": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "cursor": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "observation": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "const": 1
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "source_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+                    },
+                    "account_url": {
+                      "type": "string"
+                    },
+                    "original_url": {
+                      "type": "string"
+                    },
+                    "evidence_url": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": [
+                        "profile",
+                        "image",
+                        "video",
+                        "link"
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "preview_url": {
+                      "type": "string"
+                    },
+                    "embed_url": {
+                      "type": "string"
+                    },
+                    "display": {
+                      "enum": [
+                        "link",
+                        "image",
+                        "embed"
+                      ]
+                    },
+                    "state": {
+                      "enum": [
+                        "available",
+                        "removed"
+                      ]
+                    },
+                    "method": {
+                      "const": "html-metadata-v1"
+                    },
+                    "observed_at": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "id",
+                    "revision",
+                    "source_id",
+                    "account_url",
+                    "original_url",
+                    "evidence_url",
+                    "kind",
+                    "title",
+                    "description",
+                    "preview_url",
+                    "embed_url",
+                    "display",
+                    "state",
+                    "method",
+                    "observed_at"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "cursor",
+                "observation"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "version",
+          "tenant_id",
+          "after",
+          "next",
+          "events"
+        ],
+        "additionalProperties": false
+      },
+      "required_scopes": [
+        "collection:observations:read"
+      ],
+      "tenant_scope": "required",
+      "effects": [
+        "read"
+      ],
+      "idempotency": "natural",
+      "concurrency": "none",
+      "dry_run": "not_applicable",
+      "audit": "none",
+      "approval": "not_required",
+      "verification": [
+        "northway.collection-agent.replay"
+      ]
+    }
+  }
+]

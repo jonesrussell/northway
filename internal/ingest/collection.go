@@ -33,10 +33,11 @@ type Event struct {
 	Observation Observation `json:"observation"`
 }
 type Batch struct {
-	Version int     `json:"version"`
-	After   int64   `json:"after"`
-	Next    int64   `json:"next"`
-	Events  []Event `json:"events"`
+	TenantID string  `json:"tenant_id,omitempty"`
+	Version  int     `json:"version"`
+	After    int64   `json:"after"`
+	Next     int64   `json:"next"`
+	Events   []Event `json:"events"`
 }
 
 func (o Observation) Fingerprint() []byte {

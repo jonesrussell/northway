@@ -65,8 +65,8 @@ tables and preserves acquisition budget accounting.
 
 These CLI operations call typed business services. The local operator already
 owns the private database file; Open's exclusive lock prevents concurrent serve.
-No browser management dependency. HTTP/MCP transport and a separate service-tenant
-provisioning contract remain follow-up work, not an implicit sixth personal
+No browser management dependency. The opt-in HTTP adapter is implemented below; MCP/common framework integration
+and production service-tenant registration remain follow-up work, not an implicit sixth personal
 workspace or permission expansion of feeds:read.
 
 ## Qualification and residual scope
@@ -116,7 +116,7 @@ Product operation contract for the platform manifest:
   no input; result {seeds,enabled,items,revisions}, tenant scoped.
 - collection.observations: GET /v1/collection/observations?after=N; scope
   collection:observations:read; result the existing version-1 batch
-  {version,after,next,events}, at most 100 events. Replays are deterministic.
+  {version,tenant_id,after,next,events}, at most 100 events. Replays are deterministic.
 
 Authority comes exclusively from the grant; no tenant input is accepted.
 CollectionScopes are a distinct Go type, never added to existing Scopes.Valid.
@@ -129,7 +129,48 @@ Local tests generate only ephemeral in-memory/test-database credentials.
 Production setup requires explicit owner approval for the migration, adapter
 enablement and trusted TLS ingress, and each tenant-specific grant's recipient,
 exact scopes, label, lifetime and secure one-time handoff. An operator must use
-GenerateAgentGrant/CreateAgentGrant and RevokeAgentGrant; no CLI issuance
-command has been shipped. Existing production grants/scopes remain untouched.
+GenerateAgentGrant/CreateAgentGrant and RevokeAgentGrant through the supported operator CLI described below. Existing production grants/scopes remain untouched.
 The framework task owns common manifest packaging and MCP mapping; this product
 supplies the domain contract and working HTTP adapter above.
+
+## Completed operator grant lifecycle
+
+northway agent-grant create --database PATH --tenant UUID
+  --scopes collection:observations:read --label RECIPIENT --ttl 1h
+  --output NEW_PRIVATE_FILE [--dry-run]
+northway agent-grant revoke --database PATH --tenant UUID
+  --grant-id NONSECRET_ID [--dry-run]
+
+Both commands require exclusive offline database ownership, a provisioned tenant
+and canonical scope/identifier input. Creation requires explicit TTL1m..24h and
+a named recipient/purpose label. Dry-run validates without generating credentials,
+writing output, inserting or revoking. JSON results contain status, operation,
+tenant, nonsecret grant ID and approved metadata only. Creation uses exclusive
+no-follow0600 output in an existing0700 directory, syncs file/directory before
+digest insert and removes its new file on failed persistence. An interrupted
+handoff can leave an inactive file; reconcile rather than overwrite or retry
+blindly. Output failures after success retain the valid private credential.
+Renew manually by creating a replacement in a new file, switching the recipient,
+then revoking the prior ID. Test fixtures prove replacement remains active.
+
+The HTTP batch now adds tenant_id derived from the authenticated principal.
+Local operator exports omit this optional field. FETDER remote pulling requires
+this field and persists its stream/tenant binding with observations and cursor.
+
+## Framework manifest alignment
+
+northway management inventory [--collection-api] projects the actual selected
+local operation catalogue without opening storage or a listener. API route
+bindings and required scopes use the same embedded owned contracts that the
+HTTP registration consumes. Operator CLI results use their owned operation IDs.
+The disabled API projection marks its operations planned. Staged companion:
+docs/management/northway-api.management.json (enabled local composition).
+
+This is product binding/schema evidence, not a framework conformance receipt.
+Structural validation against the provided framework v1 management schema
+passes. The Go API has no canonical framework site.yaml, and the control-plane
+site manifest does not activate creator_collection. Canonical application/capability
+adoption and source/site digest-bound ManagementInventoryInterface receipts await
+the qualified framework cohort and owning audit task. No unqualified package was
+installed and no authored companion is used as runtime proof. MCP execution,
+remote issuance, scheduling and live acquisition remain absent.
