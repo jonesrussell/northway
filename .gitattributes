@@ -1,1 +1,4 @@
 * text=auto eol=lf
+
+# Preserve exact reviewed register bytes for embedded SHA256 verification.
+db/registers/*.json -text

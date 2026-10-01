@@ -339,6 +339,11 @@ func (s *Store) writeWithReserve(ctx context.Context, enforceReserve bool, fn fu
 			return ErrStoragePressure
 		}
 	}
+	if s.postgres {
+		if _, err := s.guard.ExecContext(ctx, "SELECT 1"); err != nil {
+			return errors.New("PostgreSQL ownership connection lost")
+		}
+	}
 	tx, err := s.writer.BeginTx(ctx, nil)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -374,7 +379,7 @@ func (s *Store) Diagnostics(ctx context.Context) (string, []string, error) {
 	if s.postgres {
 		var v string
 		err := s.readers.QueryRowContext(ctx, "SHOW server_version").Scan(&v)
-		return v, []string{"postgresql", "max_connections_per_store=7"}, err
+		return v, []string{"postgresql", "max_connections_per_store=6"}, err
 	}
 	var version string
 	if err := s.readers.QueryRowContext(ctx, "SELECT sqlite_version()").Scan(&version); err != nil {

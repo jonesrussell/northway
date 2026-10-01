@@ -77,3 +77,24 @@ locked and its BSD notice is retained. URL-derived stable identity, versioned
 observations, SQLite replay and existing transport/budgets replace body hashes,
 PostgreSQL frontier SQL and ES/Redis outputs. No predecessor server is involved.
 See [collection contract](collection.md) and focused collection/parser tests.
+
+
+## Local PostgreSQL/shared-acquisition sprint, 2026-10-01
+
+The isolated local sprint starts from Northway
+`9c44b03ce8d48a4de5f5815705f95b764b869116`, with docs-only roadmap
+`9e5abee429e7fb37019cd127545d835438098c8d` imported separately. Repository-owned
+schema-12 migrations and typed storage/business queries were ported in
+`db/postgres/`, `internal/sqlite/postgres*.go` and adapter call sites; pgx remains
+inside the storage boundary. The new `internal/sqlite/public*.go` and schema 13
+implement explicit public ownership/private subscriptions rather than importing
+the tenant-duplicating provisioner from later main. Locked linked-module notices
+include pgx and are regenerated/checked by the existing notice tool.
+
+Reviewed register exports are embedded unchanged under `db/registers/`, with
+exact byte digests and exclusions; registration confers no new display rights or
+activation. Synthetic local tests exercise the native storage/service contracts.
+See [local PostgreSQL ownership, qualification and forward-repair plan](postgres-shared-acquisition.md).
+Production provisioning, source migration, image deployment, ingestion and any
+neighbor-service measurements remain separately authorized release gates.
+No Elasticsearch, broker, backup task or third-party platform framework was added.

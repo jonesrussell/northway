@@ -21,6 +21,9 @@ func (s *Store) RecordFeedback(ctx context.Context, p identity.Principal, e feed
 		return err
 	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
+		if e := s.currentQueryPrincipal(ctx, q, p, identity.FeedbackWrite); e != nil {
+			return e
+		}
 		now := s.queryTime()
 		if !validTimestamp(now) {
 			return feedback.ErrInvalid

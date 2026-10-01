@@ -209,8 +209,8 @@ func TestCursorSkipsHeldFeedsAndErrorsDoNotRetry(t *testing.T) {
 	s, _, now := pollSetup(t)
 	p := operator(tenantA)
 	second := "00000006-0000-4000-8000-000000000000"
-	must(t, s.CreateSource(t.Context(), p, source.Source{ID: second, URL: "https://example.invalid/second", Title: "Second"}))
-	must(t, s.ConfigurePoll(t.Context(), p, ingest.Policy{SourceID: second, URL: "https://example.invalid/second", Approved: true, Enabled: true, Interval: time.Hour, MaxBytes: 2048}))
+	must(t, s.CreateSource(t.Context(), p, source.Source{ID: second, URL: "https://second.invalid/second", Title: "Second"}))
+	must(t, s.ConfigurePoll(t.Context(), p, ingest.Policy{SourceID: second, URL: "https://second.invalid/second", Approved: true, Enabled: true, Interval: time.Hour, MaxBytes: 2048}))
 	first, err := s.ClaimPoll(t.Context(), p)
 	must(t, err)
 	must(t, s.FinishPoll(t.Context(), p, first.ID, ingest.Result{Status: 429, Failure: "http", NotBefore: now.Add(48 * time.Hour)}))
@@ -236,6 +236,9 @@ func TestInvalidPollResultAndDisabledDefaults(t *testing.T) {
 	seed(t, s, tenantA)
 	if _, err := s.ClaimPoll(t.Context(), operator(tenantA)); !errors.Is(err, ingest.ErrIdle) {
 		t.Fatal("source enabled collection implicitly", err)
+	}
+	if s.postgres {
+		must(t, s.Close())
 	}
 	s, _, _ = pollSetup(t)
 	claim, err := s.ClaimPoll(t.Context(), operator(tenantA))
@@ -276,7 +279,7 @@ func TestAttemptCapAndCursorSurviveBudgetDeferral(t *testing.T) {
 	tx, err := s.writer.BeginTx(t.Context(), nil)
 	must(t, err)
 	for i := 0; i < ingest.DailyAttempts; i++ {
-		_, err = tx.ExecContext(t.Context(), `INSERT INTO poll_attempts VALUES(?,?,?,?,?,?,?,?,?)`, fmt.Sprintf("attempt-%d", i), tenantA, sourceID, now.UnixMicro(), now.Add(time.Minute).UnixMicro(), now.UnixMicro(), 0, 2048, "done")
+		_, err = s.database(tx).ExecContext(t.Context(), `INSERT INTO poll_attempts VALUES(?,?,?,?,?,?,?,?,?)`, fmt.Sprintf("attempt-%d", i), tenantA, sourceID, now.UnixMicro(), now.Add(time.Minute).UnixMicro(), now.UnixMicro(), 0, 2048, "done")
 		must(t, err)
 	}
 	must(t, tx.Commit())
@@ -387,6 +390,13 @@ func TestLongSuccessfulHoldHasExplicitOperatorRecovery(t *testing.T) {
 		t.Fatal("API key reset hold")
 	}
 	must(t, s.ResetPollSchedule(t.Context(), p, sourceID))
+	if s.postgres {
+		if _, e := s.ClaimPoll(t.Context(), p); !errors.Is(e, ingest.ErrIdle) {
+			t.Fatal("tenant reset shortened shared host hold", e)
+		}
+		*now = result.NotBefore
+	}
+
 	if _, err = s.ClaimPoll(t.Context(), p); err != nil {
 		t.Fatal("operator recovery unavailable", err)
 	}
@@ -422,9 +432,13 @@ func TestCorpusCapFailsAndSettlesWithoutPublishingItems(t *testing.T) {
 	_, err := s.database(s.writer).ExecContext(t.Context(), "UPDATE poll_sources SET next_at=0")
 	must(t, err)
 	// Bulk synthetic prior corpus, with valid identity and actual FTS triggers.
-	_, err = s.database(s.writer).ExecContext(t.Context(), `WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<5000)
+	statement := `WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<5000)
 INSERT INTO articles(tenant_id,id,source_id,origin_id,url,title,body,content_hash,observed_at)
-SELECT ?,printf('%08x-0000-4000-8000-000000000000',x),?,printf('old-%d',x),'https://example.invalid/old','Prior item','',?,1 FROM n`, tenantA, sourceID, strings.Repeat("a", 64))
+SELECT ?,printf('%08x-0000-4000-8000-000000000000',x),?,printf('old-%d',x),'https://example.invalid/old','Prior item','',?,1 FROM n`
+	if s.postgres {
+		statement = `INSERT INTO articles(tenant_id,id,source_id,origin_id,url,title,body,content_hash,observed_at) SELECT ?,lpad(to_hex(x),8,'0')||'-0000-4000-8000-000000000000',?,'old-'||x,'https://example.invalid/old','Prior item','',?,1 FROM generate_series(1,5000) n(x)`
+	}
+	_, err = s.database(s.writer).ExecContext(t.Context(), statement, tenantA, sourceID, strings.Repeat("a", 64))
 	must(t, err)
 	result, err := ingest.New(s, fullCorpusFetcher{}).RunOnce(t.Context(), operator(tenantA))
 	if !errors.Is(err, ingest.ErrCorpusFull) || len(result.Items) != 0 || result.Failure != "corpus_full" {

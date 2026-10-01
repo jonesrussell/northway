@@ -6,6 +6,7 @@ import (
 	"github.com/jonesrussell/northway/internal/feedback"
 	"github.com/jonesrussell/northway/internal/httpapi"
 	"github.com/jonesrussell/northway/internal/identity"
+	"github.com/jonesrussell/northway/internal/ingest"
 	"github.com/jonesrussell/northway/internal/query"
 	"github.com/jonesrussell/northway/internal/sqlite"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestPostgresPopulatedMigrationAPIParity(t *testing.T) {
@@ -30,7 +32,9 @@ func TestPostgresPopulatedMigrationAPIParity(t *testing.T) {
 	if u.Hostname() != "127.0.0.1" || u.Path != "/northway_test" {
 		t.Fatal("requires local disposable northway_test")
 	}
-	path := filepath.Join(t.TempDir(), "source.sqlite")
+	dir := filepath.Join(t.TempDir(), "private-source")
+	check(t, os.Mkdir(dir, 0700))
+	path := filepath.Join(dir, "source.sqlite")
 	check(t, sqlite.Migrate(t.Context(), path))
 	src, e := sqlite.Open(t.Context(), path)
 	check(t, e)
@@ -40,6 +44,21 @@ func TestPostgresPopulatedMigrationAPIParity(t *testing.T) {
 	for _, p := range []identity.Principal{one, two} {
 		check(t, src.ConfigureFeedPreferences(t.Context(), p, corpusID, feed.Preferences{Categories: []string{"world"}, Sources: []feed.SourceRule{{SourceID: corpusID, PublisherGroup: "publisher", Categories: []string{"world"}}}, PublisherCap: 2}))
 	}
+	// Populate a private FETDER-style observation and local synthetic grant.
+	// Neither is promoted into shared publisher ownership by the import.
+	seedID := "00000009-0000-4000-8000-000000000001"
+	privateURL := "https://fixture.invalid/private-creator"
+	check(t, src.AddCollectionSeed(t.Context(), one, ingest.CollectionSeed{ID: seedID, URL: privateURL, Title: "Private creator fixture"}))
+	now := time.Now().UTC()
+	check(t, src.ConfigurePoll(t.Context(), one, ingest.Policy{SourceID: seedID, URL: privateURL, Mode: "html", Approved: true, Enabled: true, RobotsUntil: now.Add(time.Hour), Interval: time.Hour, MaxBytes: 2048}))
+	cl, e := src.ClaimCollection(t.Context(), one)
+	check(t, e)
+	check(t, src.FinishPoll(t.Context(), one, cl.ID, ingest.Result{Status: 200, Bytes: 256, Observations: []ingest.Observation{{Version: 1, AccountURL: privateURL, EvidenceURL: privateURL, OriginalURL: privateURL, Kind: "profile", Title: "Private creator fixture", Display: "link", State: "available", Method: "html-metadata-v1"}}}))
+	privateBatch, e := src.CollectionBatch(t.Context(), one, 0)
+	check(t, e)
+	grant, _, e := identity.GenerateAgentGrant(one, identity.CollectionObservationsRead, "local migration fixture", now.Add(-time.Second), now.Add(time.Hour))
+	check(t, e)
+	check(t, src.CreateAgentGrant(t.Context(), one, grant))
 	_, key := fixtureKey(t, src, one, identity.FeedsRead)
 	_, other := fixtureKey(t, src, two, identity.FeedsRead)
 	invoke := func(store *sqlite.Store, method, path, body string, secret identity.Secret) (int, map[string]any) {
@@ -69,7 +88,7 @@ func TestPostgresPopulatedMigrationAPIParity(t *testing.T) {
 	check(t, sqlite.Migrate(t.Context(), "postgres:"+file))
 	counts, e := sqlite.ImportPostgres(t.Context(), path, file)
 	check(t, e)
-	if counts["tenants"] != 2 || counts["articles"] != 2 || counts["api_keys"] != 2 || counts["query_snapshots"] != 1 {
+	if counts["tenants"] != 2 || counts["articles"] != 2 || counts["api_keys"] != 2 || counts["query_snapshots"] != 1 || counts["collection_items"] != 1 || counts["collection_events"] != 1 || counts["agent_grants"] != 1 {
 		t.Fatal("populated counts", counts)
 	}
 	dst, e := sqlite.Open(t.Context(), "postgres:"+file)
@@ -83,9 +102,19 @@ func TestPostgresPopulatedMigrationAPIParity(t *testing.T) {
 	if code != 404 {
 		t.Fatal("cross-tenant snapshot exposed", code)
 	}
+	afterBatch, e := dst.CollectionBatch(t.Context(), one, 0)
+	check(t, e)
+	if !reflect.DeepEqual(privateBatch, afterBatch) {
+		t.Fatal("private observation IDs/cursor changed")
+	}
+	otherBatch, e := dst.CollectionBatch(t.Context(), two, 0)
+	check(t, e)
+	if len(otherBatch.Events) != 0 {
+		t.Fatal("private observation crossed tenant")
+	}
 	check(t, dst.Close())
 	if _, e = sqlite.ImportPostgres(t.Context(), path, file); e == nil {
 		t.Fatal("nonempty target import allowed")
 	}
-	t.Logf("preserved populated counts: tenants=%d articles=%d keys=%d snapshots=%d; exact API projection and two-tenant isolation passed", counts["tenants"], counts["articles"], counts["api_keys"], counts["query_snapshots"])
+	t.Logf("preserved populated counts: tenants=%d articles=%d keys=%d snapshots=%d; private observation/grant preserved; exact API projection and two-tenant isolation passed", counts["tenants"], counts["articles"], counts["api_keys"], counts["query_snapshots"])
 }

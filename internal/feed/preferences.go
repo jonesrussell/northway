@@ -24,7 +24,7 @@ type SourceRule struct {
 
 func Category(v string) bool {
 	switch v {
-	case "development", "entertainment", "canada", "first_nations", "world":
+	case "development", "entertainment", "canada", "first_nations", "world", "arts", "books", "business", "culture", "economy", "film", "food", "health", "indigenous", "lifestyle", "local", "music", "nature", "politics", "science", "sports", "technology", "travel":
 		return true
 	}
 	return false

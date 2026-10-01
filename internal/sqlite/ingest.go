@@ -114,7 +114,7 @@ func (s *Store) claimPoll(ctx context.Context, p identity.Principal, mode string
 		if err != nil {
 			return err
 		}
-		if active != 0 && !s.postgres || s.postgres && active >= 4 {
+		if active != 0 {
 			outcome = ingest.ErrBusy
 			return nil
 		}
@@ -135,13 +135,13 @@ func (s *Store) claimPoll(ctx context.Context, p identity.Principal, mode string
 		}
 		eligible := due[:0]
 		for _, v := range due {
-			if mode == "html" {
+			if s.postgres || mode == "html" {
 				u, _ := url.Parse(v.ApprovedUrl)
 				hold, e := q.CollectionHostDue(ctx, u.Hostname())
 				if e != nil {
 					return e
 				}
-				if hold > at || v.RobotsUntil <= at {
+				if hold > at || mode == "html" && v.RobotsUntil <= at {
 					continue
 				}
 			}
@@ -177,7 +177,7 @@ func (s *Store) claimPoll(ctx context.Context, p identity.Principal, mode string
 		if err := q.MarkPollStarted(ctx, sqlc.MarkPollStartedParams{ClaimID: sql.NullString{String: claim.ID, Valid: true}, LastAttempt: sql.NullInt64{Int64: at, Valid: true}, NextAt: at + selected.IntervalUs, TenantID: string(tenant), SourceID: claim.SourceID}); err != nil {
 			return err
 		}
-		if mode == "html" {
+		if s.postgres || mode == "html" {
 			u, _ := url.Parse(selected.ApprovedUrl)
 			if e := q.HoldCollectionHost(ctx, sqlc.HoldCollectionHostParams{Host: u.Hostname(), NextAt: s.hostHold(at, claim.Until)}); e != nil {
 				return e
@@ -291,6 +291,16 @@ func (s *Store) FinishPoll(ctx context.Context, p identity.Principal, id string,
 			}
 			if items > ingest.MaxSourceItems || versions > ingest.MaxSourceVersions {
 				return ingest.ErrCorpusFull
+			}
+		}
+		if s.postgres {
+			u, _ := url.Parse(w.ApprovedUrl)
+			hold := now.Add(10 * time.Second).UnixMicro()
+			if !r.NotBefore.IsZero() {
+				hold = max(hold, r.NotBefore.UnixMicro())
+			}
+			if e := q.HoldCollectionHost(ctx, sqlc.HoldCollectionHostParams{Host: u.Hostname(), NextAt: hold}); e != nil {
+				return e
 			}
 		}
 		// Failed/uncertain transfer bytes are conservatively charged in full. Known

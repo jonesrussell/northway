@@ -12,3 +12,6 @@ var Migrations embed.FS
 //
 //go:embed postgres/*.sql
 var PostgresMigrations embed.FS
+
+//go:embed registers/*.json
+var PublicRegisters embed.FS

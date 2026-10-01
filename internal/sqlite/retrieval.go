@@ -80,12 +80,15 @@ func (s *Store) RetrieveCandidates(ctx context.Context, p identity.Principal, id
 	}
 	ctx, cancel := context.WithTimeout(ctx, query.RetrievalTimeout)
 	defer cancel()
-	tx, err := s.readers.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	tx, err := s.readers.BeginTx(ctx, s.readOptions())
 	if err != nil {
 		return query.Corpus{}, err
 	}
 	defer tx.Rollback()
 	q := s.queries(tx)
+	if e := s.currentQueryPrincipal(ctx, q, p, identity.FeedsRead); e != nil {
+		return query.Corpus{}, e
+	}
 	w, err := queryWork(ctx, q, string(tenant), id)
 	if err != nil {
 		return query.Corpus{}, err

@@ -65,6 +65,9 @@ func (s *Store) BeginQuery(ctx context.Context, principal identity.Principal, ke
 	keyHash := sha256.Sum256([]byte("POST /v1/feed-queries\x00" + key))
 	var claim query.Claim
 	err = s.write(ctx, func(q *sqlc.Queries) error {
+		if e := s.currentQueryPrincipal(ctx, q, principal, identity.FeedsRead); e != nil {
+			return e
+		}
 		now := s.queryTime()
 		if !validTimestamp(now) || !validTimestamp(now.Add(queryRetention+time.Hour)) {
 			return query.ErrUnavailable
@@ -158,6 +161,9 @@ func (s *Store) StartProvider(ctx context.Context, principal identity.Principal,
 		return err
 	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
+		if e := s.currentQueryPrincipal(ctx, q, principal, identity.FeedsRead); e != nil {
+			return e
+		}
 		w, err := queryWork(ctx, q, string(tenant), id)
 		if err != nil {
 			return err
@@ -225,6 +231,9 @@ func (s *Store) completeQuery(ctx context.Context, principal identity.Principal,
 	}
 	var snapshot query.Snapshot
 	err = s.write(ctx, func(q *sqlc.Queries) error {
+		if e := s.currentQueryPrincipal(ctx, q, principal, identity.FeedsRead); e != nil {
+			return e
+		}
 		now := s.queryTime()
 		w, err := queryWork(ctx, q, string(tenant), id)
 		if err != nil {
@@ -388,11 +397,14 @@ func (s *Store) GetSnapshot(ctx context.Context, principal identity.Principal, i
 	if err != nil {
 		return query.Snapshot{}, err
 	}
-	tx, err := s.readers.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	tx, err := s.readers.BeginTx(ctx, s.readOptions())
 	if err != nil {
 		return query.Snapshot{}, err
 	}
 	defer tx.Rollback()
+	if e := s.currentQueryPrincipal(ctx, s.queries(tx), principal, identity.FeedsRead); e != nil {
+		return query.Snapshot{}, e
+	}
 	snapshot, err := loadSnapshot(ctx, s.queries(tx), string(tenant), id, s.queryTime())
 	if err != nil {
 		return query.Snapshot{}, err

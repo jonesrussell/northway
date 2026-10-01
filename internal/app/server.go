@@ -78,6 +78,9 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 					return len(tenants) > 0, nil
 				})
 			}
+			if config.CustomerCatalogue == "shared-v1" {
+				catalogue = store.ProvisionCustomerCatalogue
+			}
 			api = httpapi.NewCustomerAPI(identity.NewService(store), verifier, store, query.NewService(store), feedback.NewService(store), catalogue)
 		}
 		if config.CollectionAPI {

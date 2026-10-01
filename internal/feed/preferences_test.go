@@ -16,7 +16,7 @@ func TestPreferencesRejectInvalidPolicy(t *testing.T) {
 		change func(*Preferences)
 	}{
 		{"missing categories", func(p *Preferences) { p.Categories = nil }},
-		{"unknown category", func(p *Preferences) { p.Categories = []string{"sports"} }},
+		{"unknown category", func(p *Preferences) { p.Categories = []string{"unsupported_topic"} }},
 		{"duplicate category", func(p *Preferences) { p.Categories = append(p.Categories, "development") }},
 		{"excess categories", func(p *Preferences) { p.Categories = make([]string, 6) }},
 		{"missing sources", func(p *Preferences) { p.Sources = nil }},

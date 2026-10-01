@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/netip"
+	"strings"
 	"time"
 
 	"github.com/jonesrussell/northway/internal/identity"
@@ -47,7 +48,7 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	collectionAPI := false
 	fs.BoolVar(&collectionAPI, "collection-api", false, "enable tenant-scoped agent collection adapter; no grant issuance")
 	fs.StringVar(&listen, "listen", listen, "IP:port to listen on")
-	fs.StringVar(&database, "database", database, "existing migrated SQLite file; empty disables storage")
+	fs.StringVar(&database, "database", database, "migrated SQLite file or postgres: private connection-file path; empty disables storage")
 	fs.StringVar(&shutdown, "shutdown-timeout", shutdown, "maximum drain time")
 	fs.StringVar(&level, "log-level", level, "debug, info, warn or error")
 	fs.StringVar(&pollTenant, "poll-tenant", pollTenant, "explicit tenant UUID whose approved sources may be polled")
@@ -86,8 +87,14 @@ func (c Config) Validate() error {
 	if c.CollectionAPI && c.DatabasePath == "" {
 		return errors.New("collection API requires migrated storage")
 	}
-	if c.CustomerCatalogue != "" && (c.CustomerCatalogue != "developer-v1" || c.AssertionKeys == "" || c.PollTenant != "") {
+	if c.CustomerCatalogue != "" && ((c.CustomerCatalogue != "developer-v1" && c.CustomerCatalogue != "shared-v1") || c.AssertionKeys == "" || c.PollTenant != "") {
 		return errors.New("customer catalogue requires assertion keys and exclusive customer polling mode")
+	}
+	if c.CustomerCatalogue == "shared-v1" && !strings.HasPrefix(c.DatabasePath, "postgres:") {
+		return errors.New("shared catalogue requires PostgreSQL storage")
+	}
+	if c.CustomerCatalogue == "developer-v1" && strings.HasPrefix(c.DatabasePath, "postgres:") {
+		return errors.New("PostgreSQL uses shared-v1 catalogue")
 	}
 	if _, err := c.verificationKeys(); err != nil {
 		return err

@@ -90,7 +90,7 @@ func TestPostgresIndependentClaimsSkipLocksAndReservations(t *testing.T) {
 	if len(failures) > 0 {
 		t.Fatal(failures)
 	}
-	if len(claims) != 4 {
+	if len(claims) != 1 {
 		t.Fatalf("global active cap admitted %d claims", len(claims))
 	}
 	seen := map[string]bool{}
@@ -102,7 +102,7 @@ func TestPostgresIndependentClaimsSkipLocksAndReservations(t *testing.T) {
 	}
 	var reserved int64
 	must(t, s.readers.QueryRowContext(t.Context(), "SELECT sum(reserved_bytes) FROM poll_attempts").Scan(&reserved))
-	if reserved != 4*ingest.MaxResponseBytes {
+	if reserved != ingest.MaxResponseBytes {
 		t.Fatal("reservation accounting", reserved)
 	}
 	// Completion is fenced across tenants and after owner restart/lease expiry.

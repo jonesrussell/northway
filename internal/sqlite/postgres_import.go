@@ -79,6 +79,15 @@ func ImportPostgres(ctx context.Context, sourcePath, connectionFile string) (map
 			return nil, errors.New("PostgreSQL import target must be empty")
 		}
 	}
+	for _, table := range []string{"public_register_exclusions", "public_sources", "public_poll_sources", "public_poll_attempts", "public_articles", "public_article_versions", "workspace_public_subscriptions", "public_query_scopes"} {
+		var count int64
+		if e = tx.QueryRowContext(ctx, "SELECT count(*) FROM "+table).Scan(&count); e != nil {
+			return nil, e
+		}
+		if count != 0 {
+			return nil, errors.New("PostgreSQL import target must be empty, including public ownership")
+		}
+	}
 	// USER triggers only: foreign keys stay enforced. Preserve imported revisions
 	// instead of incrementing them once per imported row.
 	for _, table := range tables {

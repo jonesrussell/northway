@@ -197,6 +197,9 @@ func TestCoverageUsesPersistedPollsAndAgesWithoutWork(t *testing.T) {
 	if r.Coverage.Status != "partial" || r.Coverage.Current != 1 || len(r.Items) != 0 {
 		t.Fatal(r)
 	}
+	if s.postgres {
+		s.clock = func() time.Time { return queryEpoch.Add(ingest.LeaseDuration) }
+	}
 	mark(102)
 	// A new request after cache expiry observes new poll state even without new articles.
 	later := queryEpoch.Add(2 * time.Minute)

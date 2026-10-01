@@ -40,6 +40,9 @@ func (s *Store) EnsureWorkspace(ctx context.Context, p identity.Principal) error
 	if err != nil {
 		return err
 	}
+	if s.postgres {
+		return s.ensurePublicWorkspace(ctx, tenant)
+	}
 	return s.write(ctx, func(q *sqlc.Queries) error {
 		_, err := q.RequireCustomerWorkspace(ctx, string(tenant))
 		if err == nil {
@@ -96,6 +99,9 @@ func (s *Store) ProvisionCustomerCatalogue(ctx context.Context, p identity.Princ
 	}
 	if err = requireWorkspace(ctx, s.queries(s.readers), tenant); err != nil {
 		return err
+	}
+	if s.postgres {
+		return s.publicWrite(ctx, func(tx *sql.Tx) error { return s.provisionPublicCatalogue(ctx, tx, tenant) })
 	}
 	const feedID = "bca10000-0000-4000-8000-000000000001"
 	sources := []PilotSource{
