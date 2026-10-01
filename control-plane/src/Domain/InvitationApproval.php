@@ -6,8 +6,8 @@ use Waaseyaa\Auth\Extension\RegistrationContext;
 use Waaseyaa\Auth\Extension\RegistrationDecision;
 
 // Possession of a generic invitation is not proof of an arbitrary email address.
-// Operator verifies the invited person's identity before activating this account.
+// Invited beta accounts may sign in without claiming email verification.
 final class InvitationApproval implements RegistrationPolicyInterface
 {
-    public function decide(RegistrationContext $context): RegistrationDecision { return RegistrationDecision::requireApproval(); }
+    public function decide(RegistrationContext $context): RegistrationDecision { return RegistrationDecision::allow(); }
 }

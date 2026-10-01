@@ -10,7 +10,7 @@
     "state": "not_needed"
   -
     "id": "customer_beta"
-    "note": "Invitation-only verified accounts, one personal workspace, reader and scoped API keys; acceptance in progress."
+    "note": "Invitation-only accounts with unverified email addresses, one personal workspace, reader and scoped API keys; acceptance in progress."
     "state": "planned"
 "content_types":
   -
@@ -30,7 +30,7 @@
     "retention": "Account life; backup retention must be approved before customer activation"
   -
     "classification": "Tenant feed selections, source metadata, snapshots and explicit feedback in external Go store"
-    "consent_operation": "Verified personal workspace provisioning and explicit queries/feedback"
+    "consent_operation": "Authenticated personal workspace provisioning and explicit queries/feedback"
     "deletion_operation": "northway customer delete with exact tenant confirmation; see docs/beta-operations.md"
     "export_operation": "northway customer export with exclusive offline ownership"
     "id": "news-workspace"

@@ -1,3 +1,5 @@
+> Account policy updated 2026-10-01: invited accounts are active immediately with unverified email addresses. No email delivery or verification is required. Password login, invitations, tenant isolation and operator-assisted recovery remain. This supersedes older approval/verification language below.
+
 # Invitation beta implementation contract
 
 Started 2026-10-01 from `92d5742fe58180465994a0fac9e50ed509038d09`.

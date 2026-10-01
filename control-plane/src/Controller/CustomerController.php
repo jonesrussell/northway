@@ -19,8 +19,8 @@ final readonly class CustomerController
         if (!$account instanceof AccountInterface || !$account->isAuthenticated() || (int)$account->id()<=0) {return new Response('{"message":"Sign in required."}',401,$headers);}
         $user=$this->entities->getRepository('user')->find((string)$account->id());
         // Waaseyaa's authenticated route resolves active accounts on each request.
-        // Read verification through its audited API, not protected entity fields.
-        if (!$user instanceof User || !$this->fields->verification($user)->emailVerified) {return new Response('{"message":"An active verified account is required."}',403,$headers);}
+        // Email addresses are unverified in this invitation beta.
+        if (!$user instanceof User) {return new Response('{"message":"An active account is required."}',403,$headers);}
         $credentials=$this->fields->credentials($user);
         $generation=$_SESSION['northcloud_credential_generation']??'';
         if (!$credentials->active || $credentials->passwordHash==='' || !is_string($generation) || !hash_equals(hash('sha256',$credentials->passwordHash),$generation)) {

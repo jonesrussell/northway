@@ -11,7 +11,7 @@ async function api(path,method='GET',body=null,extra={}){
 function message(text){byId('message').textContent=text;}
 function formHandler(id,callback){const form=byId(id);if(!form)return;form.addEventListener('submit',async event=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;message('');try{await callback(new FormData(form));}catch(error){message(error.message);}finally{button.disabled=false;}});}
 formHandler('login',async data=>{await api('/api/auth/login','POST',{username:data.get('email'),password:data.get('password')});location.assign('/app');});
-formHandler('register',async data=>{await api('/api/auth/register','POST',{name:data.get('name'),email:data.get('email'),password:data.get('password'),invite_token:data.get('invite')});byId('register').reset();message('Account requested. Your invitation contact must verify and activate it before you can sign in.');});
+formHandler('register',async data=>{await api('/api/auth/register','POST',{name:data.get('name'),email:data.get('email'),password:data.get('password'),invite_token:data.get('invite')});byId('register').reset();message('Account created. You can sign in now. Email verification is not required during the beta.');});
 formHandler('reset',async data=>{await api('/api/auth/reset-password','POST',{token:data.get('token'),password:data.get('password'),password_confirmation:data.get('confirm')});byId('reset').reset();message('Password reset. You can now sign in.');});
 if(byId('dashboard')){
   let pendingQuery=null;

@@ -22,10 +22,8 @@ async function request(page,path,method='GET',body=null){return await page.evalu
   for(let index=0;index<2;index++){
    const tokenPath=privateDir+'/invite-'+index;operator({action:'invite',output_file:tokenPath});const token=fs.readFileSync(tokenPath,'utf8').trim();
    const context=await browser.newContext();contexts.push(context);const page=await context.newPage();pages.push(page);await page.goto(origin+'/register');
-   const response=await request(page,'/api/auth/register','POST',{name:'Fixture '+index,email:'fixture'+index+'@example.test',password,invite_token:token});assert.equal(response.status,201,response.body);const body=JSON.parse(response.body);assert.equal(body.meta.approval_required,true);
+   const response=await request(page,'/api/auth/register','POST',{name:'Fixture '+index,email:'fixture'+index+'@example.test',password,invite_token:token});assert.equal(response.status,201,response.body);const body=JSON.parse(response.body);assert.equal(body.meta.approval_required,false);assert.equal(body.meta.verification_required,false);assert.equal(body.data.email_verified,false);
    ids.push(String(body.data.id));
-   const before=await request(page,'/api/auth/login','POST',{username:'fixture'+index+'@example.test',password});assert.equal(before.status,401,'Unapproved account must not log in');
-   operator({action:'activate',account_id:String(body.data.id),identity_verified:true});
    await page.goto(origin+'/login');await page.getByLabel('Email',{exact:true}).fill('fixture'+index+'@example.test');await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL('**/app');
    await page.locator('#feed option').first().waitFor({state:'attached',timeout:30000});
    const denied=await page.evaluate(async()=>{const r=await fetch('/api/customer/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scopes:'feeds:read'})});return r.status;});assert.equal(denied,403,'Missing CSRF must fail');
@@ -61,8 +59,8 @@ async function request(page,path,method='GET',body=null){return await page.evalu
   assert.equal((await request(oldPage,'/api/customer/keys')).status,401,'Other session cannot mint keys after recovery');
   assert.equal((await request(recoveryPage,'/api/auth/login','POST',{username:'fixture0@example.test',password:password+'new'})).status,200);
   assert.equal((await request(recoveryPage,'/api/customer/keys')).status,200);
-  for(let i=0;i<2;i++){operator({action:'export',account_id:ids[i],identity_verified:true,output_file:privateDir+'/account-'+i+'.json'});}
+  for(let i=0;i<2;i++){operator({action:'export',account_id:ids[i],identity_verified:true,output_file:privateDir+'/account-'+i+'.json'});assert.equal(JSON.parse(fs.readFileSync(privateDir+'/account-'+i+'.json','utf8')).email_verified,false);}
   await page.getByRole('button',{name:'Sign out',exact:true}).click();await page.waitForURL('**/login');
-  console.log('PASS: two real invited accounts, concurrent single-use invitations, operator verification, sessions/CSRF, tenant isolation, one-time key reveal, independent API, revocation, live metadata reader, feedback, recovery token reuse denial, old-session invalidation, unsupported account routes denied, private account exports and logout');
+  console.log('PASS: two real invited accounts, concurrent single-use invitations, unverified email sign-in, sessions/CSRF, tenant isolation, one-time key reveal, independent API, revocation, live metadata reader, feedback, recovery token reuse denial, old-session invalidation, unsupported account routes denied, private account exports and logout');
  } finally {await browser.close();}
 })().catch(error=>{console.error(error.message);process.exitCode=1;});

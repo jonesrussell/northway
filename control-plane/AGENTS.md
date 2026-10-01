@@ -15,10 +15,10 @@ Generated files are owned by `.waaseyaa/generated.json`. Regeneration refuses ed
 <!-- waaseyaa:extension:start local-guidance -->
 # NorthCloud customer application
 
-Use Waaseyaa accounts, verified sessions, CSRF and supported extension points.
+Use Waaseyaa accounts, authenticated sessions, CSRF and supported extension points.
 Read ../docs/beta-implementation.md. The Go service owns all news and API keys.
 Never mount/open its SQLite file in PHP. Workspace identity derives only from the
-verified account UUID, never browser input. No service signer or assertion reaches
+authenticated account UUID, never browser input. No service signer or assertion reaches
 browser code. One-time external key reveal must be no-store and never persisted.
 
 Keep public signup and paid features disabled pending explicit product choices.

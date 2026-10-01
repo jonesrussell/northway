@@ -38,7 +38,7 @@ try {
     elseif ($action==='export') {
         $fields=$kernel->buildHandlerContainer()->get(\Waaseyaa\Access\User\UserInternalFieldReaderInterface::class);
         $identity=$fields->sessionIdentity($user);
-        fwrite($output,json_encode(['schema'=>'northcloud.account-export.v1','account_id'=>$id,'workspace_uuid'=>$user->uuid(),'name'=>$identity->name,'email'=>$identity->mail,'roles'=>$identity->roles],JSON_THROW_ON_ERROR)."\n");fclose($output);echo "Account export written privately.\n";
+        fwrite($output,json_encode(['schema'=>'northcloud.account-export.v1','account_id'=>$id,'workspace_uuid'=>$user->uuid(),'name'=>$identity->name,'email'=>$identity->mail,'roles'=>$identity->roles,'email_verified'=>$fields->verification($user)->emailVerified],JSON_THROW_ON_ERROR)."\n");fclose($output);echo "Account export written privately.\n";
     } else {
         if (($input['confirm_account_id']??null)!==$id || ($input['workspace_uuid']??null)!==$user->uuid()) {throw new RuntimeException('Exact account and workspace confirmation required.');}
         if ($action==='delete' && ($input['data_plane_deleted']??false)!==true) {throw new RuntimeException('Delete the exact Go workspace first.');}

@@ -8,7 +8,7 @@ return [
     'api' => ['entity_type_allowlist' => []],
     'ai_catalog' => ['enabled' => false],
     'api_catalog' => ['enabled' => false],
-    'auth' => ['registration' => 'invite', 'require_verified_email' => true, 'dev_fallback_account' => false, 'mail_missing_policy' => 'fail'],
+    'auth' => ['registration' => 'invite', 'require_verified_email' => false, 'dev_fallback_account' => false, 'mail_missing_policy' => 'fail'],
     'api_keys' => [],
     'jwt_secret' => '',
     'cors_origins' => [],

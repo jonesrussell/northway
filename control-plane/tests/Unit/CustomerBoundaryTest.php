@@ -38,10 +38,10 @@ final class CustomerBoundaryTest extends TestCase
     }
     public function testControllerDerivesIdentityAndDoesNotForwardUpstreamHeaders(): void
     {
-        $user=new User(['uid'=>42,'uuid'=>self::UUID,'status'=>true,'email_verified'=>true]);
+        $user=new User(['uid'=>42,'uuid'=>self::UUID,'status'=>true,'email_verified'=>false]);
         $repository=$this->createMock(EntityRepositoryInterface::class);$repository->expects(self::once())->method('find')->with('42')->willReturn($user);
         $entities=$this->createMock(EntityTypeManagerInterface::class);$entities->expects(self::once())->method('getRepository')->with('user')->willReturn($repository);
-        $fields=$this->createStub(UserInternalFieldReaderInterface::class);$fields->method('verification')->willReturn(new UserVerificationSnapshot('fixture@example.test',true,true));
+        $fields=$this->createStub(UserInternalFieldReaderInterface::class);$fields->method('verification')->willReturn(new UserVerificationSnapshot('fixture@example.test',false,true));
         $fields->method('credentials')->willReturn(new \Waaseyaa\Access\User\UserCredentialSnapshot(true,'test-hash'));
         $_SESSION['northcloud_credential_generation']=hash('sha256','test-hash');
         $http=$this->createMock(HttpClientInterface::class);$http->expects(self::once())->method('request')->with('GET','http://127.0.0.1:8080/v1/keys',self::callback(function(array $headers):bool{
@@ -58,8 +58,23 @@ final class CustomerBoundaryTest extends TestCase
         $controller=new CustomerController($entities,$this->createStub(UserInternalFieldReaderInterface::class),new NewsClient('http://127.0.0.1:8080',$this->signer(),$http));
         self::assertSame(401,$controller->handle(Request::create('/api/customer/keys'),'GET','/v1/keys')->getStatusCode());
     }
-    public function testInvitationRequiresOperatorApproval(): void
+    public function testRegistrationRetainsUnverifiedEmailAndRequiresExplicitSignIn(): void
     {
-        $decision=(new InvitationApproval())->decide(new RegistrationContext('Fixture','fixture@example.test','invite'));self::assertTrue($decision->allowed);self::assertTrue($decision->requiresApproval);
+        $user=new User(['uid'=>42,'uuid'=>self::UUID,'status'=>true,'email_verified'=>true]);
+        $repository=$this->createMock(EntityRepositoryInterface::class);
+        $repository->expects(self::once())->method('find')->with('42')->willReturn($user);
+        $repository->expects(self::once())->method('save')->with($user);
+        $entities=$this->createStub(EntityTypeManagerInterface::class);$entities->method('getRepository')->willReturn($repository);
+        $_SESSION=['waaseyaa_uid'=>42,'waaseyaa_session_generation'=>1,'northcloud_credential_generation'=>'old'];
+        $boundary=new \App\Infrastructure\AuthBoundary($entities,$this->createStub(UserInternalFieldReaderInterface::class),'/unused');
+        $response=$boundary->register(Request::create('/api/auth/register'),static fn()=>new \Symfony\Component\HttpFoundation\JsonResponse(['data'=>['id'=>42,'email_verified'=>true],'meta'=>['approval_required'=>false,'verification_required'=>true]],201));
+        $body=json_decode((string)$response->getContent(),true);
+        self::assertFalse($body['data']['email_verified']);self::assertFalse($body['meta']['verification_required']);self::assertSame(201,$response->getStatusCode());
+        self::assertArrayNotHasKey('waaseyaa_uid',$_SESSION);self::assertArrayNotHasKey('waaseyaa_session_generation',$_SESSION);self::assertArrayNotHasKey('northcloud_credential_generation',$_SESSION);
+    }
+
+    public function testInvitationAllowsUnverifiedBetaAccounts(): void
+    {
+        $decision=(new InvitationApproval())->decide(new RegistrationContext('Fixture','fixture@example.test','invite'));self::assertTrue($decision->allowed);self::assertFalse($decision->requiresApproval);
     }
 }

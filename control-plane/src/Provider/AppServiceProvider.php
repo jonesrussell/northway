@@ -44,7 +44,7 @@ final class AppServiceProvider extends ServiceProvider implements ProvidesAuthEx
         $register=new \Waaseyaa\Auth\Controller\RegisterController($this->resolve(\Waaseyaa\Auth\Config\AuthConfig::class),$entities,$tokens,$this->resolve(\Waaseyaa\User\AuthMailer::class),$rates,$lookup,$fields,$eligibility,extensions:$extensions);
         $login=new \Waaseyaa\Auth\Controller\LoginController($entities,$rates,$this->resolve(\Waaseyaa\Auth\TwoFactorService::class),$lookup,$fields,$eligibility,extensions:$extensions,passwords:$this->resolve(\Waaseyaa\Auth\Password\LegacyPasswordUpgrade::class));
         $reset=new \Waaseyaa\Auth\Controller\ResetPasswordController($entities,$tokens,$fields);
-        return ['register'=>fn(Request $r)=>$boundary->tokenMutation($r,$register),'login'=>fn(Request $r)=>$boundary->tokenMutation($r,fn(Request $request)=>$boundary->login($request,$login)),'reset-password'=>fn(Request $r)=>$boundary->tokenMutation($r,$reset)];
+        return ['register'=>fn(Request $r)=>$boundary->tokenMutation($r,fn(Request $request)=>$boundary->register($request,$register)),'login'=>fn(Request $r)=>$boundary->tokenMutation($r,fn(Request $request)=>$boundary->login($request,$login)),'reset-password'=>fn(Request $r)=>$boundary->tokenMutation($r,$reset)];
     }
     public function routes(WaaseyaaRouter $router,?EntityTypeManager $entityTypeManager=null): void
     {

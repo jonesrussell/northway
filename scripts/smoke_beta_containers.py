@@ -78,9 +78,8 @@ try:
             logs=subprocess.run(['docker','logs',names[1]],text=True,capture_output=True,timeout=10)
             print(logs.stderr[-2500:])
         assert status==201,('packaged registration status',status)
-        data=json.loads(body);assert data['meta']['approval_required'] is True
+        data=json.loads(body);assert data['meta']['approval_required'] is False and data['data']['email_verified'] is False and data['meta']['verification_required'] is False
         accounts.append(dict(id=str(data['data']['id']),cookies=cookies))
-        operator(dict(action='activate',account_id=str(data['data']['id']),identity_verified=True))
         assert request(webport,'/api/auth/login','POST',dict(username=f'fixture{index}@example.test',password='Disposable-fixture-Only-49!'),cookies)[0]==200
         assert request(webport,'/api/customer/workspace','PUT',cookies=cookies)[0]==200
         status,body=request(webport,'/api/customer/keys','POST',dict(scopes='feeds:read'),cookies);assert status==201

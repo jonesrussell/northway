@@ -13,6 +13,28 @@ final readonly class AuthBoundary
 {
     public function __construct(private EntityTypeManagerInterface $entities, private UserInternalFieldReaderInterface $fields, private string $storage) {}
 
+    /** Invite membership is not proof of email ownership. Use explicit sign-in
+     * after registration; never retain the framework's provisional invite session.
+     * Caller holds the shared token mutation lock throughout this operation.
+     */
+    public function register(Request $request, callable $controller): Response
+    {
+        $response=$controller($request);
+        if ($response->getStatusCode()!==201) {return $response;}
+        \Waaseyaa\User\Session\AuthenticatedSession::clearIdentity();
+        unset($_SESSION['northcloud_credential_generation']);
+        $body=json_decode((string)$response->getContent(),true,16,JSON_THROW_ON_ERROR);
+        $repository=$this->entities->getRepository('user');
+        $user=$repository->find((string)($body['data']['id']??''));
+        if (!$user instanceof User) {throw new \RuntimeException('Registered account unavailable.');}
+        $user->setEmailVerified(false);
+        $repository->save($user);
+        $body['data']['email_verified']=false;
+        $body['meta']['verification_required']=false;
+        $response->setContent(json_encode($body,JSON_THROW_ON_ERROR));
+        return $response;
+    }
+
     public function login(Request $request, callable $controller): Response
     {
         unset($_SESSION['northcloud_credential_generation']);
