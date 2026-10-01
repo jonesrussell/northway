@@ -1,0 +1,162 @@
+{
+  "date": "2026-10-01",
+  "status": "live invitation beta; technical deployment acceptance passed",
+  "url": "https://northcloud.one",
+  "api_url": "https://api.northcloud.one",
+  "repository": "https://github.com/jonesrussell/northway",
+  "application_source_commit": "4dba974cd9d87cb1560bbd908c593e98ba8f15ab",
+  "go_source_commit": "744a58b3b4ebd54527119275cfe3ad3c96e4d308",
+  "framework": "0.1.0-alpha.302",
+  "host": {
+    "inventory_alias": "fetder-droplet",
+    "hostname": "fetder",
+    "ip": "167.99.230.155",
+    "architecture": "x86_64",
+    "install": "/opt/northcloud",
+    "secrets": "/etc/northcloud; root directory0700/files0600",
+    "loopback_ports": [
+      38034,
+      38035
+    ],
+    "memory_mib": {
+      "api": 128,
+      "php": 256,
+      "web": 32
+    },
+    "cpu": {
+      "api": 0.25,
+      "php": 0.25,
+      "web": 0.1
+    },
+    "available_memory_mib_final": 1063,
+    "disk_free_gib_final": 31,
+    "oom": false,
+    "restart_counts": [
+      0,
+      0,
+      0
+    ],
+    "additional_swap": false
+  },
+  "account_policy": "Single-use invitations; active accounts and password sign-in immediately; email addresses remain unverified; no mail setup, delivery or verification gate. Public signup and billing disabled. Operator-assisted recovery uses trusted personal contact.",
+  "artifacts": {
+    "api": {
+      "id": "sha256:09369a29c4db44e7d1ec8595c2ba4da25d2ea9ed315d46dc15e00cd45fd762a6",
+      "tag": "northcloud-api:qualified-744a58b3b4eb",
+      "architecture": "amd64",
+      "archive_sha256": "c0a08c8190f86e9bca0a71f41cb459f929f6a448fab542a16becb120cbf04158",
+      "archive": "api.docker.tar",
+      "archive_bytes": 14240768,
+      "source_sha": "744a58b3b4ebd54527119275cfe3ad3c96e4d308"
+    },
+    "php": {
+      "id": "sha256:0b055a88efee6e54728467ceac8518a280a50182bcb7d9074e783186baa0968e",
+      "tag": "northcloud-php:qualified-4dba974cd9d8",
+      "architecture": "amd64",
+      "source_sha": "4dba974cd9d87cb1560bbd908c593e98ba8f15ab",
+      "archive": "php.docker.tar",
+      "archive_sha256": "ff1821f049c3578793a32e000962f7947995a869e1a8f8ac6d50e26d8b42e2ba",
+      "transport_sha256": "8888cc9c153cdef4eb6d3a345ba755626407d2678b854c0a4a2b63a8317e7042",
+      "transport_archive": "php.docker.tar.gz"
+    },
+    "web": {
+      "id": "sha256:87bdb8bddede635f188cd2ed1a2f117ff73c8c7af95d046288310217a02c50f6",
+      "tag": "northcloud-web:qualified-4dba974cd9d8",
+      "architecture": "amd64",
+      "source_sha": "4dba974cd9d87cb1560bbd908c593e98ba8f15ab",
+      "archive": "web.docker.tar",
+      "archive_sha256": "842c7c1e2a5913597b7521b4797b8ad87bd8937645779c9d6d8e581d2cb592f6",
+      "transport_sha256": "1a7aafdf5910f1a3062b1ea189919190226f7ea684781f9388491ee4f50135f2",
+      "transport_archive": "web.docker.tar.gz"
+    }
+  },
+  "target_digest_mapping": {
+    "php": {
+      "qualified_config_digest": "sha256:0b055a88efee6e54728467ceac8518a280a50182bcb7d9074e783186baa0968e",
+      "target_manifest_digest": "sha256:f7c470ea54efe05a046973fd1f33786e6735f32737629610d1ef86c250cbadfb",
+      "archive_sha256": "ff1821f049c3578793a32e000962f7947995a869e1a8f8ac6d50e26d8b42e2ba"
+    },
+    "web": {
+      "qualified_config_digest": "sha256:87bdb8bddede635f188cd2ed1a2f117ff73c8c7af95d046288310217a02c50f6",
+      "target_manifest_digest": "sha256:0c94ef0c9678be143c92e84fb0cadaacfec9f6055b76bd74dcc18b55636b296a",
+      "archive_sha256": "842c7c1e2a5913597b7521b4797b8ad87bd8937645779c9d6d8e581d2cb592f6"
+    }
+  },
+  "release_manifest_sha256": "7e294b64b4d45e68a8d6d378c225d685aef92773640de5ce9c00d4c497fc9824",
+  "dns": {
+    "provider": "Spaceship API, existing vaulted profile",
+    "changes": [
+      "northcloud.one A147.182.150.145 ->167.99.230.155",
+      "api.northcloud.one A147.182.150.145 ->167.99.230.155"
+    ],
+    "ttl": 1800,
+    "unrelated_records_and_nameservers_preserved": true,
+    "www": "existing CNAME preserved; no new www or AAAA created"
+  },
+  "tls": {
+    "certificate": "/etc/letsencrypt/live/northcloud.one",
+    "names": [
+      "northcloud.one",
+      "api.northcloud.one"
+    ],
+    "expiry": "2026-12-30",
+    "http_redirect": 308,
+    "renewal_timer": "active",
+    "renewal_and_nginx_deploy_hook_dry_run": "passed"
+  },
+  "checks": {
+    "go": "retained unchanged qualified Go suite; Go image input diff empty",
+    "php": "strict site checks; 8 tests46assertions passed",
+    "independent_review": "review_unverified_beta approved immutable b6897a3..4dba974; no actionable findings",
+    "browser": "complete local two-account unverified-email journey, sessions/CSRF, tenant isolation, keys, live metadata, feedback, recovery, export/deletion passed",
+    "packaged_restore": {
+      "exit": 0,
+      "seconds": 55.37
+    },
+    "target": "two unverified synthetic accounts, immediate login, provisioning, API/revocation, bounded live publisher metadata queries/feedback and cross-tenant denial passed",
+    "public_https_browser": "two unverified accounts; real browser login/reader/feedback; independent TLS API-key acceptance and revocation; logout; certificate validation enabled",
+    "offhost_restore": "actual encrypted target snapshot restored on independent desktop; two unverified logins, UUID mappings, feed isolation, active/revoked keys and fresh sessions passed",
+    "post_cleanup_restore": "latest encrypted backup independently restored; deletion ledger checked before startup; five synthetic accounts absent, workspace tombstones retained and old logins/keys denied",
+    "adjacent_sites": {
+      "goformx.com": 200,
+      "fetder.com": 200,
+      "intersnipe.com": 200,
+      "analytics.intersnipe.com": 200
+    },
+    "live_final": {
+      "home": 200,
+      "login": 200,
+      "api_health": 200
+    }
+  },
+  "cleanup": "Five explicitly synthetic accounts and four test workspaces deleted through supported operator commands; protected deletion ledger retained. Failed registration attempts were collisions with existing synthetic names; distinct-name rerun passed. One-off production operator containers require generated field-access preflight before regular CLI boot.",
+  "backup": {
+    "destination": "C:/Users/jones/Documents/NorthCloudBackups",
+    "encryption": "RSA3072 OAEP SHA256 and AES256 GCM; private key Windows-account DPAPI; public half only on host",
+    "schedule": "04:00 America/Toronto; StartWhenAvailable; signed-in Windows user required",
+    "retention": "seven daily successful desktop copies",
+    "scheduled_task": "NorthCloud encrypted daily backup",
+    "scheduler_actual_result": 0,
+    "latest": {
+      "sha256": "e844b8af88d8c63c65926defafe0446d1d12edc3e98d24d556d58802c6b00f1f",
+      "utc": "2026-10-01T14:07:52.6861924Z",
+      "retention": "seven daily successful copies",
+      "envelope": "20261001T140728Z.ncb",
+      "state": "passed"
+    },
+    "failures": "protected last-run.json and Task Scheduler result; desktop availability required"
+  },
+  "pi": "No Pi mutations; pilot preserved",
+  "paid_infrastructure": "none",
+  "remaining_limitations": [
+    "Invitation beta with five personal workspaces maximum; no billing or public signup",
+    "No email delivery or email verification",
+    "No real customer account created or human acceptance claimed",
+    "Daily backup depends on desktop and signed-in Windows account; no always-on RPO guarantee",
+    "Older restores must reconcile the latest deletion/suspension ledger before accounts or polling",
+    "Inherited framework duplicate-name registration yields an error; test accounts used distinct names"
+  ],
+  "evidence_bundle_local": "C:\\Users\\jones\\Documents\\Codex\\2026-09-30\\task-5\\northcloud-release\\unverified-4dba974cd9d8-qualified",
+  "live_reader_screenshot_local": "C:\\Users\\jones\\Documents\\Codex\\2026-10-01\\task\\live-reader.png",
+  "invitation_access_helper_local": "C:\\Users\\jones\\Documents\\Codex\\2026-10-01\\task\\use-invitation.ps1"
+}
