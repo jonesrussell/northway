@@ -111,7 +111,8 @@ func putCollection(ctx context.Context, q *sqlc.Queries, tenant, source, account
 	if e != nil {
 		return e
 	}
-	if n > 5000 || v > 10000 {
+	// Terminal removal is finite: at most one tombstone per stored item.
+	if n > 5000 || (v > 10000 && r.Status != 404 && r.Status != 410) {
 		return ingest.ErrCorpusFull
 	}
 	return nil

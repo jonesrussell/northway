@@ -141,3 +141,24 @@ func TestCollectionSeedManagementIsDisabledIdempotentAndTenantScoped(t *testing.
 		t.Fatal("unprovisioned tenant exported")
 	}
 }
+
+func TestCollectionRemovalAtVersionCapacity(t *testing.T) {
+	s, _, now := collectionSetup(t)
+	defer s.Close()
+	p := operator(tenantA)
+	cl, e := s.ClaimCollection(t.Context(), p)
+	must(t, e)
+	must(t, s.FinishPoll(t.Context(), p, cl.ID, collectionResult()))
+	_, e = s.writer.ExecContext(t.Context(), `WITH RECURSIVE n(x) AS (SELECT 2 UNION ALL SELECT x+1 FROM n WHERE x<10000) INSERT INTO collection_events(tenant_id,source_id,item_id,revision,payload) SELECT tenant_id,source_id,'capacity-fixture',x,payload FROM collection_events,n WHERE sequence=1`)
+	must(t, e)
+	*now = now.Add(time.Hour)
+	must(t, s.ResetPollSchedule(t.Context(), p, sourceID))
+	cl, e = s.ClaimCollection(t.Context(), p)
+	must(t, e)
+	must(t, s.FinishPoll(t.Context(), p, cl.ID, ingest.Result{Status: 410}))
+	b, e := s.CollectionBatch(t.Context(), p, 10000)
+	must(t, e)
+	if len(b.Events) != 1 || b.Events[0].Observation.State != "removed" {
+		t.Fatal(b)
+	}
+}

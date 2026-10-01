@@ -82,3 +82,30 @@ Autonomous link following, arbitrary provider APIs, live state, automatic
 publication, cache/rehosting, paid services and scheduling remain disabled or
 unimplemented. Enablement needs an accepted source register, seed list, rights,
 robots policy, budgets and separately authorized release.
+
+## Agent management integration boundary
+
+The supported nonbrowser test path is the local operator CLI: collection seed,
+status and export call Store.AddCollectionSeed, Store.CollectionStatus and
+Store.CollectionBatch with a tenant-bound operator principal. Seed admission
+never enables or approves acquisition. The fixture command exercises extraction,
+fenced collection settlement, durable events and cursor replay without networking.
+
+A remote agent adapter must not reuse nw1 feed keys, first-party PHP session
+signatures, or the retired shared-secret MCP service. Current RequireManagement
+correctly rejects external keys and local operator principals. Before exposing
+management endpoints, the platform must supply a distinct revocable agent grant,
+bound to one tenant and explicit collection:seed / collection:status /
+collection:observations:read capabilities. Verify the grant at the transport edge
+and construct an authorized domain principal; do not weaken RequireManagement.
+No grant creation, signing credentials or remote adapter is included here.
+
+Proposed typed operations for the common manifest are collection.seed
+(source UUID, exact URL, title; disabled result), collection.status (tenant
+counts) and collection.observations (after cursor; bounded version-1 batch).
+Adapter conformance must reject another tenant, feed-only nw1 keys, revoked
+grants, absent scopes and ambiguous tenant selection; replay must return identical
+observations. Approval, live run, scheduling and publication remain separate
+operator operations requiring explicit policy admission. The platform task owns
+grant issuance, manifest schema and conformance adapters; this product owns the
+three domain services above.
