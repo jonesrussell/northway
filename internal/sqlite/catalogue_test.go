@@ -48,6 +48,9 @@ func TestCuratedDisabledActivationIdempotenceAndTenantIsolation(t *testing.T) {
 		}
 		seen[r.NextAt] = true
 	}
+	if inv.GlobalActiveSources != 3 || inv.GlobalScheduledChecksPerDay != 3 {
+		t.Fatalf("incorrect global capacity: %+v", inv)
+	}
 	if len(seen) != 3 {
 		t.Fatal("first polls not staggered")
 	}

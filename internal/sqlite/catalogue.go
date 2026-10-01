@@ -67,8 +67,11 @@ func (s *Store) ProvisionCustomerCuratedCatalogue(ctx context.Context, p identit
 }
 
 type CatalogueInventory struct {
-	GlobalPollSources int64                      `json:"global_poll_sources"`
-	TenantSources     []sqlc.CatalogueSourcesRow `json:"tenant_sources"`
+	CustomerWorkspaces          []identity.TenantID        `json:"customer_workspaces"`
+	GlobalActiveSources         int64                      `json:"global_active_sources"`
+	GlobalScheduledChecksPerDay int64                      `json:"global_scheduled_checks_per_day"`
+	GlobalPollSources           int64                      `json:"global_poll_sources"`
+	TenantSources               []sqlc.CatalogueSourcesRow `json:"tenant_sources"`
 }
 
 func (s *Store) CatalogueInventory(ctx context.Context, p identity.Principal) (CatalogueInventory, error) {
@@ -82,5 +85,16 @@ func (s *Store) CatalogueInventory(ctx context.Context, p identity.Principal) (C
 		return CatalogueInventory{}, e
 	}
 	rows, e := q.CatalogueSources(ctx, string(tenant))
-	return CatalogueInventory{n, rows}, e
+	if e != nil {
+		return CatalogueInventory{}, e
+	}
+	tenants, e := s.CustomerTenants(ctx)
+	if e != nil {
+		return CatalogueInventory{}, e
+	}
+	capacity, e := q.CatalogueCapacity(ctx)
+	if e != nil {
+		return CatalogueInventory{}, e
+	}
+	return CatalogueInventory{CustomerWorkspaces: tenants, GlobalPollSources: n, TenantSources: rows, GlobalActiveSources: capacity.ActiveSources, GlobalScheduledChecksPerDay: capacity.DailyChecks}, nil
 }

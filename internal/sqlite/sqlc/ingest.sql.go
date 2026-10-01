@@ -54,6 +54,24 @@ func (q *Queries) AdvancePollCursor(ctx context.Context, arg AdvancePollCursorPa
 	return err
 }
 
+const catalogueCapacity = `-- name: CatalogueCapacity :one
+SELECT count(*) AS active_sources,CAST(coalesce(sum((86400000000+ps.interval_us-1)/ps.interval_us),0) AS INTEGER) AS daily_checks
+FROM poll_sources ps JOIN sources s ON s.tenant_id=ps.tenant_id AND s.id=ps.source_id
+WHERE ps.approved=1 AND ps.enabled=1 AND s.enabled=1
+`
+
+type CatalogueCapacityRow struct {
+	ActiveSources int64
+	DailyChecks   int64
+}
+
+func (q *Queries) CatalogueCapacity(ctx context.Context) (CatalogueCapacityRow, error) {
+	row := q.db.QueryRowContext(ctx, catalogueCapacity)
+	var i CatalogueCapacityRow
+	err := row.Scan(&i.ActiveSources, &i.DailyChecks)
+	return i, err
+}
+
 const catalogueSources = `-- name: CatalogueSources :many
 SELECT s.id,s.url,s.title,s.enabled AS source_enabled,coalesce(p.approved,0) AS approved,coalesce(p.enabled,0) AS poll_enabled,coalesce(p.mode,'') AS mode,coalesce(p.interval_us,0) AS interval_us,coalesce(p.max_bytes,0) AS max_bytes,coalesce(p.next_at,0) AS next_at
 FROM sources s LEFT JOIN poll_sources p ON p.tenant_id=s.tenant_id AND p.source_id=s.id WHERE s.tenant_id=? ORDER BY s.id
