@@ -91,21 +91,42 @@ Store.CollectionBatch with a tenant-bound operator principal. Seed admission
 never enables or approves acquisition. The fixture command exercises extraction,
 fenced collection settlement, durable events and cursor replay without networking.
 
-A remote agent adapter must not reuse nw1 feed keys, first-party PHP session
-signatures, or the retired shared-secret MCP service. Current RequireManagement
-correctly rejects external keys and local operator principals. Before exposing
-management endpoints, the platform must supply a distinct revocable agent grant,
-bound to one tenant and explicit collection:seed / collection:status /
-collection:observations:read capabilities. Verify the grant at the transport edge
-and construct an authorized domain principal; do not weaken RequireManagement.
-No grant creation, signing credentials or remote adapter is included here.
 
-Proposed typed operations for the common manifest are collection.seed
-(source UUID, exact URL, title; disabled result), collection.status (tenant
-counts) and collection.observations (after cursor; bounded version-1 batch).
-Adapter conformance must reject another tenant, feed-only nw1 keys, revoked
-grants, absent scopes and ambiguous tenant selection; replay must return identical
-observations. Approval, live run, scheduling and publication remain separate
-operator operations requiring explicit policy admission. The platform task owns
-grant issuance, manifest schema and conformance adapters; this product owns the
-three domain services above.
+The opt-in HTTP adapter is implemented with --collection-api. It uses separate
+nwa1 bearer grants, not nw1 feed keys, first-party browser assertions, or the
+retired shared-secret MCP service. Existing RequireManagement, RequireOperator
+and external feed scopes are unchanged. No remote issuance endpoint, operational
+grant, or deployment enablement is included. The durable grant store contains
+only SHA-256 digests of randomly generated 256-bit secrets; authentication checks
+expiry/revocation on every request and during last-used settlement. Grants are
+tenant-bound, at most 24 hours, individually revocable, and capped at 100 records
+per tenant (including historical records). Tenant suspension/deletion and the
+shared 60 authenticated requests/minute budget apply to the adapter. Deletion
+also erases grant records.
+
+Product operation contract for the platform manifest:
+- collection.seed: POST /v1/collection/seeds; scope collection:seed;
+  input {id: UUID, url: exact HTTPS URL, title: string}; result
+  {id, approved:false, enabled:false}. Retry same ID/URL is safe; different
+  tenant selection, enablement fields and changed source URLs are rejected.
+- collection.status: GET /v1/collection/status; scope collection:status;
+  no input; result {seeds,enabled,items,revisions}, tenant scoped.
+- collection.observations: GET /v1/collection/observations?after=N; scope
+  collection:observations:read; result the existing version-1 batch
+  {version,after,next,events}, at most 100 events. Replays are deterministic.
+
+Authority comes exclusively from the grant; no tenant input is accepted.
+CollectionScopes are a distinct Go type, never added to existing Scopes.Valid.
+The three Store methods authorize their exact capability themselves, allowing
+CLI and HTTP/MCP transports to share policy. Collection HTTP auth cannot grant
+feed reads, key management, source policy approval, collector execution,
+scheduling, discovery expansion, or FETDER publication.
+
+Local tests generate only ephemeral in-memory/test-database credentials.
+Production setup requires explicit owner approval for the migration, adapter
+enablement and trusted TLS ingress, and each tenant-specific grant's recipient,
+exact scopes, label, lifetime and secure one-time handoff. An operator must use
+GenerateAgentGrant/CreateAgentGrant and RevokeAgentGrant; no CLI issuance
+command has been shipped. Existing production grants/scopes remain untouched.
+The framework task owns common manifest packaging and MCP mapping; this product
+supplies the domain contract and working HTTP adapter above.

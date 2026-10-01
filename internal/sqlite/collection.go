@@ -121,14 +121,14 @@ func putCollection(ctx context.Context, q *sqlc.Queries, tenant, source, account
 // CollectionBatch is a local operator export seam. It cannot provision tenants,
 // enable acquisition, or use personal query snapshots as a delivery queue.
 func (s *Store) CollectionBatch(ctx context.Context, p identity.Principal, after int64) (ingest.Batch, error) {
-	tenant, e := p.RequireOperator()
+	tenant, e := p.RequireCollection(identity.CollectionObservationsRead)
 	if e != nil {
 		return ingest.Batch{}, e
 	}
 	if after < 0 {
 		return ingest.Batch{}, ingest.ErrInvalid
 	}
-	if e = s.RequireTenant(ctx, p); e != nil {
+	if e = s.requireCollectionTenant(ctx, p); e != nil {
 		return ingest.Batch{}, e
 	}
 	rows, e := sqlc.New(s.readers).CollectionEvents(ctx, sqlc.CollectionEventsParams{TenantID: string(tenant), AfterCursor: after})
@@ -150,8 +150,14 @@ func (s *Store) CollectionBatch(ctx context.Context, p identity.Principal, after
 // AddCollectionSeed is retry-safe operator management. It never grants rights,
 // enables polling, changes an existing source, or accepts a scraped policy.
 func (s *Store) AddCollectionSeed(ctx context.Context, p identity.Principal, v ingest.CollectionSeed) error {
-	tenant, e := access(p, true, v.ID)
+	tenant, e := p.RequireCollection(identity.CollectionSeed)
+	if identity.ValidateID(v.ID) != nil {
+		return ingest.ErrInvalid
+	}
 	if e != nil {
+		return e
+	}
+	if e = s.requireCollectionTenant(ctx, p); e != nil {
 		return e
 	}
 	if !pollURL(v.URL) || !text(v.Title, 512, false) {
@@ -186,13 +192,24 @@ func (s *Store) AddCollectionSeed(ctx context.Context, p identity.Principal, v i
 	})
 }
 func (s *Store) CollectionStatus(ctx context.Context, p identity.Principal) (ingest.CollectionStatus, error) {
-	tenant, e := p.RequireOperator()
+	tenant, e := p.RequireCollection(identity.CollectionStatus)
 	if e != nil {
 		return ingest.CollectionStatus{}, e
 	}
-	if e = s.RequireTenant(ctx, p); e != nil {
+	if e = s.requireCollectionTenant(ctx, p); e != nil {
 		return ingest.CollectionStatus{}, e
 	}
 	v, e := sqlc.New(s.readers).CollectionStatus(ctx, string(tenant))
 	return ingest.CollectionStatus{Seeds: v.Seeds, Enabled: v.Enabled, Items: v.Items, Revisions: v.Revisions}, e
+}
+
+func (s *Store) requireCollectionTenant(ctx context.Context, p identity.Principal) error {
+	n, e := sqlc.New(s.readers).TenantExists(ctx, string(p.TenantID()))
+	if e != nil {
+		return e
+	}
+	if n != 1 {
+		return identity.ErrNotFound
+	}
+	return nil
 }

@@ -80,6 +80,9 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 			}
 			api = httpapi.NewCustomerAPI(identity.NewService(store), verifier, store, query.NewService(store), feedback.NewService(store), catalogue)
 		}
+		if config.CollectionAPI {
+			api = httpapi.WithCollectionAPI(api, identity.NewAgentService(store), store)
+		}
 		if config.PollTenant != "" {
 			principal, err := identity.Operator(config.PollTenant)
 			if err != nil {

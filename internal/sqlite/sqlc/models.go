@@ -8,6 +8,18 @@ import (
 	"database/sql"
 )
 
+type AgentGrant struct {
+	ID         string
+	TenantID   string
+	Digest     []byte
+	Scopes     int64
+	CreatedAt  int64
+	ExpiresAt  int64
+	RevokedAt  sql.NullInt64
+	LastUsedAt sql.NullInt64
+	Label      string
+}
+
 type ApiKey struct {
 	ID         string
 	TenantID   string

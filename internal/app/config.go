@@ -25,6 +25,7 @@ type Config struct {
 	AssertionAudience string
 	AssertionKeys     string // Public verification material only, never private seeds.
 	CustomerCatalogue string
+	CollectionAPI     bool
 }
 
 // ParseConfig applies defaults, explicitly present environment values, then flags.
@@ -43,6 +44,8 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	pollTenant := env("NORTHWAY_POLL_TENANT", "")
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	collectionAPI := false
+	fs.BoolVar(&collectionAPI, "collection-api", false, "enable tenant-scoped agent collection adapter; no grant issuance")
 	fs.StringVar(&listen, "listen", listen, "IP:port to listen on")
 	fs.StringVar(&database, "database", database, "existing migrated SQLite file; empty disables storage")
 	fs.StringVar(&shutdown, "shutdown-timeout", shutdown, "maximum drain time")
@@ -71,6 +74,7 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 		return Config{}, errors.New("log level must be debug, info, warn or error")
 	}
 	config := Config{DatabasePath: database, ListenAddress: listen, ShutdownTimeout: timeout, LogLevel: logLevel, PollTenant: identity.TenantID(pollTenant)}
+	config.CollectionAPI = collectionAPI
 	config.AssertionIssuer = env("NORTHCLOUD_ASSERTION_ISSUER", "")
 	config.AssertionAudience = env("NORTHCLOUD_ASSERTION_AUDIENCE", "")
 	config.AssertionKeys = env("NORTHCLOUD_ASSERTION_KEYS", "")
@@ -79,6 +83,9 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 }
 
 func (c Config) Validate() error {
+	if c.CollectionAPI && c.DatabasePath == "" {
+		return errors.New("collection API requires migrated storage")
+	}
 	if c.CustomerCatalogue != "" && (c.CustomerCatalogue != "developer-v1" || c.AssertionKeys == "" || c.PollTenant != "") {
 		return errors.New("customer catalogue requires assertion keys and exclusive customer polling mode")
 	}

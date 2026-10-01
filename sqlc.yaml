@@ -12,6 +12,7 @@ sql:
       - db/migrations/00009_customer_boundary.sql
       - db/migrations/00010_customer_lifecycle.sql
       - db/migrations/00011_collection.sql
+      - db/migrations/00012_agent_grants.sql
     queries: db/queries
     gen:
       go:

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/jonesrussell/northway/internal/feedback"
 	"github.com/jonesrussell/northway/internal/identity"
+	"github.com/jonesrussell/northway/internal/ingest"
 	"github.com/jonesrussell/northway/internal/query"
 	"net/http"
 )
@@ -54,7 +55,7 @@ func serviceProblem(w http.ResponseWriter, err error) {
 		problem(w, 503, "unavailable", "Result unavailable; do not retry automatically. See the recovery policy", false)
 	case errors.Is(err, identity.ErrNotFound):
 		problem(w, 404, "not_found", "Object unavailable", false)
-	case errors.Is(err, query.ErrInvalid), errors.Is(err, feedback.ErrInvalid):
+	case errors.Is(err, ingest.ErrInvalid), errors.Is(err, query.ErrInvalid), errors.Is(err, feedback.ErrInvalid):
 		problem(w, 400, "invalid_request", "Invalid request", false)
 	case errors.Is(err, query.ErrInProgress):
 		problem(w, 409, "in_progress", "Query still in progress; retry with the same key", true)

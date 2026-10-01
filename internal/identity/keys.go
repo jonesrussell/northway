@@ -57,6 +57,7 @@ type Principal struct {
 	scopes     Scopes
 	operator   bool
 	management bool
+	collection CollectionScopes
 }
 
 // RequireManagement grants only the first-party personal-workspace boundary.

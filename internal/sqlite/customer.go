@@ -228,6 +228,15 @@ func (s *Store) TakeRequestBudget(ctx context.Context, p identity.Principal, now
 		tenant, err = p.Require(identity.FeedbackWrite)
 	}
 	if err != nil {
+		tenant, err = p.RequireCollection(identity.CollectionStatus)
+	}
+	if err != nil {
+		tenant, err = p.RequireCollection(identity.CollectionSeed)
+	}
+	if err != nil {
+		tenant, err = p.RequireCollection(identity.CollectionObservationsRead)
+	}
+	if err != nil {
 		return false, err
 	}
 	var n int64

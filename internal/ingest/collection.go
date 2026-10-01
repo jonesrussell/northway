@@ -126,7 +126,11 @@ func SafeEmbed(raw string) bool {
 }
 
 // CollectionSeed admits one exact URL; scraped links cannot call this operation.
-type CollectionSeed struct{ ID, URL, Title string }
+type CollectionSeed struct {
+	ID    string `json:"id"`
+	URL   string `json:"url"`
+	Title string `json:"title"`
+}
 type CollectionStatus struct {
 	Seeds     int64 `json:"seeds"`
 	Enabled   int64 `json:"enabled"`
