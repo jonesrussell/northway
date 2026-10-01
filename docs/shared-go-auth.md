@@ -12,6 +12,11 @@ Northway `377d00696d6597b646e4e48a80ab948a05f3f361` currently implements `nw1_` 
 
 ## NorthCloud adoption order
 
+This sequence governs shared-module adoption, not the entire NorthCloud launch.
+A reviewed product-local assertion implementation may precede extraction, with
+the same conformance, durable replay and tenant-isolation gates. Do not create a
+generic platform or delay customer acceptance solely to publish a library.
+
 1. Agree an explicit assertion profile: product-specific type/issuer/audience, key trust, version, scope registry, operation binding, claim syntax, TTL/skew and key-refresh failure policy. Shared code never implies cross-product trust.
 2. Wait for GoFormX's behavior-preserving extraction and tagged conformance suite; pin an exact reviewed version, never a floating branch or production local `replace`.
 3. Implement atomic durable replay consumption and bounded expiry cleanup in the existing SQLite adapter. Bind authenticated tenant identity into existing private-field principals; never construct the trusted local `Operator` principal from HTTP claims or payload.
