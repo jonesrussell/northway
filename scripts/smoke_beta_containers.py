@@ -78,7 +78,10 @@ try:
     print('PASS: packaged production PHP/FPM/nginx + Go; two invited tenants, CSRF/session boundary, scoped external API and revocation under 416 MiB total caps')
 except subprocess.CalledProcessError as error:
     # Do not print command/env/body: operator calls can contain disposable tokens.
-    raise RuntimeError('Container operation failed: '+error.stderr[-1200:]) from None
+    if 'install:init' in error.cmd:
+        diagnostic='require "vendor/autoload.php"; try {$k=new \\Waaseyaa\\Foundation\\Kernel\\ConsoleKernel("/app");$k->bootForSchemaSync();echo "restricted boot OK\\n";$c=$k->buildHandlerContainer();$c->get(\\Waaseyaa\\CLI\\Handler\\InstallInitHandler::class);echo "install handler OK\\n";} catch (Throwable $e) {echo get_class($e),"\\n",$e->getTraceAsString(),"\\n";}'
+        print(docker('run','--rm',*phpenv,'-v',volumes[1]+':/app/storage','northcloud-php:local-check','php','-d','zend.exception_ignore_args=1','-r',diagnostic,check=False))
+    raise RuntimeError('Container operation failed at '+str(error.cmd[-4:])+': '+error.stderr[-1200:]) from None
 finally:
     for name in reversed(names):docker('rm','-f',name,check=False)
     for volume in volumes:docker('volume','rm',volume,check=False)
