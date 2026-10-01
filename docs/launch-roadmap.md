@@ -47,7 +47,9 @@ Retain one Go process and SQLite initially, subject to measured concurrency, sto
 
 A customer signs in, obtains one workspace through retry-safe provisioning, selects approved feeds, reads bounded source-linked results with freshness/coverage warnings, explicitly refreshes and records feedback, creates a least-privilege API key once, uses an independent API client, and revokes that key. Provide usage/limits, supported account recovery and an export/deletion path. The journey must work without Claudriel.
 
-Recommend an invitation-based customer beta with a public explanatory site. Invite versus open signup, verification/recovery policy, free versus paid launch and team scope require owner decisions. Do not inherit GoFormX's unverified-login, mail-deferral, greenfield, host or credential choices.
+Owner decision, 2026-10-01: launch an invitation beta with operator-issued invitations, verified accounts and one personal workspace per account. Public signup and billing stay disabled. Verification and recovery implementation still need acceptance testing; this decision does not approve mail deferral or a particular identity-verification mechanism. A public explanatory site remains part of launch documentation.
+
+Russell delegated initial source selection. Recommend the official Go and Kubernetes blogs for a narrowly labeled developer-news beta, subject to the [customer source register](customer-source-register.md). This does not carry the Pi's personal-use permission into customer use or establish general, Canadian or Indigenous-news coverage.
 
 Defer arbitrary/private source URLs, article extraction, general crawling, paid AI discovery/ranking, broad MCP compatibility, team administration and billing unless explicitly selected. Keep deterministic ranking. Recorded feedback does not currently train or alter deterministic ranking, so do not advertise learned personalization. Commercial or multi-user source permission must be established independently of personal-pilot approval.
 
@@ -66,7 +68,7 @@ Defer arbitrary/private source URLs, article extraction, general crawling, paid 
 | Stage | Deliverable | Acceptance gate |
 | --- | --- | --- |
 | 1. Scope and baseline | Decisions, exact revision manifest, current infra/DNS baseline and Pi pilot preservation record | Named owners; current Pi data and clients accounted for; coherent pilot restore proven; stale DNS cutover scoped; unresolved choices recorded |
-| 2. Shared-auth contract | [Extraction roadmap](shared-go-auth.md), fixed conformance vectors, product-specific profiles | GoFormX unchanged behavior first; both consumers reject cross-product credentials; real persistent replay/isolation tests pass |
+| 2. Authentication contract | [Extraction roadmap](shared-go-auth.md), fixed conformance vectors, product-specific profiles | Both consumers reject cross-product credentials; real persistent replay/isolation tests pass. Shared-module publication is a separate adoption track, not a prerequisite for a locally implemented, reviewed NorthCloud boundary |
 | 3. Customer boundary | Control plane, workspace provisioning, scoped online management and OpenAPI | Retry creates one owned workspace; partial failure reconciles; two tenants cannot cross feeds, snapshots, keys, jobs, caches or feedback; session/CSRF and revocation work |
 | 4. Sources and limits | Customer-permitted catalogue, fair polling, quotas, usage and retention | Exact source rights/attribution recorded; global and tenant budgets enforced under concurrency/replay; suspension stops work; source failures visible |
 | 5. Local product acceptance | Browser and independent API-client workflow using isolated data | Customer reaches useful feed without Claudriel; replay, refresh, stale/error, one-time key reveal and revocation pass; account recovery/export/deletion exercised |
@@ -103,9 +105,9 @@ This plan is not authorization to stop the Pi service now, delete data, change D
 ## Remaining owner decisions
 
 1. Specific Intersnipe host/hosting agreement, capacity budget, canonical origin/API routing and the exact replacement of stale `northcloud.one` DNS records.
-2. Control-plane stack/repository (Waaseyaa/PHP remains unanswered), invitation versus open signup, account verification and recovery policy. Initial public-site versus customer-beta sequencing also remains open; lineage clarification does not approve an implementation choice.
-3. Customer source catalogue and rights, including whether Indigenous coverage is a launch requirement and its accurate labeling.
-4. Free versus paid launch, quotas, retention, RPO/RTO, support and observation criteria.
+2. Control-plane stack/repository (Waaseyaa/PHP remains proposed), concrete verification and recovery policy, and public-site sequencing. Invitation beta, verified accounts and one personal workspace are decided.
+3. Whether broader or Indigenous coverage is a launch requirement. Initial source selection is delegated; the developer catalogue recommendation and its activation gates are recorded separately.
+4. Quotas, retention, RPO/RTO, support and observation criteria. Billing stays disabled for the invitation beta; later pricing is undecided.
 5. Pilot tenant migration details, rollback window and final data disposition.
 6. Shared-module name/owner/license and product assertion profiles; no repository rename or module creation is implied.
 
