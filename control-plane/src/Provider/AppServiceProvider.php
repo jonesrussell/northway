@@ -31,18 +31,19 @@ final class AppServiceProvider extends ServiceProvider implements ProvidesAuthEx
     }
     private function authHandlers(): array
     {
-        // alpha.299's routing provider omits the supported AuthExtensionRegistry
-        // argument. Explicit app routes keep the framework controllers/policies.
+        // Explicit app routes wrap the maintained controllers in the beta's
+        // single-host mutation lock and session-generation stamp.
         $entities=$this->resolve(EntityTypeManager::class);
         $fields=$this->resolve(UserInternalFieldReaderInterface::class);
         $tokens=$this->resolve(\Waaseyaa\Auth\Token\AuthTokenRepositoryInterface::class);
         $rates=$this->resolve(\Waaseyaa\Auth\RateLimiterInterface::class);
         $lookup=$this->resolve(\Waaseyaa\Access\User\UserIdentityLookupInterface::class);
         $extensions=$this->resolve(\Waaseyaa\Auth\Extension\AuthExtensionRegistry::class);
+        $eligibility=$this->resolve(\Waaseyaa\User\Authentication\AuthenticationEligibilityInterface::class);
         $boundary=new \App\Infrastructure\AuthBoundary($entities,$fields,dirname(__DIR__,2).'/storage');
-        $register=new \Waaseyaa\Auth\Controller\RegisterController($this->resolve(\Waaseyaa\Auth\Config\AuthConfig::class),$entities,$tokens,$this->resolve(\Waaseyaa\User\AuthMailer::class),$rates,$lookup,$fields,extensions:$extensions);
-        $login=new \Waaseyaa\Auth\Controller\LoginController($entities,$rates,$this->resolve(\Waaseyaa\Auth\TwoFactorService::class),$lookup,$fields,extensions:$extensions,passwords:$this->resolve(\Waaseyaa\Auth\Password\LegacyPasswordUpgrade::class));
-        $reset=new \Waaseyaa\Auth\Controller\ResetPasswordController($entities,$tokens);
+        $register=new \Waaseyaa\Auth\Controller\RegisterController($this->resolve(\Waaseyaa\Auth\Config\AuthConfig::class),$entities,$tokens,$this->resolve(\Waaseyaa\User\AuthMailer::class),$rates,$lookup,$fields,$eligibility,extensions:$extensions);
+        $login=new \Waaseyaa\Auth\Controller\LoginController($entities,$rates,$this->resolve(\Waaseyaa\Auth\TwoFactorService::class),$lookup,$fields,$eligibility,extensions:$extensions,passwords:$this->resolve(\Waaseyaa\Auth\Password\LegacyPasswordUpgrade::class));
+        $reset=new \Waaseyaa\Auth\Controller\ResetPasswordController($entities,$tokens,$fields);
         return ['register'=>fn(Request $r)=>$boundary->tokenMutation($r,$register),'login'=>fn(Request $r)=>$boundary->tokenMutation($r,fn(Request $request)=>$boundary->login($request,$login)),'reset-password'=>fn(Request $r)=>$boundary->tokenMutation($r,$reset)];
     }
     public function routes(WaaseyaaRouter $router,?EntityTypeManager $entityTypeManager=null): void

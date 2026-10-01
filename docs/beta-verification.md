@@ -1,3 +1,6 @@
+> Superseded for the bootstrap blocker by [alpha.302 qualification](beta-release-qualification.md).
+> Historical evidence below is retained; it is not the current release verdict.
+
 # Customer beta verification checkpoint
 
 2026-10-01, approximately 04:36 UTC. Local reviewed application candidate:

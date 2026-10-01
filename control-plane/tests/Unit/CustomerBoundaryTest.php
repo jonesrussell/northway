@@ -41,7 +41,7 @@ final class CustomerBoundaryTest extends TestCase
         $user=new User(['uid'=>42,'uuid'=>self::UUID,'status'=>true,'email_verified'=>true]);
         $repository=$this->createMock(EntityRepositoryInterface::class);$repository->expects(self::once())->method('find')->with('42')->willReturn($user);
         $entities=$this->createMock(EntityTypeManagerInterface::class);$entities->expects(self::once())->method('getRepository')->with('user')->willReturn($repository);
-        $fields=$this->createStub(UserInternalFieldReaderInterface::class);$fields->method('verification')->willReturn(new UserVerificationSnapshot('fixture@example.test',true));
+        $fields=$this->createStub(UserInternalFieldReaderInterface::class);$fields->method('verification')->willReturn(new UserVerificationSnapshot('fixture@example.test',true,true));
         $fields->method('credentials')->willReturn(new \Waaseyaa\Access\User\UserCredentialSnapshot(true,'test-hash'));
         $_SESSION['northcloud_credential_generation']=hash('sha256','test-hash');
         $http=$this->createMock(HttpClientInterface::class);$http->expects(self::once())->method('request')->with('GET','http://127.0.0.1:8080/v1/keys',self::callback(function(array $headers):bool{
