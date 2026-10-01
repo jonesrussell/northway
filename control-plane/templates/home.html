@@ -3,54 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A focused developer-news reader for official Go and Kubernetes sources. Contextual queries, original source links and scoped API access. Invitation beta.">
-  <title>NorthCloud | A clearer view of developer news</title>
+  <meta name="description" content="Source-backed content retrieval for people and applications. Explore approved feeds, add context and follow the original source. Invitation beta.">
+  <title>NorthCloud | Follow what matters</title>
   <link rel="stylesheet" href="/home.css">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header wrap">
     <a class="brand" href="/" aria-label="NorthCloud home"><span class="brand-mark" aria-hidden="true">n<span>c</span></span>NorthCloud</a>
-    <nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="/login">Sign in <span aria-hidden="true">↗</span></a></nav>
+    <nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="/login">Sign in <span aria-hidden="true">→</span></a></nav>
   </header>
   <main id="main">
     <section class="hero wrap" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Developer news · Invitation beta</p>
-        <h1 id="hero-title">Less noise.<br>A clearer <em>view.</em></h1>
-        <p class="lead">Keep up with Go and Kubernetes through a focused, source-linked reader. Bring context to a query; find headlines worth opening.</p>
-        <div class="actions"><a class="button" href="/register">Use your invitation <span aria-hidden="true">↗</span></a><a class="text-link" href="/login">Already have an account? Sign in</a></div>
-        <p class="access-note">A small invitation beta. No open signup or billing.<br>No invitation? Ask the person who introduced you to NorthCloud.</p>
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Source-backed content · Invitation beta</p>
+        <h1 id="hero-title">Follow what<br><em>matters.</em></h1>
+        <p class="lead">NorthCloud brings content from approved sources into a searchable collection. Find relevant updates in your reader, or retrieve them through an application—with a clear path back to the source.</p>
+        <div class="actions"><a class="button" href="/register">Use your invitation <span aria-hidden="true">→</span></a><a class="text-link" href="/login">Already have an account? Sign in</a></div>
+        <p class="access-note">Invitation-only access. Feed availability is limited during beta.<br>No invitation? Contact the person who introduced you to NorthCloud.</p>
       </div>
       <aside class="example" aria-labelledby="example-title">
-        <div class="example-top"><span class="eyebrow">Inside the reader</span><span class="example-label">Example · archived headlines</span></div>
-        <h2 id="example-title">Start with what you’re working on.</h2>
-        <div class="query"><span class="field-label">Example query</span><p>“Go releases and Kubernetes updates relevant to maintaining a backend service.”</p></div>
-        <div class="sample-result"><span class="source-tag">The Go Authors · <time datetime="2025-02-11">11 Feb 2025</time></span><h3><a href="https://go.dev/blog/go1.24">Go 1.24 is released! <span aria-hidden="true">↗</span></a></h3><p>Open the original announcement for release details.</p></div>
-        <div class="sample-result"><span class="source-tag">Kubernetes contributors · <time datetime="2024-04-17">17 Apr 2024</time></span><h3><a href="https://kubernetes.io/blog/2024/04/17/kubernetes-v1-30-release/">Kubernetes v1.30: Uwubernetes <span aria-hidden="true">↗</span></a></h3><p>Follow the publisher for the full story and author notices.</p></div>
-        <p class="example-caption">Illustrative query with real, archived public headlines, not live results or a screenshot. Titles reproduced under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Your workspace shows current source metadata and coverage warnings.</p>
+        <div class="example-top"><span class="eyebrow">A little context goes a long way</span><span class="example-label">Illustrative requests</span></div>
+        <h2 id="example-title">What would you like to follow?</h2>
+        <div class="query"><span class="field-label">Arts &amp; culture</span><p>“New exhibitions and independent films.”</p></div>
+        <div class="sample-result"><span class="source-tag">Environment &amp; community</span><h3>“Conservation updates in Canada.”</h3><p>A topic can be personal, local or wide-ranging.</p></div>
+        <div class="sample-result"><span class="source-tag">Research &amp; discovery</span><h3>“Recent astronomy discoveries.”</h3><p>Bring the interests you want to explore.</p></div>
+        <p class="example-caption">These are example requests, not live results or available feed promises. Results depend on the approved sources in your workspace; NorthCloud does not search the whole web.</p>
       </aside>
     </section>
-    <section class="source-strip" aria-label="Beta sources"><div class="wrap source-inner"><p>Two official sources.<br><strong>A deliberate starting point.</strong></p><a href="https://go.dev/blog/">Go blog <span aria-hidden="true">↗</span></a><a href="https://kubernetes.io/blog/">Kubernetes blog <span aria-hidden="true">↗</span></a><span class="source-note">Headline metadata.<br>Original publishers. No endorsement implied.</span></div></section>
+    <section class="source-strip" aria-label="Product principles"><div class="wrap source-inner"><p>From source to reader.<br><strong>Keep the trail intact.</strong></p><span class="principle">Source attribution</span><span class="principle">Contextual retrieval</span><span class="source-note">Browse as a person.<br>Connect an application.</span></div></section>
     <section id="how-it-works" class="workflow wrap" aria-labelledby="workflow-title">
-      <div class="section-heading"><p class="eyebrow">From context to source</p><h2 id="workflow-title">A short path to<br>something worth reading.</h2></div>
+      <div class="section-heading"><p class="eyebrow">How it works</p><h2 id="workflow-title">Choose a feed.<br>Give it some context.</h2></div>
       <ol class="steps">
-        <li><span class="step-number" aria-hidden="true">01</span><h3>Make it relevant</h3><p>Sign in to your personal workspace. Choose a feed and describe the updates you’re looking for.</p></li>
-        <li><span class="step-number" aria-hidden="true">02</span><h3>See the evidence</h3><p>Review a bounded set of source-linked headlines, with attribution, freshness information and coverage limits.</p></li>
-        <li><span class="step-number" aria-hidden="true">03</span><h3>Read at the source</h3><p>Follow the publisher’s link for the full story. Record feedback in the reader when a result is useful or misses the mark.</p></li>
+        <li><span class="step-number" aria-hidden="true">01</span><h3>Start with your sources</h3><p>Sign in and choose an available feed. NorthCloud collects metadata from approved sources; the catalogue determines what you can find.</p></li>
+        <li><span class="step-number" aria-hidden="true">02</span><h3>Find relevant updates</h3><p>Describe what you want to follow. Review a bounded set of headlines with source attribution, freshness information and coverage warnings.</p></li>
+        <li><span class="step-number" aria-hidden="true">03</span><h3>Follow the original</h3><p>Open the publisher's link for the full story. Record feedback when a result is useful or misses the mark.</p></li>
       </ol>
     </section>
-    <section class="details-grid wrap" aria-label="Product capabilities and beta limitations">
-      <div class="tools-panel"><p class="eyebrow">For people and their tools</p><h2>Your reader.<br>Your API client.</h2><p>Read in the browser, or connect your own tools with a scoped, read-only API key from your workspace.</p><ul><li>Copy a new key once; revoke it when you need.</li><li>Keys expire after 30 days.</li><li>A workspace shares a limit of 60 authenticated requests per minute.</li></ul><a class="text-link" href="/login">Sign in to manage API access <span aria-hidden="true">↗</span></a></div>
-      <div class="beta-panel"><p class="eyebrow">Know what you’re getting</p><h2>Focused by design.<br>Still a beta.</h2><p>The current catalogue covers the official Go and Kubernetes blogs. It does not provide complete developer-news coverage.</p><p>NorthCloud works with headline metadata, not full article pages. Ranking is deterministic; feedback is recorded but does not automatically teach the ranking system.</p><p>Invited accounts can sign in immediately. Email addresses are unverified, and there is no email delivery during this beta.</p></div>
+    <section class="details-grid wrap" aria-label="Product capabilities and beta status">
+      <div class="tools-panel"><p class="eyebrow">For people and applications</p><h2>Read here.<br>Build it into your tools.</h2><p>The browser reader and scoped API give you two ways to retrieve source-backed content. Your workspace is private to your account.</p><ul><li>Create a scoped API key in your workspace.</li><li>Copy the secret once; revoke access when needed.</li><li>Keys expire after 30 days. Your workspace shares a limit of 60 authenticated requests per minute.</li></ul><a class="text-link" href="/login">Sign in to manage API access <span aria-hidden="true">→</span></a></div>
+      <div class="beta-panel"><p class="eyebrow">Available now · still a beta</p><h2>A clear view of<br>the current limits.</h2><p>Invited members can use the reader, query approved feeds, record feedback and manage API keys. The current catalogue is small; broad topic examples do not mean broad coverage is available yet.</p><p>Reader results use headline metadata and deterministic matching, not full-article analysis. Feedback is recorded; it does not automatically train a recommendation system.</p><p>A separate collection capability can track profile and video metadata. Real-source collection for that capability has not been activated, and it is not a self-service feature.</p></div>
     </section>
     <section class="questions wrap" aria-labelledby="questions-title"><h2 id="questions-title">Before you join</h2><div>
-      <details><summary>How do I get access?</summary><p>Registration requires an operator-issued, single-use invitation. If you have one, <a href="/register">use your invitation</a>. Public signup is closed; contact the person who introduced you to NorthCloud about availability.</p></details>
-      <details><summary>Do I need to share my project files?</summary><p>No. A query needs only the context you choose to provide. Keep secrets, project files and whole conversations out of requests. NorthCloud does not need access to your repository.</p></details>
+      <details><summary>Which topics can I follow?</summary><p>Only topics covered by your workspace's approved feeds. Check the feed selector after signing in. The examples above illustrate possible interests, not the current catalogue. You cannot add arbitrary websites or request a whole-web search.</p></details>
+      <details><summary>How do I get access?</summary><p>Registration requires an operator-issued, single-use invitation. If you have one, <a href="/register">use your invitation</a>. Public signup and billing are closed. Invited accounts can sign in immediately; email addresses are unverified and the beta does not send email.</p></details>
+      <details><summary>What context do I need to share?</summary><p>Only what you choose to put in a query. A short description of your interests is enough to start. Keep secrets, private files and whole conversations out of requests.</p></details>
       <details><summary>What if I need recovery, export or deletion?</summary><p>Contact the person who issued your invitation for operator-assisted account recovery, export or deletion. If you already have a recovery token, <a href="/reset-password">reset your password</a>.</p></details>
     </div></section>
-    <section class="closing wrap"><p class="eyebrow">Your next useful read</p><h2>Bring a little context.<br>Follow a better lead.</h2><a class="button" href="/register">Use your invitation <span aria-hidden="true">↗</span></a><a class="text-link" href="/login">Sign in</a></section>
+    <section class="closing wrap"><p class="eyebrow">Begin with your interests</p><h2>Find an update.<br>Follow it to the source.</h2><a class="button" href="/register">Use your invitation <span aria-hidden="true">→</span></a><a class="text-link" href="/login">Sign in</a></section>
   </main>
-  <footer class="wrap"><a class="brand" href="/">NorthCloud</a><p>Source-backed developer news.<br>Invitation beta at northcloud.one.</p><nav aria-label="Footer navigation"><a href="/login">Sign in</a><a href="/register">Use an invitation</a><a href="/reset-password">Recovery token</a></nav></footer>
+  <footer class="wrap"><a class="brand" href="/">NorthCloud</a><p>Source-backed content for people and applications.<br>Invitation beta at northcloud.one.</p><nav aria-label="Footer navigation"><a href="/login">Sign in</a><a href="/register">Use an invitation</a><a href="/reset-password">Recovery token</a></nav></footer>
 </body>
 </html>
