@@ -6,7 +6,7 @@ This repository, currently named `jonesrussell/northway`, owns the Go service fo
 
 Status: the Go/SQLite personal-news path is implemented and a private Pi pilot was deployed, then paused by the owner on September 1. Customer accounts/control plane, online provisioning, multi-tenant polling, rate/quota enforcement and customer release gates remain work. No public NorthCloud launch is claimed. The [roadmap baseline](docs/launch-roadmap.md#evidence-baseline-not-current-production-verification) distinguishes code from dated deployment evidence.
 
-Start with the [launch plan](docs/launch-roadmap.md), [shared Go auth adoption](docs/shared-go-auth.md), and [deployment ownership](docs/deployment.md). Product branding does not rename the module/binary or retire the older North Cloud pipeline.
+Start with the [launch plan](docs/launch-roadmap.md), [shared Go auth adoption](docs/shared-go-auth.md), and [deployment ownership](docs/deployment.md). The module/binary name is unchanged. Russell confirmed the original NorthCloud was archived and its server is gone; Northway is the pruned and tuned pivot/codebase for the new NorthCloud. Existing old-server DNS is stale. This does not retire the current Pi pilot.
 
 ## Existing personal-feed experience and product foundation
 
@@ -70,6 +70,6 @@ The contract checker validates synthetic API examples and local links. Runtime c
 
 ## Relationship to North Cloud
 
-North Cloud remains the reference implementation during migration. Northway starts with a clean history and imports only selected, useful behavior. North Cloud will be archived only after consumer migration, data preservation, and explicit retirement approval. Creating this repository does not archive, stop, or delete North Cloud.
+Russell clarified on 2026-10-01 that the original NorthCloud was a different product, was archived, and its server is gone. Northway was forked, pruned and tuned into the pivot now marketed as NorthCloud at northcloud.one. Historical selective-import records remain provenance evidence, not an active predecessor-migration requirement. The current Northway Pi pilot remains a separate preservation and cutover responsibility.
 
 The repository is public by explicit owner decision. No open-source license has been selected yet; public visibility alone is not a license grant. Review first-party ownership, third-party notices and source-content rights before redistributing imported material.

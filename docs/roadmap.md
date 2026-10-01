@@ -8,6 +8,6 @@ The owner-directed [NorthCloud product launch roadmap](launch-roadmap.md) is the
 - [Delivery issue index](delivery/README.md)
 - [Historical Pi-first roadmap](roadmap-pi-history.md)
 
-The repository/module remains `jonesrussell/northway`; naming migration is not part of this plan. The older `jonesrussell/north-cloud` collection/procurement stack is separate and is not retired by the Pi Northway decision.
+The repository/module remains `jonesrussell/northway`; naming migration is not part of this plan. The owner confirmed the original NorthCloud was archived and its server is gone. Northway is the pivot/codebase of the new NorthCloud; old-server DNS is stale. The current Northway Pi pilot remains a separate migration and preservation responsibility.
 
 This is a plan, not a claim that customer onboarding, public service operation, migration or retirement has happened. Existing issue numbers and historical CI remain evidence; reconcile their earlier phase prerequisites against the current roadmap before implementation.

@@ -1,6 +1,6 @@
 # NorthCloud product launch roadmap
 
-Updated 2026-09-30. Status: owner-directed product plan, not implementation or deployment approval.
+Updated 2026-10-01. Status: owner-directed product plan, not implementation or deployment approval.
 
 ## Decisions and scope
 
@@ -8,7 +8,7 @@ The product is **NorthCloud**, at **northcloud.one**: contextual, source-backed 
 
 Deploy the product on **Intersnipe infrastructure**, following GoFormX's separation of a customer control plane and Go API. Claudriel is an optional client, not the required host, identity system or UI. Retire the Northway Pi deployment only after migration, target acceptance and a rollback window. This retirement decision covers Northway alone, not the Pi or other workloads.
 
-The older `jonesrussell/north-cloud` collection/procurement pipeline is a distinct legacy system despite the product branding. Preserve its consumers, data and contracts until a separate inventory and retirement decision. Do not import its entire deployment topology.
+Owner clarification, 2026-10-01: the original NorthCloud was a different product, was archived, and its old server is gone. Russell describes Northway as the forked, pruned and tuned pivot that now forms the new NorthCloud at northcloud.one. Treat remaining DNS pointing at the old server as stale cutover records, not evidence of an active predecessor to migrate. No further legacy-product dependency investigation is a launch prerequisite. Preserve historical code/import provenance without importing the old deployment topology. The current Northway Pi pilot is separate and must still be preserved until replacement acceptance.
 
 This roadmap supersedes the Pi-first delivery order in the [historical roadmap](roadmap-pi-history.md) and historical issue milestones. Existing security, content-rights and data-preservation requirements remain applicable. Issue checklists are evidence and implementation inputs, not proof that this new launch has passed.
 
@@ -41,7 +41,7 @@ Recommend Waaseyaa/PHP for the control plane, using GoFormX's reviewed account a
 
 Use a dedicated Compose project, network, volumes, secrets and loopback ports behind Intersnipe's host ingress. The existing GoFormX host is a candidate, not a selected or capacity-qualified target. Intersnipe infrastructure documents server ownership by Paul and administration by Russell; confirm the hosting arrangement and change scope. Keep exact hosts, addresses, port reservations and credential locations in the infrastructure repository.
 
-Retain one Go process and SQLite initially, subject to measured concurrency, storage, recovery and availability requirements. A control-plane account store is separately owned. Do not add PostgreSQL merely to copy GoFormX; do not split database writers across hosts without a qualified storage design. `northcloud.one` is the chosen product domain; API subdomain, canonical browser origin, DNS routing and certificates still need an exact reviewed plan because legacy domain use must be inventoried.
+Retain one Go process and SQLite initially, subject to measured concurrency, storage, recovery and availability requirements. A control-plane account store is separately owned. Do not add PostgreSQL merely to copy GoFormX; do not split database writers across hosts without a qualified storage design. `northcloud.one` is the chosen product domain; API subdomain, canonical browser origin, DNS routing and certificates still need an exact reviewed cutover plan. The owner has resolved the old-product dependency concern; existing old-server DNS is stale, not a migration source.
 
 ## Smallest customer product
 
@@ -65,7 +65,7 @@ Defer arbitrary/private source URLs, article extraction, general crawling, paid 
 
 | Stage | Deliverable | Acceptance gate |
 | --- | --- | --- |
-| 1. Scope and baseline | Decisions, exact revision manifest, current infra/domain dependency inventory and pilot preservation record | Named owners; exact existing data and consumers accounted for; coherent pilot restore proven; unresolved choices recorded |
+| 1. Scope and baseline | Decisions, exact revision manifest, current infra/DNS baseline and Pi pilot preservation record | Named owners; current Pi data and clients accounted for; coherent pilot restore proven; stale DNS cutover scoped; unresolved choices recorded |
 | 2. Shared-auth contract | [Extraction roadmap](shared-go-auth.md), fixed conformance vectors, product-specific profiles | GoFormX unchanged behavior first; both consumers reject cross-product credentials; real persistent replay/isolation tests pass |
 | 3. Customer boundary | Control plane, workspace provisioning, scoped online management and OpenAPI | Retry creates one owned workspace; partial failure reconciles; two tenants cannot cross feeds, snapshots, keys, jobs, caches or feedback; session/CSRF and revocation work |
 | 4. Sources and limits | Customer-permitted catalogue, fair polling, quotas, usage and retention | Exact source rights/attribution recorded; global and tenant budgets enforced under concurrency/replay; suspension stops work; source failures visible |
@@ -102,8 +102,8 @@ This plan is not authorization to stop the Pi service now, delete data, change D
 
 ## Remaining owner decisions
 
-1. Specific Intersnipe host/hosting agreement, capacity budget, canonical origin/API routing and legacy `northcloud.one` dependencies.
-2. Control-plane stack/repository, invitation versus open signup, account verification and recovery policy.
+1. Specific Intersnipe host/hosting agreement, capacity budget, canonical origin/API routing and the exact replacement of stale `northcloud.one` DNS records.
+2. Control-plane stack/repository (Waaseyaa/PHP remains unanswered), invitation versus open signup, account verification and recovery policy. Initial public-site versus customer-beta sequencing also remains open; lineage clarification does not approve an implementation choice.
 3. Customer source catalogue and rights, including whether Indigenous coverage is a launch requirement and its accurate labeling.
 4. Free versus paid launch, quotas, retention, RPO/RTO, support and observation criteria.
 5. Pilot tenant migration details, rollback window and final data disposition.

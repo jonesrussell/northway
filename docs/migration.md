@@ -1,5 +1,7 @@
 # North Cloud migration ledger
 
+Owner clarification, 2026-10-01: the original NorthCloud was a different product, was archived, and its server is gone. Northway is its pruned and tuned pivot, now the new NorthCloud at northcloud.one. Import records below remain historical provenance; earlier future archive/cutover statements do not impose an active-predecessor migration gate. Preserve the current Northway Pi pilot separately under the [launch roadmap](launch-roadmap.md).
+
 Reference repository: jonesrussell/north-cloud. Audited reference commit: `51b877de7dab311c981dcdb4d38dfdca9965aeb1`.
 
 The [original resource/usefulness audit](north-cloud-audit.md) records the source evidence.
