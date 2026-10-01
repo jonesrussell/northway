@@ -393,7 +393,7 @@ func (s *Store) GetSnapshot(ctx context.Context, principal identity.Principal, i
 		return query.Snapshot{}, err
 	}
 	defer tx.Rollback()
-	snapshot, err := loadSnapshot(ctx, sqlc.New(tx), string(tenant), id, s.queryTime())
+	snapshot, err := loadSnapshot(ctx, s.queries(tx), string(tenant), id, s.queryTime())
 	if err != nil {
 		return query.Snapshot{}, err
 	}

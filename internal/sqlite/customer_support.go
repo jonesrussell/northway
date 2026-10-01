@@ -24,7 +24,18 @@ func CustomerSupport(ctx context.Context, path string, tenant identity.TenantID,
 		return err
 	}
 	defer s.Close()
-	q := sqlc.New(s.readers)
+	if s.postgres {
+		var exclusive bool
+		if err = s.guard.QueryRowContext(ctx, "SELECT pg_try_advisory_lock(762314201)").Scan(&exclusive); err != nil {
+			return err
+		}
+		if !exclusive {
+			return errors.New("customer support requires stopped application owners")
+		}
+		defer s.guard.ExecContext(context.Background(), "SELECT pg_advisory_unlock(762314201)")
+	}
+
+	q := s.queries(s.readers)
 	if _, err = q.CustomerWorkspaceState(ctx, string(tenant)); err != nil {
 		return identity.ErrNotFound
 	}

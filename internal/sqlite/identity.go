@@ -30,7 +30,7 @@ func (s *Store) LookupAPIKey(ctx context.Context, id string) (identity.KeyRecord
 	if !identity.ValidKeyID(id) {
 		return identity.KeyRecord{}, identity.ErrUnauthorized
 	}
-	v, err := sqlc.New(s.readers).LookupAPIKey(ctx, id)
+	v, err := s.queries(s.readers).LookupAPIKey(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return identity.KeyRecord{}, identity.ErrUnauthorized
 	}
@@ -40,7 +40,7 @@ func (s *Store) LookupAPIKey(ctx context.Context, id string) (identity.KeyRecord
 	if len(v.Digest) != 32 || v.Scopes < 1 || v.Scopes > 3 {
 		return identity.KeyRecord{}, identity.ErrUnauthorized
 	}
-	expiry, expiryErr := sqlc.New(s.readers).CustomerKeyExpiry(ctx, id)
+	expiry, expiryErr := s.queries(s.readers).CustomerKeyExpiry(ctx, id)
 	if expiryErr == nil && time.Now().UTC().UnixMicro() >= expiry {
 		return identity.KeyRecord{}, identity.ErrUnauthorized
 	}
@@ -98,7 +98,7 @@ func (s *Store) GetFeed(ctx context.Context, principal identity.Principal, id st
 	if err != nil {
 		return feed.Feed{}, err
 	}
-	v, err := sqlc.New(s.readers).GetFeed(ctx, sqlc.GetFeedParams{TenantID: string(tenant), ID: id})
+	v, err := s.queries(s.readers).GetFeed(ctx, sqlc.GetFeedParams{TenantID: string(tenant), ID: id})
 	if errors.Is(err, sql.ErrNoRows) {
 		return feed.Feed{}, ErrNotFound
 	}

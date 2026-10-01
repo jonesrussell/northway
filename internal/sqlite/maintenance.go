@@ -76,6 +76,9 @@ func (s *Store) Maintain(ctx context.Context, principal identity.Principal) (Mai
 }
 
 func (s *Store) checkpoint(ctx context.Context, busy, logPages, checkpointed *int) error {
+	if s.postgres {
+		return nil
+	} // PostgreSQL WAL and vacuum are server-owned.
 	select {
 	case s.writeGate <- struct{}{}:
 	case <-ctx.Done():
@@ -96,6 +99,6 @@ func (s *Store) PollHealthy(ctx context.Context, principal identity.Principal) (
 	if !validTimestamp(now) {
 		return false, errors.New("invalid poll health time")
 	}
-	count, err := sqlc.New(s.readers).UnhealthyPollSources(ctx, sqlc.UnhealthyPollSourcesParams{TargetTenant: string(tenant), NowAt: now.UnixMicro()})
+	count, err := s.queries(s.readers).UnhealthyPollSources(ctx, sqlc.UnhealthyPollSourcesParams{TargetTenant: string(tenant), NowAt: now.UnixMicro()})
 	return count == 0, err
 }

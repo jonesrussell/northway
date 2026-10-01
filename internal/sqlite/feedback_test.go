@@ -23,13 +23,13 @@ func feedbackFixture(t *testing.T) (*Store, string, identity.Principal, query.Sn
 func feedbackRevision(t *testing.T, s *Store) int {
 	t.Helper()
 	var n int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", tenantA, feedID).Scan(&n))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", tenantA, feedID).Scan(&n))
 	return n
 }
 func feedbackCount(t *testing.T, s *Store) int {
 	t.Helper()
 	var n int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM feedback_events").Scan(&n))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM feedback_events").Scan(&n))
 	return n
 }
 func TestFeedbackReplayReversalAndCacheRevision(t *testing.T) {
@@ -97,7 +97,7 @@ func TestFeedbackInvalidUnavailableMembershipAndRollback(t *testing.T) {
 			s, _, p, snap := feedbackFixture(t)
 			before := feedbackRevision(t, s)
 			e := feedback.Event{EventID: rid(301), SnapshotID: snap.ID, ArticleID: rid(201), Action: "dismiss"}
-			_, err := s.writer.ExecContext(t.Context(), fmt.Sprintf("CREATE TRIGGER reject_feedback_revision BEFORE UPDATE OF revision ON feeds BEGIN SELECT RAISE(%s%s); END", failure, map[string]string{"ABORT": ", 'fixture'"}[failure]))
+			_, err := s.database(s.writer).ExecContext(t.Context(), fmt.Sprintf("CREATE TRIGGER reject_feedback_revision BEFORE UPDATE OF revision ON feeds BEGIN SELECT RAISE(%s%s); END", failure, map[string]string{"ABORT": ", 'fixture'"}[failure]))
 			must(t, err)
 			if s.RecordFeedback(t.Context(), p, e) == nil {
 				t.Fatal("failed revision accepted")
@@ -105,7 +105,7 @@ func TestFeedbackInvalidUnavailableMembershipAndRollback(t *testing.T) {
 			if feedbackCount(t, s) != 0 || feedbackRevision(t, s) != before {
 				t.Fatal("partial event commit")
 			}
-			_, err = s.writer.ExecContext(t.Context(), "DROP TRIGGER reject_feedback_revision")
+			_, err = s.database(s.writer).ExecContext(t.Context(), "DROP TRIGGER reject_feedback_revision")
 			must(t, err)
 			must(t, s.RecordFeedback(t.Context(), p, e))
 		})

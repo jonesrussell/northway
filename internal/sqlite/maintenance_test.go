@@ -58,11 +58,11 @@ func TestMaintenancePrunesEligibleTenantDataAndPreservesEvidence(t *testing.T) {
 		t.Fatalf("expired snapshot retained: %v", err)
 	}
 	var count int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM query_work WHERE tenant_id=? AND id=?", tenantA, uncertain.WorkID).Scan(&count))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM query_work WHERE tenant_id=? AND id=?", tenantA, uncertain.WorkID).Scan(&count))
 	if count != 1 {
 		t.Fatal("unreconciled provider evidence was deleted")
 	}
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM articles WHERE tenant_id=? AND id=?", tenantB, other.ID).Scan(&count))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM articles WHERE tenant_id=? AND id=?", tenantB, other.ID).Scan(&count))
 	if count != 1 {
 		t.Fatal("maintenance crossed tenant boundary")
 	}
@@ -70,7 +70,7 @@ func TestMaintenancePrunesEligibleTenantDataAndPreservesEvidence(t *testing.T) {
 		t.Fatal("corpus or FTS retention is inconsistent")
 	}
 	var versions int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions WHERE tenant_id=? AND article_id=?", tenantA, itemID).Scan(&versions))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions WHERE tenant_id=? AND article_id=?", tenantA, itemID).Scan(&versions))
 	if versions != 1 {
 		t.Fatalf("current article versions=%d, want 1", versions)
 	}
@@ -155,7 +155,7 @@ func TestMaintenancePreservesSnapshotForActiveSave(t *testing.T) {
 		t.Fatalf("saved snapshot report: %+v", report)
 	}
 	var count int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots WHERE tenant_id=? AND id=?", tenantA, snapshot.ID).Scan(&count))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots WHERE tenant_id=? AND id=?", tenantA, snapshot.ID).Scan(&count))
 	if count != 1 {
 		t.Fatal("active save lost its immutable snapshot evidence")
 	}

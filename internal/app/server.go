@@ -44,7 +44,7 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		if err != nil {
 			return err
 		}
-		logger.Info("storage ready", "sqlite_version", version, "compile_options", options)
+		logger.Info("storage ready", "storage_version", version, "compile_options", options)
 		checkReady = store.Ready
 		api = httpapi.NewAPI(identity.NewService(store), query.NewService(store), feedback.NewService(store))
 		keys, err := config.verificationKeys()

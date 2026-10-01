@@ -85,7 +85,7 @@ func (s *Store) RetrieveCandidates(ctx context.Context, p identity.Principal, id
 		return query.Corpus{}, err
 	}
 	defer tx.Rollback()
-	q := sqlc.New(tx)
+	q := s.queries(tx)
 	w, err := queryWork(ctx, q, string(tenant), id)
 	if err != nil {
 		return query.Corpus{}, err
@@ -135,7 +135,7 @@ AND coalesce(a.published_at,a.observed_at)>=? AND coalesce(a.published_at,a.obse
 		}
 		statement += ` ORDER BY coalesce(a.published_at,a.observed_at) DESC,a.id LIMIT ?`
 		args = append(args, query.CandidatesPerCategory+1)
-		rows, err := tx.QueryContext(ctx, statement, args...)
+		rows, err := s.database(tx).QueryContext(ctx, statement, args...)
 		if err != nil {
 			return query.Corpus{}, err
 		}

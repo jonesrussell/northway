@@ -114,7 +114,7 @@ func (s *Store) claimPoll(ctx context.Context, p identity.Principal, mode string
 		if err != nil {
 			return err
 		}
-		if active != 0 {
+		if active != 0 && !s.postgres || s.postgres && active >= 4 {
 			outcome = ingest.ErrBusy
 			return nil
 		}
@@ -179,7 +179,7 @@ func (s *Store) claimPoll(ctx context.Context, p identity.Principal, mode string
 		}
 		if mode == "html" {
 			u, _ := url.Parse(selected.ApprovedUrl)
-			if e := q.HoldCollectionHost(ctx, sqlc.HoldCollectionHostParams{Host: u.Hostname(), NextAt: at + int64(10*time.Second/time.Microsecond)}); e != nil {
+			if e := q.HoldCollectionHost(ctx, sqlc.HoldCollectionHostParams{Host: u.Hostname(), NextAt: s.hostHold(at, claim.Until)}); e != nil {
 				return e
 			}
 		}

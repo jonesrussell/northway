@@ -72,7 +72,7 @@ func (s *Store) EnsureWorkspace(ctx context.Context, p identity.Principal) error
 
 // CustomerTenants is a trusted background-job inventory, never an HTTP lookup.
 func (s *Store) CustomerTenants(ctx context.Context) ([]identity.TenantID, error) {
-	rows, err := sqlc.New(s.readers).ListCustomerWorkspaces(ctx)
+	rows, err := s.queries(s.readers).ListCustomerWorkspaces(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (s *Store) ProvisionCustomerCatalogue(ctx context.Context, p identity.Princ
 	if err != nil {
 		return err
 	}
-	if err = requireWorkspace(ctx, sqlc.New(s.readers), tenant); err != nil {
+	if err = requireWorkspace(ctx, s.queries(s.readers), tenant); err != nil {
 		return err
 	}
 	const feedID = "bca10000-0000-4000-8000-000000000001"
@@ -150,7 +150,7 @@ func (s *Store) ListCustomerKeys(ctx context.Context, p identity.Principal) ([]i
 	if err != nil {
 		return nil, err
 	}
-	q := sqlc.New(s.readers)
+	q := s.queries(s.readers)
 	if err := requireWorkspace(ctx, q, tenant); err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func (s *Store) ListCustomerFeeds(ctx context.Context, p identity.Principal) ([]
 	if err != nil {
 		return nil, err
 	}
-	rows, err := sqlc.New(s.readers).ListCustomerFeeds(ctx, string(tenant))
+	rows, err := s.queries(s.readers).ListCustomerFeeds(ctx, string(tenant))
 	if err != nil {
 		return nil, err
 	}

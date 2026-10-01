@@ -42,7 +42,7 @@ func TestTimestampBounds(t *testing.T) {
 		t.Fatal("rejected timestamp changed stored article", got)
 	}
 	var versions int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions").Scan(&versions))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions").Scan(&versions))
 	if versions != 1 || len(search(t, s, tenantA, "Rejected")) != 0 {
 		t.Fatal("rejected timestamp changed version history or FTS")
 	}

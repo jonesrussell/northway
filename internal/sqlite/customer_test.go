@@ -15,7 +15,7 @@ func TestCustomerExpiryAndDurableSharedBudget(t *testing.T) {
 	seed(t, s, tenantA)
 	seed(t, s, tenantB)
 	key, secret := newKey(t, s, tenantA, identity.FeedsRead)
-	must(t, sqlc.New(s.writer).CreateCustomerKeyExpiry(t.Context(), sqlc.CreateCustomerKeyExpiryParams{KeyID: key.ID, ExpiresAt: time.Now().Add(-time.Minute).UnixMicro()}))
+	must(t, s.queries(s.writer).CreateCustomerKeyExpiry(t.Context(), sqlc.CreateCustomerKeyExpiryParams{KeyID: key.ID, ExpiresAt: time.Now().Add(-time.Minute).UnixMicro()}))
 	if _, err := identity.NewService(s).Authenticate(t.Context(), secret.Reveal()); !errors.Is(err, identity.ErrUnauthorized) {
 		t.Fatal("expired customer key authenticated")
 	}

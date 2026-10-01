@@ -103,7 +103,7 @@ func TestCollectionConcurrentClaimsAndExpiredRobots(t *testing.T) {
 				mu.Lock()
 				n++
 				mu.Unlock()
-			} else if !errors.Is(e, ingest.ErrBusy) {
+			} else if !errors.Is(e, ingest.ErrBusy) && !(s.postgres && errors.Is(e, ingest.ErrIdle)) {
 				t.Error(e)
 			}
 		})
@@ -149,7 +149,7 @@ func TestCollectionRemovalAtVersionCapacity(t *testing.T) {
 	cl, e := s.ClaimCollection(t.Context(), p)
 	must(t, e)
 	must(t, s.FinishPoll(t.Context(), p, cl.ID, collectionResult()))
-	_, e = s.writer.ExecContext(t.Context(), `WITH RECURSIVE n(x) AS (SELECT 2 UNION ALL SELECT x+1 FROM n WHERE x<10000) INSERT INTO collection_events(tenant_id,source_id,item_id,revision,payload) SELECT tenant_id,source_id,'capacity-fixture',x,payload FROM collection_events,n WHERE sequence=1`)
+	_, e = s.database(s.writer).ExecContext(t.Context(), `WITH RECURSIVE n(x) AS (SELECT 2 UNION ALL SELECT x+1 FROM n WHERE x<10000) INSERT INTO collection_events(tenant_id,source_id,item_id,revision,payload) SELECT tenant_id,source_id,'capacity-fixture',x,payload FROM collection_events,n WHERE sequence=1`)
 	must(t, e)
 	*now = now.Add(time.Hour)
 	must(t, s.ResetPollSchedule(t.Context(), p, sourceID))

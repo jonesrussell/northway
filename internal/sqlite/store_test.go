@@ -36,6 +36,9 @@ func must(t *testing.T, err error) {
 	}
 }
 func fresh(t *testing.T) (*Store, string) {
+	if os.Getenv("NORTHWAY_TEST_POSTGRES_FILE") != "" {
+		return postgresFresh(t)
+	}
 	t.Helper()
 	path := filepath.Join(privateDir(t), "northway.sqlite")
 	must(t, Migrate(t.Context(), path))
@@ -69,11 +72,11 @@ func TestCreateTenantIsIdempotentAndPreservesState(t *testing.T) {
 	read := func() (state, int64) {
 		t.Helper()
 		var got state
-		must(t, s.readers.QueryRowContext(t.Context(), `
+		must(t, s.database(s.readers).QueryRowContext(t.Context(), `
 			SELECT created_at, corpus_revision, entitlement_revision FROM tenants WHERE id=?`, tenantA).
 			Scan(&got.createdAt, &got.corpusRevision, &got.entitlementRevision))
 		var count int64
-		must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM tenants WHERE id=?", tenantA).Scan(&count))
+		must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM tenants WHERE id=?", tenantA).Scan(&count))
 		return got, count
 	}
 	before, beforeCount := read()
@@ -154,7 +157,7 @@ func TestTenantConstraintsAndFTSLifecycle(t *testing.T) {
 		t.Fatal("FTS update inconsistent")
 	}
 	var versions int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions WHERE tenant_id=?", tenantA).Scan(&versions))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions WHERE tenant_id=?", tenantA).Scan(&versions))
 	if versions != 2 {
 		t.Fatalf("versions=%d, want 2", versions)
 	}
@@ -166,11 +169,11 @@ func TestTenantConstraintsAndFTSLifecycle(t *testing.T) {
 	if len(search(t, s, tenantA, "Go")) != 0 || len(search(t, s, tenantB, "Rust")) != 1 {
 		t.Fatal("FTS delete crossed tenant or left stale index")
 	}
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions WHERE tenant_id=?", tenantA).Scan(&versions))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions WHERE tenant_id=?", tenantA).Scan(&versions))
 	if versions != 0 {
 		t.Fatal("versions were orphaned")
 	}
-	_, err = s.writer.ExecContext(t.Context(), "INSERT INTO article_fts(article_fts,rank) VALUES('integrity-check',1)")
+	_, err = s.database(s.writer).ExecContext(t.Context(), "INSERT INTO article_fts(article_fts,rank) VALUES('integrity-check',1)")
 	must(t, err)
 }
 
@@ -209,9 +212,9 @@ func TestSearchBoundsAndMembership(t *testing.T) {
 func TestPragmasOnEveryConnectionAndReplacement(t *testing.T) {
 	s, _ := fresh(t)
 	var pageSize, maxPages, checkpointPages int64
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA page_size").Scan(&pageSize))
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA max_page_count").Scan(&maxPages))
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA wal_autocheckpoint").Scan(&checkpointPages))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA page_size").Scan(&pageSize))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA max_page_count").Scan(&maxPages))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA wal_autocheckpoint").Scan(&checkpointPages))
 	if pageSize != storagePageSize || maxPages != storageMaxPages || checkpointPages != walAutoCheckpointPages {
 		t.Fatalf("writer bounds page_size=%d max_pages=%d checkpoint_pages=%d", pageSize, maxPages, checkpointPages)
 	}
@@ -298,8 +301,8 @@ func TestWriteSerializationCancellationAndExternalLock(t *testing.T) {
 	must(t, tx.Rollback())
 	must(t, s.PutArticle(t.Context(), operator(tenantA), item()))
 	var replacementMax, replacementCheckpoint int64
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA max_page_count").Scan(&replacementMax))
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA wal_autocheckpoint").Scan(&replacementCheckpoint))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA max_page_count").Scan(&replacementMax))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA wal_autocheckpoint").Scan(&replacementCheckpoint))
 	if replacementMax != storageMaxPages || replacementCheckpoint != walAutoCheckpointPages {
 		t.Fatalf("canceled writer replacement lost limits: max=%d checkpoint=%d", replacementMax, replacementCheckpoint)
 	}
@@ -345,9 +348,9 @@ func TestSQLiteFullRollsBackCorpusVersionAndFTS(t *testing.T) {
 	a := item()
 	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
 	var pages int
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA page_count").Scan(&pages))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA page_count").Scan(&pages))
 	var maximum int
-	must(t, s.writer.QueryRowContext(t.Context(), fmt.Sprintf("PRAGMA max_page_count=%d", pages+1)).Scan(&maximum))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), fmt.Sprintf("PRAGMA max_page_count=%d", pages+1)).Scan(&maximum))
 	a.Body = strings.Repeat("oversized ", 6500)
 	err := s.PutArticle(t.Context(), operator(tenantA), a)
 	var sqliteErr *modern.Error
@@ -360,14 +363,14 @@ func TestSQLiteFullRollsBackCorpusVersionAndFTS(t *testing.T) {
 		t.Fatal("disk-full transaction partially committed")
 	}
 	var versions int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions").Scan(&versions))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM article_versions").Scan(&versions))
 	if versions != 1 {
 		t.Fatal("failed version persisted")
 	}
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA max_page_count=2147483646").Scan(&maximum))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA max_page_count=2147483646").Scan(&maximum))
 	a.Body = "recovered"
 	must(t, s.PutArticle(t.Context(), operator(tenantA), a))
-	_, err = s.writer.ExecContext(t.Context(), "INSERT INTO article_fts(article_fts,rank) VALUES('integrity-check',1)")
+	_, err = s.database(s.writer).ExecContext(t.Context(), "INSERT INTO article_fts(article_fts,rank) VALUES('integrity-check',1)")
 	must(t, err)
 }
 
@@ -417,7 +420,7 @@ func testUpgradeRebuildRestart(t *testing.T, version int64) {
 		t.Fatal("upgrade lost data")
 	}
 	var n int
-	must(t, s.readers.QueryRowContext(t.Context(), `SELECT count(*) FROM article_fts WHERE article_fts MATCH 'PHP'`).Scan(&n))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), `SELECT count(*) FROM article_fts WHERE article_fts MATCH 'PHP'`).Scan(&n))
 	if n != 1 {
 		t.Fatal("upgrade failed to rebuild FTS")
 	}
@@ -481,11 +484,11 @@ func privateDir(t *testing.T) string {
 
 func TestNewerSchemaAndMalformedIDsFailClosed(t *testing.T) {
 	s, path := fresh(t)
-	_, err := s.writer.ExecContext(t.Context(), "INSERT INTO tenants(id,created_at) VALUES('not-a-uuid',1)")
+	_, err := s.database(s.writer).ExecContext(t.Context(), "INSERT INTO tenants(id,created_at) VALUES('not-a-uuid',1)")
 	if err == nil {
 		t.Fatal("database did not validate UUID")
 	}
-	_, err = s.writer.ExecContext(t.Context(), "INSERT INTO goose_db_version(version_id,is_applied) VALUES(999,1)")
+	_, err = s.database(s.writer).ExecContext(t.Context(), "INSERT INTO goose_db_version(version_id,is_applied) VALUES(999,1)")
 	must(t, err)
 	if err := s.Ready(t.Context()); err == nil {
 		t.Fatal("readiness accepted future schema")

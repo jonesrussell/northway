@@ -20,12 +20,12 @@ func TestProvisionPilotIsAtomicAndIdempotent(t *testing.T) {
 	}}
 	must(t, s.ProvisionPilot(t.Context(), p, sources, feeds))
 	var revision int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", string(tenantA), feeds[0].ID).Scan(&revision))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", string(tenantA), feeds[0].ID).Scan(&revision))
 	if err := s.ProvisionPilot(t.Context(), p, sources, feeds); err != nil {
 		t.Fatalf("idempotent provision: %v", err)
 	}
 	var after int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", string(tenantA), feeds[0].ID).Scan(&after))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", string(tenantA), feeds[0].ID).Scan(&after))
 	if after != revision {
 		t.Fatalf("idempotent provision changed feed revision: %d -> %d", revision, after)
 	}

@@ -120,7 +120,7 @@ func TestBackupRejectsSchemaNewerThanBinary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.writer.ExecContext(t.Context(), "INSERT INTO goose_db_version(version_id,is_applied) VALUES(999,1)"); err != nil {
+	if _, err := store.database(store.writer).ExecContext(t.Context(), "INSERT INTO goose_db_version(version_id,is_applied) VALUES(999,1)"); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.Close(); err != nil {

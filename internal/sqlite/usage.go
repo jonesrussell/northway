@@ -36,7 +36,7 @@ func (s *Store) GetBudget(ctx context.Context, principal identity.Principal) (us
 	if err != nil {
 		return usage.Budget{}, err
 	}
-	v, err := sqlc.New(s.readers).GetBudget(ctx, string(tenant))
+	v, err := s.queries(s.readers).GetBudget(ctx, string(tenant))
 	if errors.Is(err, sql.ErrNoRows) {
 		return usage.Budget{}, nil
 	}

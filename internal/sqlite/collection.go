@@ -131,7 +131,7 @@ func (s *Store) CollectionBatch(ctx context.Context, p identity.Principal, after
 	if e = s.requireCollectionTenant(ctx, p); e != nil {
 		return ingest.Batch{}, e
 	}
-	rows, e := sqlc.New(s.readers).CollectionEvents(ctx, sqlc.CollectionEventsParams{TenantID: string(tenant), AfterCursor: after})
+	rows, e := s.queries(s.readers).CollectionEvents(ctx, sqlc.CollectionEventsParams{TenantID: string(tenant), AfterCursor: after})
 	if e != nil {
 		return ingest.Batch{}, e
 	}
@@ -214,12 +214,12 @@ func (s *Store) CollectionStatus(ctx context.Context, p identity.Principal) (ing
 	if e = s.requireCollectionTenant(ctx, p); e != nil {
 		return ingest.CollectionStatus{}, e
 	}
-	v, e := sqlc.New(s.readers).CollectionStatus(ctx, string(tenant))
+	v, e := s.queries(s.readers).CollectionStatus(ctx, string(tenant))
 	return ingest.CollectionStatus{Seeds: v.Seeds, Enabled: v.Enabled, Items: v.Items, Revisions: v.Revisions}, e
 }
 
 func (s *Store) requireCollectionTenant(ctx context.Context, p identity.Principal) error {
-	n, e := sqlc.New(s.readers).TenantExists(ctx, string(p.TenantID()))
+	n, e := s.queries(s.readers).TenantExists(ctx, string(p.TenantID()))
 	if e != nil {
 		return e
 	}

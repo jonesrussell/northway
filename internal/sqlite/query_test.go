@@ -357,13 +357,13 @@ func TestQueryCacheIsolationRevisionAndRevocation(t *testing.T) {
 
 func TestQueryAtomicRollbackCancellationAndFailedCompletion(t *testing.T) {
 	s, _, p, sel := queryFixture(t)
-	_, err := s.writer.ExecContext(t.Context(), `CREATE TRIGGER reject_claim BEFORE INSERT ON query_work BEGIN SELECT RAISE(ABORT,'injected claim failure'); END`)
+	_, err := s.database(s.writer).ExecContext(t.Context(), `CREATE TRIGGER reject_claim BEFORE INSERT ON query_work BEGIN SELECT RAISE(ABORT,'injected claim failure'); END`)
 	must(t, err)
 	if c, err := s.BeginQuery(t.Context(), p, "failed-transaction-key", request(), policy()); err == nil || c.WorkID != "" {
 		t.Fatal("claim survived rollback")
 	}
 	budget(t, s, 0, 0)
-	_, err = s.writer.ExecContext(t.Context(), `DROP TRIGGER reject_claim`)
+	_, err = s.database(s.writer).ExecContext(t.Context(), `DROP TRIGGER reject_claim`)
 	must(t, err)
 	c := claim(t, s, p, "failed-transaction-key")
 	ctx, cancel := context.WithCancel(t.Context())
@@ -372,13 +372,13 @@ func TestQueryAtomicRollbackCancellationAndFailedCompletion(t *testing.T) {
 		t.Fatal(err)
 	}
 	must(t, s.StartProvider(t.Context(), p, c.WorkID))
-	_, err = s.writer.ExecContext(t.Context(), `CREATE TRIGGER reject_snapshot BEFORE INSERT ON query_snapshots BEGIN SELECT RAISE(ABORT,'injected snapshot failure'); END`)
+	_, err = s.database(s.writer).ExecContext(t.Context(), `CREATE TRIGGER reject_snapshot BEFORE INSERT ON query_snapshots BEGIN SELECT RAISE(ABORT,'injected snapshot failure'); END`)
 	must(t, err)
 	if snap, err := s.CompleteQuery(t.Context(), p, c.WorkID, "ai", []query.Selection{sel}, query.Settlement{Known: true, ActualMicros: 9}); err == nil || snap.ID != "" {
 		t.Fatal("snapshot survived rollback")
 	}
 	budget(t, s, 0, 40)
-	_, err = s.writer.ExecContext(t.Context(), `DROP TRIGGER reject_snapshot`)
+	_, err = s.database(s.writer).ExecContext(t.Context(), `DROP TRIGGER reject_snapshot`)
 	must(t, err)
 	// Retrying local finalization is safe; starting another provider call is not.
 	if err := s.StartProvider(t.Context(), p, c.WorkID); !errors.Is(err, query.ErrConflict) {
@@ -405,15 +405,15 @@ func TestQueryFullRollbackPreservesReservation(t *testing.T) {
 	c := claim(t, s, p, "disk-full-query-key")
 	must(t, s.StartProvider(t.Context(), p, c.WorkID))
 	var pages, maximum int
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA page_count").Scan(&pages))
-	must(t, s.writer.QueryRowContext(t.Context(), fmt.Sprintf("PRAGMA max_page_count=%d", pages)).Scan(&maximum))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA page_count").Scan(&pages))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), fmt.Sprintf("PRAGMA max_page_count=%d", pages)).Scan(&maximum))
 	_, err := s.CompleteQuery(t.Context(), p, c.WorkID, "ai", []query.Selection{sel}, query.Settlement{Known: true, ActualMicros: 7})
 	var e *modern.Error
 	if !errors.As(err, &e) || e.Code()&255 != 13 {
 		t.Fatalf("expected actual SQLITE_FULL, got %v", err)
 	}
 	budget(t, s, 0, 40)
-	must(t, s.writer.QueryRowContext(t.Context(), "PRAGMA max_page_count=2147483646").Scan(&maximum))
+	must(t, s.database(s.writer).QueryRowContext(t.Context(), "PRAGMA max_page_count=2147483646").Scan(&maximum))
 	complete(t, s, p, c, sel, query.Settlement{Known: true, ActualMicros: 7})
 	budget(t, s, 7, 0)
 }

@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -36,6 +37,8 @@ var ErrStoragePressure = errors.New("storage reserve reached")
 // No database handles or transaction callbacks escape this package.
 type Store struct {
 	writer, readers *sql.DB
+	postgres        bool
+	guard           *sql.Conn
 	file            *os.File
 	writeGate       chan struct{}
 	closeOnce       sync.Once
@@ -124,6 +127,9 @@ func provider(db *sql.DB, migrations fs.FS) (*goose.Provider, error) {
 // Migrate runs forward-only, embedded Goose migrations with exclusive ownership.
 // It must complete before serve. It never runs as a side effect of Open.
 func Migrate(ctx context.Context, path string) error {
+	if strings.HasPrefix(path, "postgres:") {
+		return migratePostgres(ctx, strings.TrimPrefix(path, "postgres:"))
+	}
 	file, abs, err := lockFile(path, true)
 	if err != nil {
 		return err
@@ -195,6 +201,9 @@ func Migrate(ctx context.Context, path string) error {
 
 // Open requires an existing, fully migrated local file and locks its ownership.
 func Open(ctx context.Context, path string) (*Store, error) {
+	if strings.HasPrefix(path, "postgres:") {
+		return openPostgres(ctx, strings.TrimPrefix(path, "postgres:"))
+	}
 	file, abs, err := lockFile(path, false)
 	if err != nil {
 		return nil, err
@@ -222,6 +231,10 @@ func Open(ctx context.Context, path string) (*Store, error) {
 
 func (s *Store) Close() error {
 	s.closeOnce.Do(func() {
+		if s.guard != nil {
+			_, _ = s.guard.ExecContext(context.Background(), "SELECT pg_advisory_unlock_shared(762314201)")
+			s.closeErr = errors.Join(s.closeErr, s.guard.Close())
+		}
 		if s.readers != nil {
 			s.closeErr = errors.Join(s.closeErr, s.readers.Close())
 		}
@@ -237,6 +250,9 @@ func (s *Store) Close() error {
 
 // Ready checks real storage and schema capability, not end-to-end feed readiness.
 func (s *Store) Ready(ctx context.Context) error {
+	if s.postgres {
+		return s.postgresReady(ctx)
+	}
 	conn, err := s.readers.Conn(ctx)
 	if err != nil {
 		return err
@@ -312,7 +328,7 @@ func (s *Store) writeWithReserve(ctx context.Context, enforceReserve bool, fn fu
 		return ctx.Err()
 	}
 	defer func() { <-s.writeGate }()
-	if enforceReserve && s.reservePages > 0 {
+	if !s.postgres && enforceReserve && s.reservePages > 0 {
 		var pageCount, freePages, maxPages int64
 		for statement, destination := range map[string]*int64{"PRAGMA page_count": &pageCount, "PRAGMA freelist_count": &freePages, "PRAGMA max_page_count": &maxPages} {
 			if err := s.writer.QueryRowContext(ctx, statement).Scan(destination); err != nil {
@@ -331,7 +347,23 @@ func (s *Store) writeWithReserve(ctx context.Context, enforceReserve bool, fn fu
 		return err
 	}
 	defer tx.Rollback()
-	if err := fn(sqlc.New(tx)); err != nil {
+	// Existing global accounting reads and revisions share this short transaction.
+	// The database lock coordinates independent processes, never network fetches.
+	if s.postgres {
+		if _, err = tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock(762314202)"); err != nil {
+			return err
+		}
+	}
+	if s.postgres && enforceReserve {
+		var used int64
+		if err = tx.QueryRowContext(ctx, "SELECT pg_database_size(current_database())").Scan(&used); err != nil {
+			return err
+		}
+		if used > storageLimitBytes-(16<<20) {
+			return ErrStoragePressure
+		}
+	}
+	if err := fn(s.queries(tx)); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -339,6 +371,11 @@ func (s *Store) writeWithReserve(ctx context.Context, enforceReserve bool, fn fu
 
 // Diagnostics contains capability metadata only, never paths, SQL data or context.
 func (s *Store) Diagnostics(ctx context.Context) (string, []string, error) {
+	if s.postgres {
+		var v string
+		err := s.readers.QueryRowContext(ctx, "SHOW server_version").Scan(&v)
+		return v, []string{"postgresql", "max_connections_per_store=7"}, err
+	}
 	var version string
 	if err := s.readers.QueryRowContext(ctx, "SELECT sqlite_version()").Scan(&version); err != nil {
 		return "", nil, err

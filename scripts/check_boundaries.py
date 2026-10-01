@@ -24,6 +24,7 @@ ALLOWED = {
     "providers": {"ranking", "ingest", "article"},
 }
 EXTERNAL = {
+    "github.com/jackc/pgx/v5": {"sqlite"},
     "github.com/pressly/goose/v3": {"sqlite"},
     "modernc.org/sqlite": {"sqlite"},
     "github.com/mmcdole/gofeed": {"fetch"},

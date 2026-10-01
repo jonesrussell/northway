@@ -33,7 +33,7 @@ func (s *Store) LookupAgentGrant(ctx context.Context, id string) (identity.Agent
 	if !identity.ValidKeyID(id) {
 		return identity.AgentGrant{}, identity.ErrUnauthorized
 	}
-	row, e := sqlc.New(s.readers).LookupAgentGrant(ctx, id)
+	row, e := s.queries(s.readers).LookupAgentGrant(ctx, id)
 	if errors.Is(e, sql.ErrNoRows) {
 		return identity.AgentGrant{}, identity.ErrUnauthorized
 	}
@@ -91,7 +91,7 @@ func (s *Store) AgentGrantIssueReady(ctx context.Context, p identity.Principal) 
 	if e = s.RequireTenant(ctx, p); e != nil {
 		return e
 	}
-	q := sqlc.New(s.readers)
+	q := s.queries(s.readers)
 	state, e := q.CustomerWorkspaceState(ctx, string(tenant))
 	if e == nil && state != "active" {
 		return identity.ErrForbidden

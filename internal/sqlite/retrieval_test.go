@@ -151,7 +151,7 @@ func TestMixedDigestConflictFallbackAndStableReplay(t *testing.T) {
 		t.Fatal(response)
 	}
 	var attempts int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM poll_attempts").Scan(&attempts))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM poll_attempts").Scan(&attempts))
 	if attempts != 0 {
 		t.Fatal("retrieval initiated acquisition")
 	}
@@ -276,15 +276,15 @@ func TestRetrievalCandidateCapAndAtomicFailureCleanup(t *testing.T) {
 	if len(snap.Items) != 2 || snap.Items[0].ArticleID != rid(201) || !containsWarning(snap.Details.Warnings, "Candidate window capped") {
 		t.Fatal(snap)
 	}
-	_, err := s.writer.ExecContext(t.Context(), `CREATE TRIGGER reject_details BEFORE UPDATE OF details ON query_snapshots BEGIN SELECT RAISE(ABORT,'synthetic atomic failure'); END`)
+	_, err := s.database(s.writer).ExecContext(t.Context(), `CREATE TRIGGER reject_details BEFORE UPDATE OF details ON query_snapshots BEGIN SELECT RAISE(ABORT,'synthetic atomic failure'); END`)
 	must(t, err)
 	req := query.Request{FeedID: feedID, Context: recentContext(), MaxAgeHours: 25, Limit: 5}
 	if _, err = query.NewService(s).Query(t.Context(), p, "failed-snapshot-key-01", req); err == nil {
 		t.Fatal("partial finalization accepted")
 	}
 	var snapshots, failed int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots").Scan(&snapshots))
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM query_work WHERE work_state='failed' AND spend_state='settled' AND reserved_micros=0 AND actual_micros=0").Scan(&failed))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots").Scan(&snapshots))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM query_work WHERE work_state='failed' AND spend_state='settled' AND reserved_micros=0 AND actual_micros=0").Scan(&failed))
 	if snapshots != 1 || failed != 1 {
 		t.Fatal("snapshot/claim atomicity", snapshots, failed)
 	}
@@ -313,7 +313,7 @@ func TestRetrievalPrivateContextAndLegacySnapshot(t *testing.T) {
 			t.Fatal("raw context persisted")
 		}
 	}
-	_, err := s.writer.ExecContext(t.Context(), "UPDATE query_snapshots SET details='' WHERE id=?", snap.ID)
+	_, err := s.database(s.writer).ExecContext(t.Context(), "UPDATE query_snapshots SET details='' WHERE id=?", snap.ID)
 	must(t, err)
 	if _, err = query.NewService(s).Get(t.Context(), p, snap.ID); !errors.Is(err, query.ErrUnavailable) {
 		t.Fatal("legacy evidence fabricated", err)
@@ -390,7 +390,7 @@ func TestRetrievalCancellationDoesNotProduceSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots").Scan(&n))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots").Scan(&n))
 	if n != 0 {
 		t.Fatal("cancelled snapshot")
 	}
@@ -400,7 +400,7 @@ func TestRetrievalResponseContract(t *testing.T) {
 	s, _, p, pref := retrievalFixture(t, "world")
 	for i := 0; i < 20; i++ {
 		src := addRetrievalSource(t, s, p, &pref, 101+i, fmt.Sprintf("publisher%d", i), "world")
-		_, err := s.writer.ExecContext(t.Context(), "UPDATE sources SET title=? WHERE tenant_id=? AND id=?", strings.Repeat("<", 512), tenantA, src)
+		_, err := s.database(s.writer).ExecContext(t.Context(), "UPDATE sources SET title=? WHERE tenant_id=? AND id=?", strings.Repeat("<", 512), tenantA, src)
 		must(t, err)
 		addRetrievalItem(t, s, p, 201+i, src, strings.Repeat("<", 512), fmt.Sprintf("https://example.invalid/%02d", i)+strings.Repeat("&", 2000), nil, queryEpoch)
 	}
@@ -441,12 +441,12 @@ func TestInvalidPreferencesDoNotChangeSavedRevision(t *testing.T) {
 	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
 	var before, after int64
 	var saved string
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", tenantA, feedID).Scan(&before))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT revision FROM feeds WHERE tenant_id=? AND id=?", tenantA, feedID).Scan(&before))
 	pref.Exclude = []string{`a" OR title:b`}
 	if err := s.ConfigureFeedPreferences(t.Context(), p, feedID, pref); !errors.Is(err, query.ErrInvalid) {
 		t.Fatal(err)
 	}
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT revision,preferences FROM feeds WHERE tenant_id=? AND id=?", tenantA, feedID).Scan(&after, &saved))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT revision,preferences FROM feeds WHERE tenant_id=? AND id=?", tenantA, feedID).Scan(&after, &saved))
 	if before != after || strings.Contains(saved, "title:b") {
 		t.Fatal("invalid policy persisted")
 	}
@@ -519,14 +519,14 @@ func TestIgnoredDetailsUpdateCannotReturnSuccessfulSnapshot(t *testing.T) {
 	s, _, p, pref := retrievalFixture(t, "world")
 	addRetrievalSource(t, s, p, &pref, 101, "publisher", "world")
 	must(t, s.ConfigureFeedPreferences(t.Context(), p, feedID, pref))
-	_, err := s.writer.ExecContext(t.Context(), `CREATE TRIGGER ignore_details BEFORE UPDATE OF details ON query_snapshots BEGIN SELECT RAISE(IGNORE); END`)
+	_, err := s.database(s.writer).ExecContext(t.Context(), `CREATE TRIGGER ignore_details BEFORE UPDATE OF details ON query_snapshots BEGIN SELECT RAISE(IGNORE); END`)
 	must(t, err)
 	_, err = query.NewService(s).Query(t.Context(), p, "ignored-details-key", query.Request{FeedID: feedID, Context: recentContext(), Limit: 5, MaxAgeHours: 24})
 	if !errors.Is(err, query.ErrConflict) {
 		t.Fatal(err)
 	}
 	var n int
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots").Scan(&n))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT count(*) FROM query_snapshots").Scan(&n))
 	if n != 0 {
 		t.Fatal("partial rich snapshot persisted")
 	}
@@ -588,7 +588,7 @@ func TestFuturePollClockRollbackCannotClaimCurrentCoverage(t *testing.T) {
 	response, err := snap.Response(rid(900), now)
 	must(t, err)
 	var lastSuccess int64
-	must(t, s.readers.QueryRowContext(t.Context(), "SELECT last_success FROM poll_sources WHERE tenant_id=? AND source_id=?", tenantA, src).Scan(&lastSuccess))
+	must(t, s.database(s.readers).QueryRowContext(t.Context(), "SELECT last_success FROM poll_sources WHERE tenant_id=? AND source_id=?", tenantA, src).Scan(&lastSuccess))
 	if lastSuccess != queryEpoch.UnixMicro() || response.Coverage.Current != 0 || response.Coverage.Status != "stale" || snap.Details.Sources[0].CurrentUntil != nil {
 		t.Fatal(response, snap.Details)
 	}

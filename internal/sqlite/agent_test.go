@@ -24,7 +24,7 @@ func TestAgentGrantSeedSettlementRejectsRevocationAndExpiry(t *testing.T) {
 			if mode == "revoked" {
 				must(t, s.RevokeAgentGrant(t.Context(), p, grant.ID))
 			} else {
-				_, e = s.writer.ExecContext(t.Context(), "UPDATE agent_grants SET expires_at=? WHERE id=?", time.Now().Add(-time.Second).UnixMicro(), grant.ID)
+				_, e = s.database(s.writer).ExecContext(t.Context(), "UPDATE agent_grants SET expires_at=? WHERE id=?", time.Now().Add(-time.Second).UnixMicro(), grant.ID)
 				must(t, e)
 			}
 			candidate := ingest.CollectionSeed{ID: "00000009-0000-4000-8000-000000000000", URL: "https://fixture.example/creator", Title: "Fixture"}

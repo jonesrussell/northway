@@ -90,7 +90,7 @@ func TestQueryCandidateValidationAndRevisionFencing(t *testing.T) {
 	must(t, s.SetSourceEnabled(t.Context(), operator(tenantA), sourceID, true))
 	c = claim(t, s, p, "revision-fencing-key")
 	// A feed/preference revision, even without a corpus change, fences work.
-	_, err = s.writer.ExecContext(t.Context(), "UPDATE feeds SET revision=revision+1 WHERE tenant_id=? AND id=?", tenantA, feedID)
+	_, err = s.database(s.writer).ExecContext(t.Context(), "UPDATE feeds SET revision=revision+1 WHERE tenant_id=? AND id=?", tenantA, feedID)
 	must(t, err)
 	if err := s.StartProvider(t.Context(), p, c.WorkID); !errors.Is(err, query.ErrConflict) {
 		t.Fatal("stale revision authorized inference", err)
@@ -129,7 +129,7 @@ func TestQueryCacheExpiryRetentionAndPreferenceRevision(t *testing.T) {
 	c = claim(t, s, p, "preference-origin-key")
 	must(t, s.StartProvider(t.Context(), p, c.WorkID))
 	complete(t, s, p, c, sel, query.Settlement{Known: true})
-	_, err := s.writer.ExecContext(t.Context(), "UPDATE feeds SET revision=revision+1 WHERE tenant_id=? AND id=?", tenantA, feedID)
+	_, err := s.database(s.writer).ExecContext(t.Context(), "UPDATE feeds SET revision=revision+1 WHERE tenant_id=? AND id=?", tenantA, feedID)
 	must(t, err)
 	if claim(t, s, p, "preference-changed-key").Snapshot != nil {
 		t.Fatal("preference revision not in cache")

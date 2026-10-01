@@ -82,7 +82,7 @@ func (s *Store) RequireTenant(ctx context.Context, principal identity.Principal)
 	if err != nil {
 		return err
 	}
-	count, err := sqlc.New(s.readers).TenantExists(ctx, string(tenant))
+	count, err := s.queries(s.readers).TenantExists(ctx, string(tenant))
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (s *Store) GetArticle(ctx context.Context, principal identity.Principal, id
 	if err != nil {
 		return article.Article{}, err
 	}
-	v, err := sqlc.New(s.readers).GetArticle(ctx, sqlc.GetArticleParams{TenantID: string(tenant), ID: id})
+	v, err := s.queries(s.readers).GetArticle(ctx, sqlc.GetArticleParams{TenantID: string(tenant), ID: id})
 	if errors.Is(err, sql.ErrNoRows) {
 		return article.Article{}, ErrNotFound
 	}
@@ -234,7 +234,7 @@ func (s *Store) Search(ctx context.Context, principal identity.Principal, feedID
 	}
 	// FTS5's virtual-table MATCH is kept here, outside sqlc's relational schema
 	// parser. The real-file isolation/update/delete tests exercise this exact SQL.
-	rows, err := s.readers.QueryContext(ctx, `SELECT a.id,a.source_id,a.origin_id,a.url,a.title,a.body,a.content_hash,a.published_at,a.observed_at
+	rows, err := s.database(s.readers).QueryContext(ctx, `SELECT a.id,a.source_id,a.origin_id,a.url,a.title,a.body,a.content_hash,a.published_at,a.observed_at
 FROM article_fts JOIN articles a ON a.rowid=article_fts.rowid
 JOIN feed_sources f ON f.tenant_id=a.tenant_id AND f.source_id=a.source_id
 JOIN sources src ON src.tenant_id=a.tenant_id AND src.id=a.source_id AND src.enabled=1
