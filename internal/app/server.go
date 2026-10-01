@@ -44,6 +44,17 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 		logger.Info("storage ready", "sqlite_version", version, "compile_options", options)
 		checkReady = store.Ready
 		api = httpapi.NewAPI(identity.NewService(store), query.NewService(store), feedback.NewService(store))
+		keys, err := config.verificationKeys()
+		if err != nil {
+			return err
+		}
+		if keys != nil {
+			verifier, err := identity.NewAssertionVerifier(config.AssertionIssuer, config.AssertionAudience, keys, store)
+			if err != nil {
+				return err
+			}
+			api = httpapi.NewCustomerAPI(identity.NewService(store), verifier, store, query.NewService(store), feedback.NewService(store))
+		}
 		if config.PollTenant != "" {
 			principal, err := identity.Operator(config.PollTenant)
 			if err != nil {

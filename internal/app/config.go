@@ -1,6 +1,9 @@
 package app
 
 import (
+	"crypto/ed25519"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"flag"
 	"io"
@@ -13,11 +16,14 @@ import (
 
 // Config is validated before any listener is opened. It contains no secrets.
 type Config struct {
-	DatabasePath    string
-	ListenAddress   string
-	ShutdownTimeout time.Duration
-	LogLevel        slog.Level
-	PollTenant      identity.TenantID
+	DatabasePath      string
+	ListenAddress     string
+	ShutdownTimeout   time.Duration
+	LogLevel          slog.Level
+	PollTenant        identity.TenantID
+	AssertionIssuer   string
+	AssertionAudience string
+	AssertionKeys     string // Public verification material only, never private seeds.
 }
 
 // ParseConfig applies defaults, explicitly present environment values, then flags.
@@ -64,10 +70,16 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 		return Config{}, errors.New("log level must be debug, info, warn or error")
 	}
 	config := Config{DatabasePath: database, ListenAddress: listen, ShutdownTimeout: timeout, LogLevel: logLevel, PollTenant: identity.TenantID(pollTenant)}
+	config.AssertionIssuer = env("NORTHCLOUD_ASSERTION_ISSUER", "")
+	config.AssertionAudience = env("NORTHCLOUD_ASSERTION_AUDIENCE", "")
+	config.AssertionKeys = env("NORTHCLOUD_ASSERTION_KEYS", "")
 	return config, config.Validate()
 }
 
 func (c Config) Validate() error {
+	if _, err := c.verificationKeys(); err != nil {
+		return err
+	}
 	if _, err := netip.ParseAddrPort(c.ListenAddress); err != nil {
 		return errors.New("listen address must be a literal IP:port (IPv6 in brackets)")
 	}
@@ -88,6 +100,28 @@ func (c Config) Validate() error {
 		}
 	}
 	return nil
+}
+
+func (c Config) verificationKeys() (map[string]ed25519.PublicKey, error) {
+	if c.AssertionIssuer == "" && c.AssertionAudience == "" && c.AssertionKeys == "" {
+		return nil, nil
+	}
+	if c.DatabasePath == "" || c.AssertionIssuer == "" || c.AssertionAudience == "" || len(c.AssertionIssuer) > 256 || len(c.AssertionAudience) > 256 || len(c.AssertionKeys) > 1024 {
+		return nil, errors.New("complete customer assertion configuration and storage are required")
+	}
+	var raw map[string]string
+	if json.Unmarshal([]byte(c.AssertionKeys), &raw) != nil || len(raw) == 0 || len(raw) > 4 {
+		return nil, errors.New("invalid customer public-key set")
+	}
+	keys := map[string]ed25519.PublicKey{}
+	for id, value := range raw {
+		key, err := base64.StdEncoding.Strict().DecodeString(value)
+		if err != nil || id == "" || len(id) > 64 || len(key) != ed25519.PublicKeySize {
+			return nil, errors.New("invalid customer public key")
+		}
+		keys[id] = key
+	}
+	return keys, nil
 }
 
 const serveHelp = `Usage: northway serve [flags]

@@ -22,7 +22,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const schemaVersion = 8
+const schemaVersion = 9
 const busyMilliseconds = 50
 const storagePageSize int64 = 4096
 const storageLimitBytes int64 = 256 << 20

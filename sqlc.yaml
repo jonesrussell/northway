@@ -9,6 +9,7 @@ sql:
       - db/migrations/00006_retrieval.sql
       - db/migrations/00007_feedback.sql
       - db/migrations/00008_retention_indexes.sql
+      - db/migrations/00009_customer_boundary.sql
     queries: db/queries
     gen:
       go:

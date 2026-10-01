@@ -41,11 +41,27 @@ type ArticleVersion struct {
 	ObservedAt  int64
 }
 
+type AssertionReplay struct {
+	Issuer    string
+	ID        string
+	ExpiresAt int64
+}
+
 type Budget struct {
 	TenantID    string
 	LimitMicros int64
 	SpentMicros int64
 	HeldMicros  int64
+}
+
+type CustomerKeyExpiry struct {
+	KeyID     string
+	ExpiresAt int64
+}
+
+type CustomerWorkspace struct {
+	TenantID  string
+	CreatedAt int64
 }
 
 type Feed struct {
@@ -147,6 +163,12 @@ type QueryWork struct {
 	ReservedMicros      int64
 	ActualMicros        sql.NullInt64
 	SnapshotID          sql.NullString
+}
+
+type RequestBudget struct {
+	TenantID string
+	Window   int64
+	Used     int64
 }
 
 type Source struct {

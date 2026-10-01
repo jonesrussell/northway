@@ -17,6 +17,7 @@ var (
 	ErrUnauthorized = errors.New("invalid credentials")
 	ErrForbidden    = errors.New("insufficient scope")
 	ErrUnavailable  = errors.New("identity storage unavailable")
+	ErrRateLimited  = errors.New("tenant request budget exhausted")
 )
 
 type Scopes uint8
@@ -51,10 +52,23 @@ func ParseScopes(value string) (Scopes, error) {
 // Principal is a request-local capability. Fields cannot be populated by a
 // transport decoder. Its zero value grants no authority; do not cache it.
 type Principal struct {
-	tenant   TenantID
-	keyID    string
-	scopes   Scopes
-	operator bool
+	tenant     TenantID
+	keyID      string
+	scopes     Scopes
+	operator   bool
+	management bool
+}
+
+// RequireManagement grants only the first-party personal-workspace boundary.
+// External service keys and local operator principals are different authorities.
+func (p Principal) RequireManagement() (TenantID, error) {
+	if p.tenant.Validate() != nil {
+		return "", ErrUnauthorized
+	}
+	if !p.management {
+		return "", ErrForbidden
+	}
+	return p.tenant, nil
 }
 
 func (p Principal) TenantID() TenantID { return p.tenant }
@@ -125,6 +139,18 @@ func GenerateKey(p Principal, scopes Scopes) (KeyRecord, Secret, error) {
 	if err != nil {
 		return KeyRecord{}, Secret{}, err
 	}
+	return generateKey(tenant, scopes)
+}
+
+func GenerateManagedKey(p Principal, scopes Scopes) (KeyRecord, Secret, error) {
+	tenant, err := p.RequireManagement()
+	if err != nil {
+		return KeyRecord{}, Secret{}, err
+	}
+	return generateKey(tenant, scopes)
+}
+
+func generateKey(tenant TenantID, scopes Scopes) (KeyRecord, Secret, error) {
 	if !scopes.Valid() {
 		return KeyRecord{}, Secret{}, ErrForbidden
 	}

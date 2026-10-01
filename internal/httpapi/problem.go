@@ -44,6 +44,8 @@ func problem(w http.ResponseWriter, status int, code, message string, retryable 
 }
 func serviceProblem(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, identity.ErrRateLimited):
+		problem(w, 429, "rate_limited", "Tenant request budget exhausted", true)
 	case errors.Is(err, identity.ErrUnauthorized):
 		problem(w, 401, "unauthorized", "Valid bearer credentials required", false)
 	case errors.Is(err, identity.ErrForbidden):

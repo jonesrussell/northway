@@ -28,7 +28,10 @@ func Require(auth Authenticator, scope identity.Scopes, next func(http.ResponseW
 			return
 		}
 		scheme, raw, ok := strings.Cut(values[0], " ")
-		if !ok || !strings.EqualFold(scheme, "Bearer") || len(raw) != 80 {
+		requestAuth, hasRequestAuth := auth.(interface {
+			AuthenticateRequest(context.Context, string, *http.Request) (identity.Principal, error)
+		})
+		if !ok || !strings.EqualFold(scheme, "Bearer") || (!hasRequestAuth && len(raw) != 80) || len(raw) > 4096 {
 			authProblem(w, http.StatusUnauthorized)
 			return
 		}
@@ -37,12 +40,22 @@ func Require(auth Authenticator, scope identity.Scopes, next func(http.ResponseW
 			return
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
-		principal, err := auth.Authenticate(ctx, raw)
+		var principal identity.Principal
+		var err error
+		if hasRequestAuth {
+			principal, err = requestAuth.AuthenticateRequest(ctx, raw, r)
+		} else {
+			principal, err = auth.Authenticate(ctx, raw)
+		}
 		if ctx.Err() != nil {
 			err = identity.ErrUnavailable
 		}
 		cancel()
 		if err != nil {
+			if errors.Is(err, identity.ErrRateLimited) {
+				serviceProblem(w, err)
+				return
+			}
 			if errors.Is(err, identity.ErrUnauthorized) {
 				authProblem(w, http.StatusUnauthorized)
 			} else {

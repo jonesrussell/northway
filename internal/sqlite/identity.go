@@ -40,6 +40,13 @@ func (s *Store) LookupAPIKey(ctx context.Context, id string) (identity.KeyRecord
 	if len(v.Digest) != 32 || v.Scopes < 1 || v.Scopes > 3 {
 		return identity.KeyRecord{}, identity.ErrUnauthorized
 	}
+	expiry, expiryErr := sqlc.New(s.readers).CustomerKeyExpiry(ctx, id)
+	if expiryErr == nil && time.Now().UTC().UnixMicro() >= expiry {
+		return identity.KeyRecord{}, identity.ErrUnauthorized
+	}
+	if expiryErr != nil && !errors.Is(expiryErr, sql.ErrNoRows) {
+		return identity.KeyRecord{}, expiryErr
+	}
 	key := identity.KeyRecord{ID: v.ID, TenantID: identity.TenantID(v.TenantID), Scopes: identity.Scopes(v.Scopes), CreatedAt: time.UnixMicro(v.CreatedAt).UTC()}
 	copy(key.Digest[:], v.Digest)
 	if v.LastUsedAt.Valid {
