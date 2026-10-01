@@ -37,6 +37,10 @@ func (s *Store) ProvisionPilot(ctx context.Context, p identity.Principal, source
 	if err != nil {
 		return err
 	}
+	return s.provisionProfile(ctx, tenant, sources, feeds)
+}
+
+func (s *Store) provisionProfile(ctx context.Context, tenant identity.TenantID, sources []PilotSource, feeds []PilotFeed) error {
 	if len(sources) == 0 || len(sources) > ingest.MaxSources || len(feeds) == 0 || len(feeds) > 20 {
 		return ingest.ErrInvalid
 	}

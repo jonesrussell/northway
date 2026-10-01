@@ -1,0 +1,42 @@
+"application":
+  "canonical_origin":
+    "config_key": "APP_URL"
+  "id": "northcloud-control-plane"
+  "name": "NorthCloud"
+"capabilities":
+  -
+    "id": "billing"
+    "reason": "Excluded from the invitation beta."
+    "state": "not_needed"
+  -
+    "id": "customer_beta"
+    "note": "Invitation-only verified accounts, one personal workspace, reader and scoped API keys; acceptance in progress."
+    "state": "planned"
+"content_types":
+  -
+    "canonical_route": "/app"
+    "id": "dashboard"
+"framework":
+  "observed_lock_sha256": "9ad5175f96e9fc0c1c462002c011e92bc939089307824c6c01fc7dc99bc4464d"
+  "revision_policy": "exact-lock"
+"generator_version": 1
+"personal_data_stores":
+  -
+    "classification": "Private account identity, authentication and session metadata"
+    "consent_operation": "Operator invitation and explicit registration"
+    "deletion_operation": "Suspend, delete Go workspace, then verified account delete; see docs/beta-operations.md"
+    "export_operation": "php bin/beta-account.php action export, private output"
+    "id": "accounts"
+    "retention": "Account life; backup retention must be approved before customer activation"
+  -
+    "classification": "Tenant feed selections, source metadata, snapshots and explicit feedback in external Go store"
+    "consent_operation": "Verified personal workspace provisioning and explicit queries/feedback"
+    "deletion_operation": "northway customer delete with exact tenant confirmation; see docs/beta-operations.md"
+    "export_operation": "northway customer export with exclusive offline ownership"
+    "id": "news-workspace"
+    "retention": "Bounded Go retention; deletion tombstone and backup disposition recorded by operator"
+"recipes": {  }
+"schema": "waaseyaa.site"
+"verification":
+  "command": "bin/maintenance/site-verify"
+"version": 1

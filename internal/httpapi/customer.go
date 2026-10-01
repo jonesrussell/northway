@@ -39,7 +39,7 @@ func (a *customerAuthenticator) AuthenticateRequest(ctx context.Context, raw str
 	}
 	ok, err := a.store.TakeRequestBudget(ctx, p, time.Now().UTC())
 	if err != nil {
-		return identity.Principal{}, identity.ErrUnavailable
+		return identity.Principal{}, err
 	}
 	if !ok {
 		return identity.Principal{}, identity.ErrRateLimited
@@ -49,7 +49,7 @@ func (a *customerAuthenticator) AuthenticateRequest(ctx context.Context, raw str
 
 // NewCustomerAPI is disabled unless an explicit first-party verifier is supplied.
 // The same business services serve browser assertions and external limited keys.
-func NewCustomerAPI(auth Authenticator, assertions *identity.AssertionVerifier, store CustomerStore, queries Queries, events Feedback) http.Handler {
+func NewCustomerAPI(auth Authenticator, assertions *identity.AssertionVerifier, store CustomerStore, queries Queries, events Feedback, catalogue ...func(context.Context, identity.Principal) error) http.Handler {
 	if assertions == nil || store == nil {
 		return NewAPI(auth, queries, events)
 	}
@@ -78,6 +78,12 @@ func NewCustomerAPI(auth Authenticator, assertions *identity.AssertionVerifier, 
 		if err := store.EnsureWorkspace(r.Context(), p); err != nil {
 			serviceProblem(w, err)
 			return
+		}
+		if len(catalogue) == 1 && catalogue[0] != nil {
+			if err := catalogue[0](r.Context(), p); err != nil {
+				serviceProblem(w, err)
+				return
+			}
 		}
 		customerJSON(w, 200, map[string]any{"tenant_id": p.TenantID()})
 	}))
@@ -145,9 +151,17 @@ func NewCustomerAPI(auth Authenticator, assertions *identity.AssertionVerifier, 
 		customerJSON(w, 200, map[string]any{"feeds": feeds})
 	}))
 	mux.Handle("/", data)
+	concurrency := make(chan struct{}, 16)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
+		select {
+		case concurrency <- struct{}{}:
+			defer func() { <-concurrency }()
+		default:
+			serviceProblem(w, identity.ErrRateLimited)
+			return
+		}
 		// Reject alternate path encodings rather than ServeMux redirects.
 		if strings.Contains(r.URL.EscapedPath(), "%") || strings.Contains(r.URL.Path, "//") || strings.Contains(r.URL.Path, "/.") {
 			serviceProblem(w, query.ErrInvalid)

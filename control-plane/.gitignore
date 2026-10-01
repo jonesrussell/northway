@@ -1,0 +1,5 @@
+/vendor/
+/storage/
+/.env
+/.phpunit.cache/
+/composer.local.json

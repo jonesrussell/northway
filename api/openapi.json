@@ -1,0 +1,1140 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NorthCloud API",
+    "version": "0.1.0-beta",
+    "description": "Candidate contract, not deployment evidence. Business routes accept scoped nw1_ keys; the first-party backend uses the same services with product-bound assertions. All data is tenant-scoped. Limits and retry semantics: ../docs/api.md."
+  },
+  "servers": [
+    {
+      "url": "https://api.northcloud.one",
+      "description": "Planned production origin; activation gated"
+    }
+  ],
+  "paths": {
+    "/v1/feeds": {
+      "get": {
+        "summary": "List owned enabled feeds",
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "feeds"
+                  ],
+                  "properties": {
+                    "feeds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "title"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/feed-queries": {
+      "post": {
+        "summary": "Query owned feed; requires feeds:read",
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/feed-snapshot.schema.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./schemas/feed-query.schema.json"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ]
+      }
+    },
+    "/v1/snapshots/{id}": {
+      "get": {
+        "summary": "Read an owned snapshot; requires feeds:read",
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/feed-snapshot.schema.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/feedback": {
+      "post": {
+        "summary": "Record explicit feedback; requires feedback:write",
+        "security": [
+          {
+            "APIKey": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./schemas/feedback.schema.json"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspace": {
+      "put": {
+        "summary": "Provision personal workspace idempotently",
+        "security": [
+          {
+            "FirstPartyAssertion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tenant_id"
+                  ],
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          }
+        },
+        "description": "Server-to-server only. Exact operation-bound NorthCloud assertion, never an external API key or browser-supplied tenant."
+      }
+    },
+    "/v1/keys": {
+      "get": {
+        "summary": "List active keys first, then bounded history",
+        "security": [
+          {
+            "FirstPartyAssertion": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "keys"
+                  ],
+                  "properties": {
+                    "keys": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "scopes",
+                          "created_at",
+                          "expires_at",
+                          "last_used_at",
+                          "revoked_at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "scopes": {
+                            "type": "string",
+                            "enum": [
+                              "feeds:read",
+                              "feedback:write",
+                              "feeds:read,feedback:write"
+                            ]
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "expires_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "last_used_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "revoked_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          }
+        },
+        "description": "Server-to-server only. Exact operation-bound NorthCloud assertion, never an external API key or browser-supplied tenant."
+      },
+      "post": {
+        "summary": "Issue a 30-day scoped key; secret revealed once",
+        "security": [
+          {
+            "FirstPartyAssertion": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "key",
+                    "secret"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "scopes",
+                        "created_at",
+                        "expires_at",
+                        "last_used_at",
+                        "revoked_at"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "scopes": {
+                          "type": "string",
+                          "enum": [
+                            "feeds:read",
+                            "feedback:write",
+                            "feeds:read,feedback:write"
+                          ]
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "expires_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "last_used_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "revoked_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "secret": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "scopes"
+                ],
+                "properties": {
+                  "scopes": {
+                    "type": "string",
+                    "enum": [
+                      "feeds:read",
+                      "feedback:write",
+                      "feeds:read,feedback:write"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Server-to-server only. Exact operation-bound NorthCloud assertion, never an external API key or browser-supplied tenant."
+      }
+    },
+    "/v1/keys/{id}": {
+      "delete": {
+        "summary": "Revoke an owned customer key",
+        "security": [
+          {
+            "FirstPartyAssertion": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See error code and retryable fields; Retry-After on retryable responses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/problem.schema.json"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "description": "Server-to-server only. Exact operation-bound NorthCloud assertion, never an external API key or browser-supplied tenant."
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "APIKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "nw1_ scoped secret"
+      },
+      "FirstPartyAssertion": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "ncl-fpa+jwt version 1"
+      }
+    }
+  }
+}

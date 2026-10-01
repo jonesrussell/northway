@@ -56,7 +56,7 @@ func fixtureTenant(t *testing.T, s *sqlite.Store, tenant identity.TenantID, titl
 	check(t, s.CreateSource(t.Context(), p, source.Source{ID: corpusID, Title: title, URL: "https://example.invalid/feed"}))
 	check(t, s.CreateFeed(t.Context(), p, feed.Feed{ID: corpusID, Title: title}))
 	check(t, s.AttachSource(t.Context(), p, corpusID, corpusID))
-	check(t, s.PutArticle(t.Context(), p, article.Article{ID: corpusID, SourceID: corpusID, OriginID: "fixture", URL: "https://example.invalid/item", Title: title, Body: "PHP fixture", ObservedAt: time.Now()}))
+	check(t, s.PutArticle(t.Context(), p, article.Article{ID: corpusID, SourceID: corpusID, OriginID: "fixture", URL: "https://example.invalid/item", Title: title, Body: "PHP fixture", ObservedAt: time.Now().Add(-time.Minute)}))
 	return p
 }
 func fixtureKey(t *testing.T, s *sqlite.Store, p identity.Principal, scopes identity.Scopes) (identity.KeyRecord, identity.Secret) {

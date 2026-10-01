@@ -7,11 +7,13 @@ paid resources remain separately approved actions. The Pi remains unchanged.
 
 ## Bounded design
 
-The initial candidate uses one verified human account and one personal workspace.
+Russell selected the invitation beta: the candidate uses one verified human account and one personal workspace.
 The immutable Waaseyaa user UUID is the personal workspace UUID; request fields
 and browser selectors cannot choose it. Public signup and billing stay disabled
-pending the invitation-beta decision. Customer source rights remain a launch gate;
-tests use synthetic fixtures and do not establish live-news acceptance.
+for this beta. Russell delegated source selection; the bounded official Go and
+Kubernetes catalogue is recorded in [the source register](beta-source-register.md).
+Deterministic tests use labeled fixtures; the browser acceptance also reads those
+actual public feeds. Local acceptance is not production deployment evidence.
 
 Keep the PHP application in `control-plane/` for atomic local contract development;
 it has its own Composer lock, database, image and ownership. A later repository
@@ -57,3 +59,10 @@ are no-store and returned only to the verified owner; stored credentials are has
 
 This file records a work contract, not completion. No customer or production keys
 are created by implementation tests. No mock-only journey is launch evidence.
+
+The [operator workflow](beta-operations.md) owns invitation verification, recovery,
+export/suspension/deletion and recovery gates. The [OpenAPI](../api/openapi.json)
+records the candidate business and management HTTP routes. A local four-worker
+browser rehearsal passed two accounts, concurrent invitation consumption, live
+metadata, scoped keys, recovery invalidation and populated lifecycle operations.
+Strict site diagnostics and focused PHP tests passed; release/target checks remain.

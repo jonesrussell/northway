@@ -405,7 +405,8 @@ func (q *Queries) PollSourceURL(ctx context.Context, arg PollSourceURLParams) (s
 }
 
 const pollWindow = `-- name: PollWindow :one
-SELECT count(*) AS attempts, CAST(coalesce(sum(charged_bytes),0) AS INTEGER) AS used FROM poll_attempts
+SELECT count(*) AS attempts, CAST(coalesce(sum(charged_bytes),0) AS INTEGER) AS used
+FROM (SELECT charged_bytes FROM poll_attempts UNION ALL SELECT charged_bytes FROM erased_acquisition_usage)
 `
 
 type PollWindowRow struct {

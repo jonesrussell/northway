@@ -40,7 +40,8 @@ WHERE ps.tenant_id=sqlc.arg(tenant_id) AND ps.enabled=1 AND ps.approved=1 AND s.
 ORDER BY ps.source_id LIMIT 100;
 
 -- name: PollWindow :one
-SELECT count(*) AS attempts, CAST(coalesce(sum(charged_bytes),0) AS INTEGER) AS used FROM poll_attempts;
+SELECT count(*) AS attempts, CAST(coalesce(sum(charged_bytes),0) AS INTEGER) AS used
+FROM (SELECT charged_bytes FROM poll_attempts UNION ALL SELECT charged_bytes FROM erased_acquisition_usage);
 
 -- name: InsertPollAttempt :exec
 INSERT INTO poll_attempts(id,tenant_id,source_id,started_at,lease_until,charged_at,charged_bytes,reserved_bytes,state) VALUES(sqlc.arg(id),sqlc.arg(tenant_id),sqlc.arg(source_id),sqlc.arg(started_at),sqlc.arg(lease_until),sqlc.arg(charged_at),sqlc.arg(charged_bytes),sqlc.arg(reserved_bytes),'pending');

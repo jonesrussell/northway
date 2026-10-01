@@ -94,6 +94,8 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		return executeIngest(ctx, args[1:], lookup, stdout)
 	case "pilot":
 		return executePilot(ctx, args[1:], lookup, stdout)
+	case "customer":
+		return executeCustomerSupport(ctx, args[1:], stdout)
 	case "tenant", "key":
 		return executeIdentity(ctx, args, lookup, stdout)
 	default:

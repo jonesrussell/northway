@@ -92,6 +92,17 @@ func (q *Queries) CountCustomerKeys(ctx context.Context, arg CountCustomerKeysPa
 	return count, err
 }
 
+const countCustomerWorkspaces = `-- name: CountCustomerWorkspaces :one
+SELECT count(*) FROM customer_workspaces WHERE state<>'deleted'
+`
+
+func (q *Queries) CountCustomerWorkspaces(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countCustomerWorkspaces)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createCustomerKeyExpiry = `-- name: CreateCustomerKeyExpiry :exec
 INSERT INTO customer_key_expiry(key_id,expires_at) VALUES(?,?)
 `
@@ -115,6 +126,17 @@ func (q *Queries) CustomerKeyExpiry(ctx context.Context, keyID string) (int64, e
 	var expires_at int64
 	err := row.Scan(&expires_at)
 	return expires_at, err
+}
+
+const customerWorkspaceState = `-- name: CustomerWorkspaceState :one
+SELECT state FROM customer_workspaces WHERE tenant_id=?
+`
+
+func (q *Queries) CustomerWorkspaceState(ctx context.Context, tenantID string) (string, error) {
+	row := q.db.QueryRowContext(ctx, customerWorkspaceState, tenantID)
+	var state string
+	err := row.Scan(&state)
+	return state, err
 }
 
 const ensureCustomerWorkspace = `-- name: EnsureCustomerWorkspace :exec
@@ -216,8 +238,35 @@ func (q *Queries) ListCustomerKeys(ctx context.Context, arg ListCustomerKeysPara
 	return items, nil
 }
 
+const listCustomerWorkspaces = `-- name: ListCustomerWorkspaces :many
+SELECT tenant_id FROM customer_workspaces WHERE state='active' ORDER BY tenant_id LIMIT 5
+`
+
+func (q *Queries) ListCustomerWorkspaces(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listCustomerWorkspaces)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var tenant_id string
+		if err := rows.Scan(&tenant_id); err != nil {
+			return nil, err
+		}
+		items = append(items, tenant_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const requireCustomerWorkspace = `-- name: RequireCustomerWorkspace :one
-SELECT tenant_id FROM customer_workspaces WHERE tenant_id=?
+SELECT tenant_id FROM customer_workspaces WHERE tenant_id=? AND state='active'
 `
 
 func (q *Queries) RequireCustomerWorkspace(ctx context.Context, tenantID string) (string, error) {

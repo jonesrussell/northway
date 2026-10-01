@@ -122,6 +122,9 @@ func (s *Store) ClaimPoll(ctx context.Context, p identity.Principal) (ingest.Cla
 				break
 			}
 		}
+		if err := q.ExpireErasedAcquisitionUsage(ctx, now.Add(-24*time.Hour).UnixMicro()); err != nil {
+			return err
+		}
 		window, err := q.PollWindow(ctx)
 		if err != nil {
 			return err

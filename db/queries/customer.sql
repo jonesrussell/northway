@@ -6,8 +6,14 @@ SELECT count(*) FROM assertion_replays;
 INSERT INTO assertion_replays(issuer,id,expires_at) VALUES(?,?,?) ON CONFLICT DO NOTHING;
 -- name: EnsureCustomerWorkspace :exec
 INSERT INTO customer_workspaces(tenant_id,created_at) VALUES(?,?) ON CONFLICT DO NOTHING;
+-- name: CountCustomerWorkspaces :one
+SELECT count(*) FROM customer_workspaces WHERE state<>'deleted';
+-- name: ListCustomerWorkspaces :many
+SELECT tenant_id FROM customer_workspaces WHERE state='active' ORDER BY tenant_id LIMIT 5;
 -- name: RequireCustomerWorkspace :one
-SELECT tenant_id FROM customer_workspaces WHERE tenant_id=?;
+SELECT tenant_id FROM customer_workspaces WHERE tenant_id=? AND state='active';
+-- name: CustomerWorkspaceState :one
+SELECT state FROM customer_workspaces WHERE tenant_id=?;
 -- name: CountCustomerKeys :one
 SELECT count(*) FROM api_keys k JOIN customer_key_expiry e ON e.key_id=k.id
 WHERE k.tenant_id=? AND k.revoked_at IS NULL AND e.expires_at>?;

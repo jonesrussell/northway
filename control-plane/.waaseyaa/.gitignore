@@ -1,0 +1,5 @@
+site-init.lock
+site-init.transaction.json
+site-init.transaction.json.tmp-*
+site-init-stage-*
+site-init-backup-*

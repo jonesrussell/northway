@@ -26,7 +26,10 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 	}
 	var checkReady func(context.Context) error
 	collectionStatus := func(context.Context) string { return "disabled" }
-	var publisher *schedule.Publisher
+	var publisher interface {
+		backgroundService
+		Status() string
+	}
 	api := httpapi.NewAPI(nil, nil, nil)
 	if config.DatabasePath != "" {
 		startupCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -53,7 +56,29 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 			if err != nil {
 				return err
 			}
-			api = httpapi.NewCustomerAPI(identity.NewService(store), verifier, store, query.NewService(store), feedback.NewService(store))
+			var catalogue func(context.Context, identity.Principal) error
+			if config.CustomerCatalogue == "developer-v1" {
+				catalogue = store.ProvisionCustomerCatalogue
+				publisher = &customerPublisher{store: store, runner: ingest.New(store, fetch.New()), logger: logger}
+				collectionStatus = collectionState(publisher.Status, func(healthCtx context.Context) (bool, error) {
+					tenants, err := store.CustomerTenants(healthCtx)
+					if err != nil {
+						return false, err
+					}
+					for _, tenant := range tenants {
+						p, err := identity.Operator(tenant)
+						if err != nil {
+							return false, err
+						}
+						ok, err := store.PollHealthy(healthCtx, p)
+						if err != nil || !ok {
+							return ok, err
+						}
+					}
+					return len(tenants) > 0, nil
+				})
+			}
+			api = httpapi.NewCustomerAPI(identity.NewService(store), verifier, store, query.NewService(store), feedback.NewService(store), catalogue)
 		}
 		if config.PollTenant != "" {
 			principal, err := identity.Operator(config.PollTenant)

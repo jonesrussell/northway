@@ -24,6 +24,7 @@ type Config struct {
 	AssertionIssuer   string
 	AssertionAudience string
 	AssertionKeys     string // Public verification material only, never private seeds.
+	CustomerCatalogue string
 }
 
 // ParseConfig applies defaults, explicitly present environment values, then flags.
@@ -73,10 +74,14 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	config.AssertionIssuer = env("NORTHCLOUD_ASSERTION_ISSUER", "")
 	config.AssertionAudience = env("NORTHCLOUD_ASSERTION_AUDIENCE", "")
 	config.AssertionKeys = env("NORTHCLOUD_ASSERTION_KEYS", "")
+	config.CustomerCatalogue = env("NORTHCLOUD_CATALOGUE", "")
 	return config, config.Validate()
 }
 
 func (c Config) Validate() error {
+	if c.CustomerCatalogue != "" && (c.CustomerCatalogue != "developer-v1" || c.AssertionKeys == "" || c.PollTenant != "") {
+		return errors.New("customer catalogue requires assertion keys and exclusive customer polling mode")
+	}
 	if _, err := c.verificationKeys(); err != nil {
 		return err
 	}

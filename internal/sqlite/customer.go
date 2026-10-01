@@ -48,6 +48,13 @@ func (s *Store) EnsureWorkspace(ctx context.Context, p identity.Principal) error
 		if !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
+		count, err := q.CountCustomerWorkspaces(ctx)
+		if err != nil {
+			return err
+		}
+		if count >= 5 {
+			return identity.ErrForbidden
+		}
 		n, err := q.TenantExists(ctx, string(tenant))
 		if err != nil {
 			return err
@@ -61,6 +68,41 @@ func (s *Store) EnsureWorkspace(ctx context.Context, p identity.Principal) error
 		}
 		return q.EnsureCustomerWorkspace(ctx, sqlc.EnsureCustomerWorkspaceParams{TenantID: string(tenant), CreatedAt: now})
 	})
+}
+
+// CustomerTenants is a trusted background-job inventory, never an HTTP lookup.
+func (s *Store) CustomerTenants(ctx context.Context) ([]identity.TenantID, error) {
+	rows, err := sqlc.New(s.readers).ListCustomerWorkspaces(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]identity.TenantID, 0, len(rows))
+	for _, id := range rows {
+		tenant := identity.TenantID(id)
+		if tenant.Validate() != nil {
+			return nil, identity.ErrUnavailable
+		}
+		out = append(out, tenant)
+	}
+	return out, nil
+}
+
+// ProvisionCustomerCatalogue accepts only a verified customer principal and a
+// server-selected, reviewed fixed catalogue. No caller-supplied source URLs.
+func (s *Store) ProvisionCustomerCatalogue(ctx context.Context, p identity.Principal) error {
+	tenant, err := p.RequireManagement()
+	if err != nil {
+		return err
+	}
+	if err = requireWorkspace(ctx, sqlc.New(s.readers), tenant); err != nil {
+		return err
+	}
+	const feedID = "bca10000-0000-4000-8000-000000000001"
+	sources := []PilotSource{
+		{ID: "bca10000-0000-4000-8000-000000000002", URL: "https://go.dev/blog/feed.atom", Title: "The Go Authors | CC BY 4.0", PublisherGroup: "go", Categories: []string{"development"}, FeedIDs: []string{feedID}, Interval: 4 * time.Hour, MaxBytes: 2 << 20},
+		{ID: "bca10000-0000-4000-8000-000000000003", URL: "https://kubernetes.io/feed.xml", Title: "Kubernetes contributors | CC BY 4.0", PublisherGroup: "kubernetes", Categories: []string{"development"}, FeedIDs: []string{feedID}, Interval: 4 * time.Hour, MaxBytes: 2 << 20},
+	}
+	return s.provisionProfile(ctx, tenant, sources, []PilotFeed{{ID: feedID, Title: "Official developer news", Categories: []string{"development"}, PublisherCap: 2, UseContext: true}})
 }
 
 func requireWorkspace(ctx context.Context, q *sqlc.Queries, tenant identity.TenantID) error {
@@ -190,6 +232,13 @@ func (s *Store) TakeRequestBudget(ctx context.Context, p identity.Principal, now
 	}
 	var n int64
 	err = s.writeOperational(ctx, func(q *sqlc.Queries) error {
+		state, stateErr := q.CustomerWorkspaceState(ctx, string(tenant))
+		if stateErr == nil && state != "active" {
+			return identity.ErrForbidden
+		}
+		if stateErr != nil && !errors.Is(stateErr, sql.ErrNoRows) {
+			return stateErr
+		}
 		if err := q.CleanRequestBudgets(ctx, now.Unix()/60-1); err != nil {
 			return err
 		}

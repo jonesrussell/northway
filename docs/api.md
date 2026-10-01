@@ -1,5 +1,10 @@
 # HTTP API
 
+The customer-beta candidate extends this baseline with `GET /v1/feeds` and
+first-party-only workspace/key management. See [OpenAPI](../api/openapi.json) and
+[the implementation contract](beta-implementation.md). These additions are not
+evidence of public deployment; the historical baseline description follows.
+
 Status: three authenticated product routes are implemented: query, snapshot GET and feedback. Retrieval is deterministic and metadata-only; there are no provider calls or scheduled-list routes. JSON schemas in api/schemas define shapes, with semantics below. Real HTTP/SQLite tests validate input failures, tenant isolation, replay and feedback; actual snapshot/problem responses are checked against the schemas by `make test`. OpenAPI generation and a second-client compatibility gate remain Phase 2 work.
 
 ## Transport and identity

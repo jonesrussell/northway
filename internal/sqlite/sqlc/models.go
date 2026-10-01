@@ -62,6 +62,12 @@ type CustomerKeyExpiry struct {
 type CustomerWorkspace struct {
 	TenantID  string
 	CreatedAt int64
+	State     string
+}
+
+type ErasedAcquisitionUsage struct {
+	ChargedAt    int64
+	ChargedBytes int64
 }
 
 type Feed struct {

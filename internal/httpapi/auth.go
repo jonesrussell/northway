@@ -52,7 +52,7 @@ func Require(auth Authenticator, scope identity.Scopes, next func(http.ResponseW
 		}
 		cancel()
 		if err != nil {
-			if errors.Is(err, identity.ErrRateLimited) {
+			if errors.Is(err, identity.ErrRateLimited) || errors.Is(err, identity.ErrForbidden) {
 				serviceProblem(w, err)
 				return
 			}
