@@ -92,6 +92,8 @@ func Execute(ctx context.Context, args []string, lookup func(string) (string, bo
 		return Run(ctx, config, logger)
 	case "management":
 		return executeManagement(ctx, args[1:], stdout)
+	case "postgres":
+		return executePostgresOperator(ctx, args[1:], stdout)
 	case "agent-grant":
 		return executeAgentGrant(ctx, args[1:], stdout)
 	case "collection":
