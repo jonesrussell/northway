@@ -151,3 +151,9 @@ full-disk production stress or neighboring production-service measurement is
 claimed. Shared revision fan-out intentionally invalidates conservatively across
 subscribed feeds. A dedicated generic storage framework, Elasticsearch, broker,
 new microservice, backup jobs and production rollout are absent.
+
+## Complete-catalogue job, 2026-10-02
+
+[NC-SHARED-001](specs/NC-SHARED-001.md) supersedes the staged ten-source delivery plan. Existing production PostgreSQL/shared polling is retained. The full job uses `postgres activate-catalogue --database postgres:/private/connection --approval-record <record>` to validate and activate all 88 immutable reviewed definitions atomically. Prior exact-register approval provenance is preserved; denied/conflicting sources refuse the whole action. All become onboarding-eligible, while existing saved preferences remain unchanged.
+
+Read-only `postgres catalogue-status --database postgres:/private/connection` reports every public source's URL, topic, policy state, last attempt/success/status/error and article count, without article text or tenant data. Use its complete reconciliation for release acceptance. Daily scheduling and combined 100-source/180-attempt/64-MiB limits remain fixed. This implementation record does not authorize production activation; complete qualification and obtain approval for the exact release package first.

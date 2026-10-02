@@ -14,6 +14,8 @@ func TestPostgresOperatorRejectsUnsafeInputs(t *testing.T) {
 		{"install-register", "--database", "postgres:/private/dsn", "extra"},
 		{"activate", "--database", "postgres:/private/dsn"},
 		{"activate-canary", "--database", "postgres:/private/dsn"},
+		{"activate-catalogue", "--database", "postgres:/private/dsn"},
+		{"activate-catalogue", "--source", "/source", "--database", "postgres:/private/dsn", "--approval-record", "synthetic"},
 		{"activate-canary", "--source", "/source", "--database", "postgres:/private/dsn", "--approval-record", "synthetic"},
 	} {
 		if err := executePostgresOperator(context.Background(), args, io.Discard); err == nil {
