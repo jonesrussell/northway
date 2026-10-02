@@ -80,6 +80,11 @@ func Run(ctx context.Context, config Config, logger *slog.Logger) error {
 			}
 			if config.CustomerCatalogue == "shared-v1" {
 				catalogue = store.ProvisionCustomerCatalogue
+				if config.PublicPolling {
+					fetcher := fetch.New()
+					publisher = schedule.NewPublicPublisher(func(ctx context.Context) (ingest.Result, error) { return store.RunPublicPollOnce(ctx, fetcher) }, logger)
+					collectionStatus = collectionState(publisher.Status, store.PublicPollHealthy)
+				}
 			}
 			api = httpapi.NewCustomerAPI(identity.NewService(store), verifier, store, query.NewService(store), feedback.NewService(store), catalogue)
 		}

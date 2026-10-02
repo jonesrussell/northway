@@ -27,6 +27,7 @@ type Config struct {
 	AssertionKeys     string // Public verification material only, never private seeds.
 	CustomerCatalogue string
 	CollectionAPI     bool
+	PublicPolling     bool
 }
 
 // ParseConfig applies defaults, explicitly present environment values, then flags.
@@ -47,6 +48,8 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	fs.SetOutput(io.Discard)
 	collectionAPI := false
 	fs.BoolVar(&collectionAPI, "collection-api", false, "enable tenant-scoped agent collection adapter; no grant issuance")
+	publicPolling := false
+	fs.BoolVar(&publicPolling, "public-polling", false, "run approved shared public feeds serially; PostgreSQL shared-v1 only")
 	fs.StringVar(&listen, "listen", listen, "IP:port to listen on")
 	fs.StringVar(&database, "database", database, "migrated SQLite file or postgres: private connection-file path; empty disables storage")
 	fs.StringVar(&shutdown, "shutdown-timeout", shutdown, "maximum drain time")
@@ -76,6 +79,7 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 	}
 	config := Config{DatabasePath: database, ListenAddress: listen, ShutdownTimeout: timeout, LogLevel: logLevel, PollTenant: identity.TenantID(pollTenant)}
 	config.CollectionAPI = collectionAPI
+	config.PublicPolling = publicPolling
 	config.AssertionIssuer = env("NORTHCLOUD_ASSERTION_ISSUER", "")
 	config.AssertionAudience = env("NORTHCLOUD_ASSERTION_AUDIENCE", "")
 	config.AssertionKeys = env("NORTHCLOUD_ASSERTION_KEYS", "")
@@ -84,6 +88,9 @@ func ParseConfig(args []string, lookup func(string) (string, bool), output io.Wr
 }
 
 func (c Config) Validate() error {
+	if c.PublicPolling && (c.CustomerCatalogue != "shared-v1" || !strings.HasPrefix(c.DatabasePath, "postgres:") || c.PollTenant != "") {
+		return errors.New("public polling requires shared-v1 PostgreSQL and no tenant polling")
+	}
 	if c.CollectionAPI && c.DatabasePath == "" {
 		return errors.New("collection API requires migrated storage")
 	}
@@ -149,8 +156,9 @@ const serveHelp = `Usage: northway serve [flags]
   --shutdown-timeout 10s    allowed 1s..1m; NORTHWAY_SHUTDOWN_TIMEOUT
   --log-level info          debug|info|warn|error; NORTHWAY_LOG_LEVEL
   --poll-tenant UUID        enable serial polling for one provisioned tenant; NORTHWAY_POLL_TENANT
+  --public-polling          enable serial shared PostgreSQL polling; no tenant or grant
 Flags override explicitly present environment values. Port 0 is allowed for local tests.
-Polling is disabled when poll-tenant is empty. It never enables a source or bypasses stored policy.
+Polling is disabled when poll-tenant is empty and public-polling is absent. It never enables a source or bypasses stored policy.
 Readiness requires configured, usable storage.
 `
 

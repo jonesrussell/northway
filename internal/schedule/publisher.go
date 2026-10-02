@@ -48,8 +48,7 @@ func (s State) String() string {
 // Publisher runs the existing one-request ingestion transaction serially.
 // Poll policy, leases, budgets and next-eligible times remain database-owned.
 type Publisher struct {
-	runner          pollRunner
-	principal       identity.Principal
+	runOnce         func(context.Context) (ingest.Result, error)
 	logger          *slog.Logger
 	state           atomic.Uint32
 	wait            func(context.Context, time.Duration) bool
@@ -59,12 +58,17 @@ type Publisher struct {
 }
 
 func NewPublisher(runner pollRunner, principal identity.Principal, logger *slog.Logger, maintain func(context.Context) error) *Publisher {
-	p := &Publisher{runner: runner, principal: principal, logger: logger, wait: waitContext, maintain: maintain, now: time.Now}
+	p := &Publisher{runOnce: func(ctx context.Context) (ingest.Result, error) { return runner.RunOnce(ctx, principal) }, logger: logger, wait: waitContext, maintain: maintain, now: time.Now}
 	p.state.Store(uint32(StateIdle))
 	return p
 }
 
 func (p *Publisher) Status() string { return State(p.state.Load()).String() }
+
+// NewPublicPublisher reuses the serial loop without inventing a tenant identity.
+func NewPublicPublisher(runOnce func(context.Context) (ingest.Result, error), logger *slog.Logger) *Publisher {
+	return &Publisher{runOnce: runOnce, logger: logger, wait: waitContext, now: time.Now}
+}
 
 // Run owns one serial loop. It never enables sources, retries a fetch, or
 // derives future work from missed intervals; ClaimPoll decides what is due.
@@ -94,7 +98,7 @@ func (p *Publisher) Run(ctx context.Context) error {
 			}
 		}
 		p.state.Store(uint32(StatePolling))
-		result, err := p.runner.RunOnce(ctx, p.principal)
+		result, err := p.runOnce(ctx)
 		if ctx.Err() != nil {
 			p.state.Store(uint32(StateIdle))
 			return nil

@@ -39,6 +39,7 @@ func TestConfigurationPrecedenceAndValidation(t *testing.T) {
 		{name: "hostname is not an IP", args: []string{"--listen=example.com:80"}, invalid: true},
 		{name: "unexpected argument", args: []string{"something"}, invalid: true},
 		{name: "unknown option", args: []string{"--token=do-not-print"}, invalid: true},
+		{name: "public polling requires shared PostgreSQL", args: []string{"--public-polling"}, invalid: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

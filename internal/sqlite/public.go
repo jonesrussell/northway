@@ -301,6 +301,13 @@ ON CONFLICT(source_id,origin_id) DO UPDATE SET url=excluded.url,title=excluded.t
 			return e
 		}
 		u, _ := url.Parse(rawURL)
+		// An access denial stops this source until a fresh operator decision.
+		// Settle its charge first; policy triggers revoke shared visibility.
+		if r.Status == 401 || r.Status == 403 {
+			if _, e = tx.ExecContext(ctx, `UPDATE public_sources SET enabled=0,policy_revision=policy_revision+1 WHERE id=$1`, source); e != nil {
+				return e
+			}
+		}
 		_, e = tx.ExecContext(ctx, `UPDATE collection_hosts SET next_at=greatest($2::bigint,$3::bigint) WHERE host=$1`, u.Hostname(), now.Add(10*time.Second).UnixMicro(), hold)
 		return e
 	})

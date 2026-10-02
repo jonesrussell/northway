@@ -21,6 +21,7 @@ func executePostgresOperator(ctx context.Context, args []string, out io.Writer) 
 	f.SetOutput(out)
 	source := f.String("source", "", "paused SQLite source (import only)")
 	database := f.String("database", "", "postgres:/absolute/private/connection-file")
+	approval := f.String("approval-record", "", "explicit owner authorization for metadata-only canary activation")
 	if err := f.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return nil
@@ -32,7 +33,24 @@ func executePostgresOperator(ctx context.Context, args []string, out io.Writer) 
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
+	if args[0] != "activate-canary" && *approval != "" {
+		return errors.New("approval record is only valid for canary activation")
+	}
 	switch args[0] {
+	case "activate-canary":
+		if *source != "" || *approval == "" {
+			return errors.New("activation requires approval record and no import source")
+		}
+		store, err := sqlite.Open(ctx, *database)
+		if err != nil {
+			return err
+		}
+		defer store.Close()
+		count, err := store.ActivatePublicCanary(ctx, *approval)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(out).Encode(map[string]any{"enabled": count, "interval_seconds": 86400, "metadata_only": true})
 	case "import":
 		if *source == "" {
 			return errors.New("paused SQLite source required")
