@@ -1,4 +1,4 @@
-FROM php:8.5-fpm-alpine@sha256:fa01fb1645cd0fc566a5f146b099adace33b906571f972f71f2182a7c12d1cd7 AS base
+FROM php:8.5.12-fpm-alpine3.24@sha256:4c9541a4506014672d074652a1cc9754d3c5f97cad6c6027bae35be0e4a4dea9 AS base
 RUN apk add --no-cache icu-libs libzip su-exec \
  && apk add --no-cache --virtual .build-deps icu-dev libzip-dev \
  && docker-php-ext-install intl zip && apk del .build-deps
